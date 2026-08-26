@@ -1,0 +1,15 @@
+.recovery-back {
+  align-items: center;
+  color: #74665e;
+  display: flex;
+  font-size: 0.8rem;
+  font-weight: 700;
+  gap: 0.45rem;
+  justify-content: center;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.recovery-back:hover {
+  color: #b85c38;
+}

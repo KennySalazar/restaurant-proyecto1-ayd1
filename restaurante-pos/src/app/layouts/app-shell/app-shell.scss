@@ -1,0 +1,404 @@
+.app-shell {
+  --restaurant-dark: #2f241f;
+  --restaurant-dark-soft: #3b2c25;
+  --restaurant-accent: #b85c38;
+  --restaurant-accent-dark: #97472c;
+  --restaurant-gold: #d4a373;
+  --restaurant-cream: #f7f2ec;
+  --restaurant-cream-soft: #fcfaf7;
+  --restaurant-border: #e7ddd3;
+  --restaurant-muted: #7b6c64;
+  --restaurant-text: #2f2926;
+
+  background: var(--restaurant-cream);
+  display: flex;
+  min-height: 100vh;
+}
+
+/* ==========================================
+   SIDEBAR
+   ========================================== */
+
+.app-shell__sidebar {
+  background:
+    linear-gradient(
+      180deg,
+      var(--restaurant-dark) 0%,
+      #352720 60%,
+      #281e1a 100%
+    );
+  box-shadow: 8px 0 30px rgba(47, 36, 31, 0.06);
+  color: #ffffff;
+  display: flex;
+  flex: 0 0 18.5rem;
+  flex-direction: column;
+  min-height: 100vh;
+  overflow: hidden;
+  padding: 1.7rem 1.15rem 1.25rem;
+  position: relative;
+  z-index: 20;
+}
+
+.app-shell__sidebar::before {
+  border: 1px solid rgba(212, 163, 115, 0.09);
+  border-radius: 50%;
+  content: '';
+  height: 18rem;
+  pointer-events: none;
+  position: absolute;
+  right: -10rem;
+  top: -9rem;
+  width: 18rem;
+}
+
+.app-shell__brand-row {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  min-height: 3.4rem;
+  padding: 0 0.55rem;
+  position: relative;
+  z-index: 1;
+}
+
+/* ==========================================
+   PERFIL
+   ========================================== */
+
+.app-shell__profile {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.055);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 1rem;
+  display: flex;
+  gap: 0.85rem;
+  margin: 2rem 0 1.8rem;
+  padding: 0.9rem;
+  position: relative;
+  z-index: 1;
+}
+
+.profile-avatar {
+  align-items: center;
+  background: linear-gradient(
+    135deg,
+    var(--restaurant-accent),
+    var(--restaurant-gold)
+  );
+  border-radius: 50%;
+  color: #ffffff;
+  display: inline-flex;
+  flex: 0 0 2.7rem;
+  font-size: 0.72rem;
+  font-weight: 800;
+  height: 2.7rem;
+  justify-content: center;
+  letter-spacing: 0.03em;
+  width: 2.7rem;
+}
+
+.app-shell__profile div {
+  display: grid;
+  gap: 0.22rem;
+  min-width: 0;
+}
+
+.app-shell__profile strong,
+.app-shell__profile div span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-shell__profile strong {
+  color: #ffffff;
+  font-size: 0.73rem;
+  font-weight: 600;
+}
+
+.app-shell__profile div span {
+  color: var(--restaurant-gold);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* ==========================================
+   NAVEGACIÓN
+   ========================================== */
+
+.app-shell__nav {
+  display: grid;
+  gap: 0.35rem;
+  position: relative;
+  z-index: 1;
+}
+
+.app-shell__nav-label {
+  color: rgba(255, 255, 255, 0.38);
+  font-size: 0.61rem;
+  font-weight: 700;
+  letter-spacing: 0.17em;
+  margin: 0 0.75rem 0.65rem;
+  text-transform: uppercase;
+}
+
+.shell-nav-link,
+.shell-logout {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 0.8rem;
+  color: rgba(255, 255, 255, 0.62);
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  font-size: 0.82rem;
+  gap: 0.85rem;
+  min-height: 2.85rem;
+  padding: 0.7rem 0.8rem;
+  position: relative;
+  text-align: left;
+  text-decoration: none;
+  transition:
+    background-color 0.18s ease,
+    color 0.18s ease,
+    transform 0.18s ease;
+  width: 100%;
+}
+
+.shell-nav-link i,
+.shell-logout i {
+  align-items: center;
+  display: inline-flex;
+  font-size: 0.88rem;
+  justify-content: center;
+  width: 1.15rem;
+}
+
+.shell-nav-link:hover,
+.shell-logout:hover {
+  background: rgba(255, 255, 255, 0.065);
+  color: #ffffff;
+}
+
+.shell-nav-link:hover {
+  transform: translateX(2px);
+}
+
+.shell-nav-link.is-active {
+  background: #ffffff;
+  box-shadow: 0 8px 22px rgba(18, 12, 9, 0.16);
+  color: var(--restaurant-dark);
+  font-weight: 650;
+}
+
+.shell-nav-link.is-active i {
+  color: var(--restaurant-accent);
+}
+
+.shell-nav-link.is-active::before {
+  background: var(--restaurant-accent);
+  border-radius: 999px;
+  content: '';
+  height: 1.35rem;
+  left: 0.25rem;
+  position: absolute;
+  width: 0.18rem;
+}
+
+/* ==========================================
+   CERRAR SESIÓN
+   ========================================== */
+
+.shell-logout {
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0;
+  color: rgba(255, 255, 255, 0.55);
+  margin-top: auto;
+  padding: 1.15rem 0.8rem 0.65rem;
+}
+
+.shell-logout:hover {
+  background: transparent;
+  color: #ffffff;
+}
+
+.shell-logout i {
+  color: var(--restaurant-gold);
+}
+
+/* ==========================================
+   CONTENIDO
+   ========================================== */
+
+.app-shell__body {
+  background: var(--restaurant-cream-soft);
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* ==========================================
+   TOPBAR
+   ========================================== */
+
+.app-shell__topbar {
+  align-items: center;
+  backdrop-filter: blur(14px);
+  background: rgba(255, 255, 255, 0.88);
+  border-bottom: 1px solid var(--restaurant-border);
+  display: flex;
+  height: 4.6rem;
+  justify-content: space-between;
+  padding: 0 2.5rem;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.topbar-context {
+  color: var(--restaurant-dark);
+  font-size: 0.69rem;
+  font-weight: 800;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+.topbar-status {
+  align-items: center;
+  background: var(--restaurant-cream);
+  border: 1px solid var(--restaurant-border);
+  border-radius: 999px;
+  color: var(--restaurant-muted);
+  display: flex;
+  font-size: 0.68rem;
+  gap: 0.55rem;
+  padding: 0.45rem 0.8rem;
+}
+
+.status-dot {
+  background: #6b7a52;
+  border-radius: 50%;
+  box-shadow: 0 0 0 0.22rem rgba(107, 122, 82, 0.12);
+  height: 0.4rem;
+  width: 0.4rem;
+}
+
+/* ==========================================
+   BOTONES DEL SHELL
+   ========================================== */
+
+.icon-button {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 0.65rem;
+  color: currentColor;
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 1rem;
+  height: 2.3rem;
+  justify-content: center;
+  transition: background-color 0.18s ease;
+  width: 2.3rem;
+}
+
+.icon-button:hover {
+  background: rgba(184, 92, 56, 0.08);
+}
+
+.shell-menu,
+.shell-close {
+  display: none;
+}
+
+/* ==========================================
+   ÁREA PRINCIPAL
+   ========================================== */
+
+.app-shell__content {
+  margin: 0 auto;
+  max-width: 94rem;
+  padding:
+    clamp(2rem, 4vw, 3.7rem)
+    clamp(1.5rem, 4vw, 4rem);
+  width: 100%;
+}
+
+/* ==========================================
+   BACKDROP MÓVIL
+   ========================================== */
+
+.shell-backdrop {
+  background: rgba(35, 25, 21, 0.48);
+  backdrop-filter: blur(2px);
+  border: 0;
+  inset: 0;
+  position: fixed;
+  z-index: 15;
+}
+
+/* ==========================================
+   RESPONSIVE
+   ========================================== */
+
+@media (max-width: 900px) {
+  .app-shell__sidebar {
+    bottom: 0;
+    box-shadow: 20px 0 50px rgba(47, 36, 31, 0.2);
+    left: 0;
+    position: fixed;
+    top: 0;
+    transform: translateX(-105%);
+    transition: transform 0.2s ease;
+    width: min(18.5rem, 88vw);
+  }
+
+  .app-shell__sidebar.is-open {
+    transform: translateX(0);
+  }
+
+  .shell-menu,
+  .shell-close {
+    display: inline-flex;
+  }
+
+  .shell-menu {
+    color: var(--restaurant-dark);
+  }
+
+  .shell-close {
+    color: rgba(255, 255, 255, 0.8);
+  }
+
+  .app-shell__topbar {
+    padding: 0 1.25rem;
+  }
+
+  .topbar-context {
+    margin-right: auto;
+    padding-left: 0.75rem;
+  }
+
+  .topbar-status {
+    display: none;
+  }
+}
+
+@media (max-width: 560px) {
+  .app-shell__topbar {
+    height: 4.2rem;
+  }
+
+  .topbar-context {
+    font-size: 0.62rem;
+    letter-spacing: 0.1em;
+  }
+
+  .app-shell__content {
+    padding: 1.5rem 1rem 2.5rem;
+  }
+}

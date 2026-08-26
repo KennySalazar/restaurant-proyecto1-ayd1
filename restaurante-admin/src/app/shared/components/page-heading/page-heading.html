@@ -1,0 +1,9 @@
+<header class="page-heading">
+  @if (eyebrowKey) {
+    <span class="page-heading__eyebrow">{{ eyebrowKey | transloco }}</span>
+  }
+  <h1>{{ titleKey | transloco }}</h1>
+  @if (descriptionKey) {
+    <p>{{ descriptionKey | transloco }}</p>
+  }
+</header>

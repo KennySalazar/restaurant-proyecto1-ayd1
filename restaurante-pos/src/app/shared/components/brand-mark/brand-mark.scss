@@ -1,0 +1,50 @@
+.brand-mark {
+  align-items: center;
+  color: inherit;
+  display: inline-flex;
+  gap: 0.8rem;
+  text-decoration: none;
+}
+
+.brand-mark__symbol {
+  align-items: center;
+  background: linear-gradient(135deg, #b85c38, #d4a373);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 50%;
+  box-shadow: 0 8px 20px rgba(184, 92, 56, 0.2);
+  color: #ffffff;
+  display: inline-flex;
+  font-size: 1rem;
+  font-weight: 800;
+  height: 2.8rem;
+  justify-content: center;
+  letter-spacing: -0.04em;
+  width: 2.8rem;
+}
+
+.brand-mark__copy {
+  display: grid;
+  gap: 0.12rem;
+}
+
+.brand-mark__copy strong {
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+}
+
+.brand-mark__copy small {
+  color: currentColor;
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  opacity: 0.55;
+  text-transform: uppercase;
+}
+
+@media (max-width: 560px) {
+  .brand-mark__symbol {
+    height: 2.6rem;
+    width: 2.6rem;
+  }
+}

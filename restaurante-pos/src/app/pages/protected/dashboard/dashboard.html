@@ -1,0 +1,99 @@
+@if (session.user(); as user) {
+  <app-page-heading
+    eyebrowKey="dashboard.eyebrow"
+    titleKey="dashboard.title"
+    descriptionKey="dashboard.description"
+  />
+
+  <section class="welcome-panel">
+    <div>
+      <span class="welcome-panel__label">
+        {{ 'dashboard.welcomeLabel' | transloco }}
+      </span>
+
+      <h2>{{ user.email }}</h2>
+
+      <p>
+        {{ 'dashboard.welcomeDescription' | transloco }}
+      </p>
+    </div>
+
+    <span class="role-pill">
+      <i class="pi pi-user"></i>
+      {{ roleKey() | transloco }}
+    </span>
+  </section>
+
+  <section
+    class="dashboard-grid"
+    aria-label="Resumen de cuenta"
+  >
+    <article class="metric-card metric-card--accent">
+      <span class="metric-card__icon">
+        <i class="pi pi-check"></i>
+      </span>
+
+      <div>
+        <span>{{ 'dashboard.accountStatus' | transloco }}</span>
+        <strong>{{ 'dashboard.active' | transloco }}</strong>
+      </div>
+    </article>
+
+    <article class="metric-card">
+      <span class="metric-card__icon">
+        <i class="pi pi-id-card"></i>
+      </span>
+
+      <div>
+        <span>{{ 'dashboard.accessLevel' | transloco }}</span>
+        <strong>{{ roleKey() | transloco }}</strong>
+      </div>
+    </article>
+  </section>
+
+  <section class="quick-actions">
+    <div class="section-heading">
+      <div>
+        <span class="section-heading__eyebrow">
+          {{ 'dashboard.nextEyebrow' | transloco }}
+        </span>
+
+        <h2>
+          {{ 'dashboard.nextTitle' | transloco }}
+        </h2>
+      </div>
+    </div>
+
+    <div class="action-grid">
+      <a
+        class="action-card"
+        routerLink="/app/security"
+      >
+        <span class="action-card__icon">
+          <i class="pi pi-lock"></i>
+        </span>
+
+        <span>
+          <strong>
+            {{ 'dashboard.securityAction' | transloco }}
+          </strong>
+
+          <small>
+            {{ 'dashboard.securityDescription' | transloco }}
+          </small>
+        </span>
+
+        <i class="pi pi-arrow-up-right action-card__arrow"></i>
+      </a>
+
+    </div>
+  </section>
+} @else {
+  <div class="empty-state">
+    <i class="pi pi-spin pi-spinner"></i>
+
+    <p>
+      {{ 'common.loading' | transloco }}
+    </p>
+  </div>
+}

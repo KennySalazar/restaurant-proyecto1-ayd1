@@ -1,0 +1,280 @@
+<app-page-heading
+  eyebrowKey="security.eyebrow"
+  titleKey="security.title"
+  descriptionKey="security.description"
+/>
+
+<div class="settings-grid">
+  <section class="settings-card">
+    <div class="settings-card__heading">
+      <span class="settings-card__icon">
+        <i class="pi pi-key"></i>
+      </span>
+
+      <div>
+        <span class="settings-card__eyebrow">
+          {{ 'security.password.eyebrow' | transloco }}
+        </span>
+
+        <h2>
+          {{ 'security.password.title' | transloco }}
+        </h2>
+      </div>
+    </div>
+
+    <p class="settings-card__description">
+      {{ 'security.password.description' | transloco }}
+    </p>
+
+    <app-form-feedback [message]="errorMessage()" />
+
+    <app-form-feedback
+      [message]="successMessage()"
+      tone="success"
+    />
+
+    <form
+      class="auth-form"
+      [formGroup]="passwordForm"
+      (ngSubmit)="submitPasswordChange()"
+      novalidate
+    >
+      <div class="form-field">
+        <label for="current-password">
+          {{ 'security.password.current' | transloco }}
+        </label>
+
+        <input
+          id="current-password"
+          pInputText
+          type="password"
+          formControlName="currentPassword"
+          autocomplete="current-password"
+        />
+
+        <app-field-error
+          [control]="passwordForm.controls.currentPassword"
+          [submitted]="submitted()"
+        />
+      </div>
+
+      <div class="form-field">
+        <label for="new-password">
+          {{ 'security.password.new' | transloco }}
+        </label>
+
+        <input
+          id="new-password"
+          pInputText
+          type="password"
+          formControlName="newPassword"
+          autocomplete="new-password"
+        />
+
+        <app-field-error
+          [control]="passwordForm.controls.newPassword"
+          [submitted]="submitted()"
+          kind="password"
+        />
+
+        <small class="field-hint">
+          {{ 'auth.fields.passwordHint' | transloco }}
+        </small>
+      </div>
+
+      <button
+        class="secondary-button"
+        type="submit"
+        [disabled]="submitting()"
+      >
+        @if (submitting()) {
+          <i class="pi pi-spin pi-spinner"></i>
+        }
+
+        <span>
+          {{ 'security.password.submit' | transloco }}
+        </span>
+      </button>
+    </form>
+  </section>
+
+  <section class="settings-card">
+    <div class="settings-card__heading">
+      <span class="settings-card__icon">
+        <i class="pi pi-shield"></i>
+      </span>
+
+      <div>
+        <span class="settings-card__eyebrow">
+          Seguridad adicional
+        </span>
+
+        <h2>
+          Autenticación de dos factores
+        </h2>
+      </div>
+    </div>
+
+    <p class="settings-card__description">
+      Protege tu cuenta solicitando un código enviado a tu correo
+      electrónico después de ingresar tu contraseña.
+    </p>
+
+    <div
+      class="two-factor-status"
+      [class.two-factor-status--enabled]="
+        session.currentUser?.twoFactorEnabled
+      "
+    >
+      <span class="two-factor-status__icon">
+        @if (session.currentUser?.twoFactorEnabled) {
+          <i class="pi pi-check-circle"></i>
+        } @else {
+          <i class="pi pi-info-circle"></i>
+        }
+      </span>
+
+      <div>
+        <small>Estado actual</small>
+
+        <strong>
+          @if (session.currentUser?.twoFactorEnabled) {
+            Activada
+          } @else {
+            Desactivada
+          }
+        </strong>
+      </div>
+    </div>
+
+    <app-form-feedback
+      [message]="twoFactorError()"
+    />
+
+    <app-form-feedback
+      [message]="twoFactorSuccess()"
+      tone="success"
+    />
+
+    @if (!pendingAction()) {
+      <form
+        class="auth-form"
+        [formGroup]="twoFactorPasswordForm"
+        (ngSubmit)="requestTwoFactorChange()"
+        novalidate
+      >
+        <div class="form-field">
+          <label for="two-factor-password">
+            Confirma tu contraseña
+          </label>
+
+          <input
+            id="two-factor-password"
+            pInputText
+            type="password"
+            formControlName="currentPassword"
+            autocomplete="current-password"
+          />
+
+          <app-field-error
+            [control]="twoFactorPasswordForm.controls.currentPassword"
+            [submitted]="twoFactorSubmitted()"
+          />
+        </div>
+
+        <button
+          class="secondary-button"
+          [class.secondary-button--danger]="
+            session.currentUser?.twoFactorEnabled
+          "
+          type="submit"
+          [disabled]="twoFactorSubmitting()"
+        >
+          @if (twoFactorSubmitting()) {
+            <i class="pi pi-spin pi-spinner"></i>
+          } @else {
+            @if (session.currentUser?.twoFactorEnabled) {
+              <i class="pi pi-shield"></i>
+            } @else {
+              <i class="pi pi-shield"></i>
+            }
+          }
+
+          <span>
+            @if (session.currentUser?.twoFactorEnabled) {
+              Desactivar 2FA
+            } @else {
+              Activar 2FA
+            }
+          </span>
+        </button>
+      </form>
+    } @else {
+      <div class="two-factor-verification">
+        <div class="two-factor-verification__notice">
+          <i class="pi pi-envelope"></i>
+
+          <div>
+            <strong>Código enviado</strong>
+            <p>
+              Revisa tu correo electrónico e ingresa el código
+              de 6 dígitos para confirmar la operación.
+            </p>
+          </div>
+        </div>
+
+        <form
+          class="auth-form"
+          [formGroup]="twoFactorOtpForm"
+          (ngSubmit)="confirmTwoFactorChange()"
+          novalidate
+        >
+          <div class="form-field">
+            <label for="two-factor-otp">
+              Código de verificación
+            </label>
+
+            <input
+              id="two-factor-otp"
+              class="otp-input"
+              pInputText
+              type="text"
+              inputmode="numeric"
+              maxlength="6"
+              autocomplete="one-time-code"
+              formControlName="otp"
+            />
+
+            <app-field-error
+              [control]="twoFactorOtpForm.controls.otp"
+              [submitted]="twoFactorSubmitted()"
+            />
+          </div>
+
+          <button
+            class="secondary-button"
+            type="submit"
+            [disabled]="twoFactorSubmitting()"
+          >
+            @if (twoFactorSubmitting()) {
+              <i class="pi pi-spin pi-spinner"></i>
+            } @else {
+              <i class="pi pi-check"></i>
+            }
+
+            <span>Confirmar código</span>
+          </button>
+
+          <button
+            class="text-button"
+            type="button"
+            (click)="cancelTwoFactorChallenge()"
+            [disabled]="twoFactorSubmitting()"
+          >
+            Cancelar
+          </button>
+        </form>
+      </div>
+    }
+  </section>
+</div>

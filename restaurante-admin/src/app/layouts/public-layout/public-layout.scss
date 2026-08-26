@@ -1,0 +1,340 @@
+.public-layout {
+  --restaurant-dark: #2f241f;
+  --restaurant-dark-soft: #3d2d26;
+  --restaurant-accent: #b85c38;
+  --restaurant-accent-soft: #c97856;
+  --restaurant-gold: #d4a373;
+  --restaurant-cream: #f7f2ec;
+  --restaurant-cream-dark: #eee5dc;
+  --restaurant-white: #ffffff;
+
+  background: var(--restaurant-cream);
+  display: grid;
+  min-height: 100vh;
+}
+
+/* =========================
+   PANEL IZQUIERDO
+   ========================= */
+
+.public-layout__aside {
+  background:
+    linear-gradient(
+      145deg,
+      var(--restaurant-dark) 0%,
+      #382820 55%,
+      #4a3025 100%
+    );
+  color: #ffffff;
+  min-height: 100vh;
+  overflow: hidden;
+  padding: clamp(2rem, 5vw, 4.5rem);
+  position: relative;
+}
+
+.public-layout__aside-content {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: calc(100vh - clamp(4rem, 10vw, 9rem));
+  position: relative;
+  z-index: 2;
+}
+
+.public-layout__brand {
+  margin-bottom: auto;
+  position: relative;
+  z-index: 3;
+}
+
+/* =========================
+   MENSAJE PRINCIPAL
+   ========================= */
+
+.public-layout__message {
+  margin: clamp(3rem, 8vh, 6rem) 0 2.5rem;
+  max-width: 35rem;
+}
+
+.public-layout__kicker {
+  align-items: center;
+  color: var(--restaurant-gold);
+  display: flex;
+  font-size: 0.68rem;
+  font-weight: 800;
+  gap: 0.7rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.public-layout__kicker::before {
+  background: var(--restaurant-accent);
+  border-radius: 999px;
+  content: '';
+  height: 0.2rem;
+  width: 2.2rem;
+}
+
+.public-layout__message h2 {
+  color: #ffffff;
+  font-size: clamp(2.15rem, 3.8vw, 3.7rem);
+  font-weight: 600;
+  letter-spacing: -0.045em;
+  line-height: 1.05;
+  margin: 1.2rem 0 1.4rem;
+  max-width: 15ch;
+}
+
+.public-layout__message p {
+  color: rgba(255, 255, 255, 0.67);
+  font-size: clamp(0.9rem, 1.5vw, 1rem);
+  line-height: 1.75;
+  margin: 0;
+  max-width: 31rem;
+}
+
+/* =========================
+   MÓDULOS
+   ========================= */
+
+.public-layout__modules {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  margin-bottom: 2.5rem;
+  max-width: 31rem;
+}
+
+.module-pill {
+  align-items: center;
+  backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  border-radius: 999px;
+  color: rgba(255, 255, 255, 0.85);
+  display: flex;
+  font-size: 0.75rem;
+  font-weight: 600;
+  gap: 0.5rem;
+  padding: 0.48rem 0.8rem 0.48rem 0.5rem;
+}
+
+.module-pill__icon {
+  align-items: center;
+  background: rgba(212, 163, 115, 0.15);
+  border-radius: 50%;
+  color: var(--restaurant-gold);
+  display: flex;
+  height: 1.8rem;
+  justify-content: center;
+  width: 1.8rem;
+}
+
+.module-pill__icon i {
+  font-size: 0.72rem;
+}
+
+/* =========================
+   SEGURIDAD
+   ========================= */
+
+.public-layout__note {
+  align-items: center;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  gap: 0.9rem;
+  margin-top: auto;
+  max-width: 31rem;
+  padding-top: 1.5rem;
+}
+
+.public-layout__note-icon {
+  align-items: center;
+  background: rgba(184, 92, 56, 0.15);
+  border: 1px solid rgba(212, 163, 115, 0.25);
+  border-radius: 0.8rem;
+  color: var(--restaurant-gold);
+  display: flex;
+  flex: 0 0 2.7rem;
+  height: 2.7rem;
+  justify-content: center;
+}
+
+.public-layout__note > div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.public-layout__note strong {
+  color: #ffffff;
+  font-size: 0.76rem;
+}
+
+.public-layout__note div span {
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 0.68rem;
+  line-height: 1.5;
+}
+
+/* =========================
+   DECORACIÓN
+   ========================= */
+
+.public-layout__decoration {
+  border-radius: 50%;
+  pointer-events: none;
+  position: absolute;
+}
+
+.public-layout__decoration--one {
+  border: 1px solid rgba(212, 163, 115, 0.16);
+  height: 27rem;
+  right: -13rem;
+  top: -10rem;
+  width: 27rem;
+}
+
+.public-layout__decoration--one::before {
+  border: 1px solid rgba(184, 92, 56, 0.2);
+  border-radius: inherit;
+  content: '';
+  inset: 3rem;
+  position: absolute;
+}
+
+.public-layout__decoration--two {
+  background: rgba(184, 92, 56, 0.08);
+  bottom: -10rem;
+  height: 23rem;
+  left: -10rem;
+  width: 23rem;
+}
+
+/* =========================
+   PANEL DERECHO
+   ========================= */
+
+.public-layout__main {
+  align-items: center;
+  background:
+    radial-gradient(
+      circle at 90% 10%,
+      rgba(212, 163, 115, 0.12),
+      transparent 25rem
+    ),
+    var(--restaurant-cream);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+  padding: clamp(2rem, 5vw, 5rem);
+  position: relative;
+}
+
+.public-layout__form-wrapper {
+  display: block;
+  max-width: 34rem;
+  width: 100%;
+}
+
+.public-layout__form-wrapper > router-outlet + * {
+  display: block;
+  width: 100%;
+}
+
+.public-layout__mobile-brand {
+  display: none;
+  margin-bottom: 2rem;
+  max-width: 34rem;
+  width: 100%;
+}
+
+.public-layout footer {
+  color: #94847a;
+  font-size: 0.68rem;
+  letter-spacing: 0.025em;
+  margin-top: 2rem;
+  text-align: center;
+}
+
+/* =========================
+   RESPONSIVE
+   ========================= */
+
+@media (min-width: 950px) {
+  .public-layout {
+    grid-template-columns:
+      minmax(25rem, 0.95fr)
+      minmax(32rem, 1.05fr);
+  }
+}
+
+@media (min-width: 1250px) {
+  .public-layout {
+    grid-template-columns:
+      minmax(34rem, 1fr)
+      minmax(38rem, 1fr);
+  }
+}
+
+@media (max-width: 949px) {
+  .public-layout {
+    display: block;
+  }
+
+  .public-layout__aside {
+    min-height: auto;
+    padding: 2.5rem;
+  }
+
+  .public-layout__aside-content {
+    min-height: auto;
+  }
+
+  .public-layout__brand {
+    margin-bottom: 2.5rem;
+  }
+
+  .public-layout__message {
+    margin: 0 0 2rem;
+  }
+
+  .public-layout__message h2 {
+    font-size: clamp(2.6rem, 9vw, 4.5rem);
+    max-width: 12ch;
+  }
+
+  .public-layout__note {
+    margin-top: 1rem;
+  }
+
+  .public-layout__main {
+    min-height: auto;
+    padding: 3.5rem 2rem;
+  }
+}
+
+@media (max-width: 600px) {
+  .public-layout__aside {
+    display: none;
+  }
+
+  .public-layout__main {
+    justify-content: flex-start;
+    min-height: 100vh;
+    padding: 1.5rem;
+  }
+
+  .public-layout__mobile-brand {
+    display: block;
+  }
+
+  .public-layout__form-wrapper {
+    margin: auto 0;
+  }
+
+  .public-layout footer {
+    margin-bottom: 0.5rem;
+  }
+}

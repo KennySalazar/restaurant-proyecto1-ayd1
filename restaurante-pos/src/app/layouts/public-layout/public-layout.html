@@ -1,0 +1,83 @@
+<div class="public-layout">
+  <aside class="public-layout__aside">
+    <div class="public-layout__aside-content">
+      <div class="public-layout__brand">
+        <app-brand-mark />
+      </div>
+
+      <div class="public-layout__message">
+        <span class="public-layout__kicker">
+          {{ 'brand.kicker' | transloco }}
+        </span>
+
+        <h2>
+          {{ 'publicLayout.title' | transloco }}
+        </h2>
+
+        <p>
+          {{ 'publicLayout.description' | transloco }}
+        </p>
+      </div>
+
+      <div class="public-layout__modules">
+        <div class="module-pill">
+          <span class="module-pill__icon">
+            <i class="pi pi-th-large"></i>
+          </span>
+          <span>Mesas</span>
+        </div>
+
+        <div class="module-pill">
+          <span class="module-pill__icon">
+            <i class="pi pi-receipt"></i>
+          </span>
+          <span>Comandas</span>
+        </div>
+
+        <div class="module-pill">
+          <span class="module-pill__icon">
+            <i class="pi pi-clock"></i>
+          </span>
+          <span>Cocina</span>
+        </div>
+
+        <div class="module-pill">
+          <span class="module-pill__icon">
+            <i class="pi pi-credit-card"></i>
+          </span>
+          <span>Caja</span>
+        </div>
+      </div>
+
+      <div class="public-layout__note">
+        <span class="public-layout__note-icon">
+          <i class="pi pi-shield"></i>
+        </span>
+
+        <div>
+          <strong>Acceso protegido</strong>
+          <span>
+            {{ 'publicLayout.securityNote' | transloco }}
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <div class="public-layout__decoration public-layout__decoration--one"></div>
+    <div class="public-layout__decoration public-layout__decoration--two"></div>
+  </aside>
+
+  <main class="public-layout__main">
+    <div class="public-layout__mobile-brand">
+      <app-brand-mark />
+    </div>
+
+    <div class="public-layout__form-wrapper">
+      <router-outlet />
+    </div>
+
+    <footer>
+      {{ 'brand.footer' | transloco }}
+    </footer>
+  </main>
+</div>

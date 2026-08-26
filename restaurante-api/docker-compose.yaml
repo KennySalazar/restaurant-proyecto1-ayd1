@@ -1,0 +1,16 @@
+# For development purposes only
+services:
+  postgres:
+    image: 'postgres:18'
+    restart: unless-stopped
+    environment:
+      - 'POSTGRES_DB=restaurante_db'
+      - 'POSTGRES_PASSWORD=restaurante_password'
+      - 'POSTGRES_USER=restaurante_user'
+    ports:
+      - '5437:5432'
+    volumes:
+      - pg_restaurante_data:/data/postgres
+
+volumes:
+  pg_restaurante_data:

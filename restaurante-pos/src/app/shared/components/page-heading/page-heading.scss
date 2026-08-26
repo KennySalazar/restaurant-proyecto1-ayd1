@@ -1,0 +1,56 @@
+.page-heading {
+  display: grid;
+  gap: 0.55rem;
+  margin-bottom: 2rem;
+  position: relative;
+}
+
+.page-heading__eyebrow {
+  align-items: center;
+  color: #b85c38;
+  display: flex;
+  font-size: 0.66rem;
+  font-weight: 800;
+  gap: 0.55rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+.page-heading__eyebrow::before {
+  background: #b85c38;
+  border-radius: 999px;
+  content: '';
+  height: 0.18rem;
+  width: 1.6rem;
+}
+
+.page-heading h1 {
+  color: #2f2926;
+  font-size: clamp(2rem, 3.3vw, 2.8rem);
+  font-weight: 650;
+  letter-spacing: -0.055em;
+  line-height: 1;
+  margin: 0.15rem 0 0;
+}
+
+.page-heading p {
+  color: #817169;
+  font-size: 0.92rem;
+  line-height: 1.65;
+  margin: 0;
+  max-width: 45rem;
+}
+
+@media (max-width: 560px) {
+  .page-heading {
+    margin-bottom: 1.5rem;
+  }
+
+  .page-heading h1 {
+    font-size: 2rem;
+  }
+
+  .page-heading p {
+    font-size: 0.85rem;
+  }
+}

@@ -1,0 +1,110 @@
+<section class="auth-page">
+  <div class="auth-page__header">
+    <div class="auth-page__badge" aria-hidden="true">
+      <i class="pi pi-shop"></i>
+    </div>
+
+    <div>
+      <span class="auth-page__kicker">
+        {{ 'auth.login.kicker' | transloco }}
+      </span>
+
+      <h1>{{ 'auth.login.title' | transloco }}</h1>
+    </div>
+  </div>
+
+  <p class="auth-page__intro">
+    {{ 'auth.login.description' | transloco }}
+  </p>
+
+  <div class="auth-page__divider"></div>
+
+  <app-form-feedback [message]="serverMessage()" />
+
+  <form
+    class="auth-form"
+    [formGroup]="form"
+    (ngSubmit)="submit()"
+    novalidate
+  >
+    <div class="form-field">
+      <label for="login-email">
+        {{ 'auth.fields.email' | transloco }}
+      </label>
+
+      <div class="form-field__control">
+        <i class="pi pi-envelope"></i>
+
+        <input
+          id="login-email"
+          pInputText
+          type="email"
+          formControlName="email"
+          autocomplete="username"
+          [placeholder]="'auth.fields.emailPlaceholder' | transloco"
+        />
+      </div>
+
+      <app-field-error
+        [control]="form.controls.email"
+        [submitted]="submitted()"
+      />
+    </div>
+
+    <div class="form-field">
+      <label for="login-password">
+        {{ 'auth.fields.password' | transloco }}
+      </label>
+
+      <div class="form-field__control">
+        <i class="pi pi-lock"></i>
+
+        <input
+          id="login-password"
+          pInputText
+          type="password"
+          formControlName="password"
+          autocomplete="current-password"
+          [placeholder]="'auth.fields.passwordPlaceholder' | transloco"
+        />
+      </div>
+
+      <app-field-error
+        [control]="form.controls.password"
+        [submitted]="submitted()"
+      />
+    </div>
+
+    <div class="forgot-password">
+       <a routerLink="/auth/recovery">
+    ¿Olvidaste tu contraseña?
+      </a>
+    </div>
+
+    <button
+      class="login-submit"
+      type="submit"
+      [disabled]="isSubmitting()"
+    >
+      @if (isSubmitting()) {
+        <i class="pi pi-spin pi-spinner"></i>
+      }
+
+      <span>{{ 'auth.login.submit' | transloco }}</span>
+
+      @if (!isSubmitting()) {
+        <i class="pi pi-arrow-right"></i>
+      }
+    </button>
+  </form>
+
+  <div class="auth-page__footer">
+    <span class="auth-page__footer-icon">
+      <i class="pi pi-shield"></i>
+    </span>
+
+    <div>
+      <strong>Acceso administrativo</strong>
+    </div>
+  </div>
+</section>

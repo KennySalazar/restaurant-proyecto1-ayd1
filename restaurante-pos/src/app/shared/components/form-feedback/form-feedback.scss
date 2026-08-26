@@ -1,0 +1,29 @@
+.form-feedback {
+  align-items: center;
+  background: #f9ebe7;
+  border: 1px solid #efd3c9;
+  border-radius: 0.8rem;
+  color: #a9442e;
+  display: flex;
+  font-size: 0.76rem;
+  gap: 0.65rem;
+  line-height: 1.45;
+  margin: 0.8rem 0;
+  padding: 0.8rem 0.95rem;
+}
+
+.form-feedback i {
+  flex: 0 0 auto;
+  font-size: 0.9rem;
+}
+
+/* Éxito: verde oliva discreto, no verde neón */
+.form-feedback--success {
+  background: #eef1e8;
+  border-color: #d6ddca;
+  color: #5f704b;
+}
+
+.form-feedback--success i {
+  color: #6b7a52;
+}

@@ -1,0 +1,14 @@
+@if (message) {
+  <div
+    class="form-feedback"
+    [class.form-feedback--success]="tone === 'success'"
+    [attr.role]="tone === 'success' ? 'status' : 'alert'"
+  >
+    <i
+      class="pi"
+      [class.pi-check-circle]="tone === 'success'"
+      [class.pi-exclamation-circle]="tone === 'error'"
+    ></i>
+    <span>{{ message }}</span>
+  </div>
+}

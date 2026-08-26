@@ -1,0 +1,21 @@
+<app-page-heading
+  eyebrowKey="admin.eyebrow"
+  titleKey="admin.title"
+  descriptionKey="admin.description"
+/>
+
+<section class="admin-panel">
+  <span class="admin-panel__icon"><i class="pi pi-sliders-h"></i></span>
+  <div>
+    <span class="admin-panel__eyebrow">{{ 'admin.checkLabel' | transloco }}</span>
+    <h2>{{ 'admin.checkTitle' | transloco }}</h2>
+    <p>{{ 'admin.checkDescription' | transloco }}</p>
+    <app-form-feedback [message]="errorMessage()" />
+    <app-form-feedback [message]="successMessage()" tone="success" />
+    @if (isLoading()) {
+      <span class="admin-panel__loading"
+        ><i class="pi pi-spin pi-spinner"></i>{{ 'common.loading' | transloco }}</span
+      >
+    }
+  </div>
+</section>

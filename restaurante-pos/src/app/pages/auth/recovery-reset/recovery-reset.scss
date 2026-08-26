@@ -1,0 +1,50 @@
+.otp-control input {
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: 0.3em;
+  text-align: center;
+}
+
+.password-hint {
+  color: #74665e;
+  font-size: 0.7rem;
+  line-height: 1.5;
+}
+
+.reset-success {
+  align-items: flex-start;
+  background: #eef1e8;
+  border: 1px solid #d6ddca;
+  border-radius: 1rem;
+  display: flex;
+  gap: 0.9rem;
+  margin-bottom: 1.2rem;
+  padding: 1rem;
+}
+
+.reset-success__icon {
+  align-items: center;
+  background: #ffffff;
+  border-radius: 50%;
+  color: #6b7a52;
+  display: flex;
+  flex: 0 0 2.4rem;
+  height: 2.4rem;
+  justify-content: center;
+}
+
+.reset-success strong {
+  color: #405033;
+  font-size: 0.85rem;
+}
+
+.reset-success p {
+  color: #5f704b;
+  font-size: 0.76rem;
+  line-height: 1.5;
+  margin: 0.25rem 0 0;
+}
+
+.reset-login-link {
+  text-decoration: none;
+}

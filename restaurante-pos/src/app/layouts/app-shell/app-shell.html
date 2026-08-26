@@ -1,0 +1,77 @@
+@if (mobileMenuOpen()) {
+  <button
+    class="shell-backdrop"
+    type="button"
+    [attr.aria-label]="'common.closeMenu' | transloco"
+    (click)="closeMobileMenu()"
+  ></button>
+}
+
+<div class="app-shell">
+  <aside id="app-shell-sidebar" class="app-shell__sidebar" [class.is-open]="mobileMenuOpen()">
+    <div class="app-shell__brand-row">
+      <app-brand-mark />
+      <button
+        class="icon-button shell-close"
+        type="button"
+        [attr.aria-label]="'common.closeMenu' | transloco"
+        (click)="closeMobileMenu()"
+      >
+        <i class="pi pi-times"></i>
+      </button>
+    </div>
+
+    <div class="app-shell__profile">
+      <span class="profile-avatar">{{ initials() }}</span>
+      <div>
+        <strong>{{ session.currentUser?.email }}</strong>
+        <span>{{ roleKey() | transloco }}</span>
+      </div>
+    </div>
+
+    <nav class="app-shell__nav" [attr.aria-label]="'nav.main' | transloco">
+      <span class="app-shell__nav-label">{{ 'nav.workspace' | transloco }}</span>
+      @for (item of navigation(); track item.path) {
+        <a
+          class="shell-nav-link"
+          [routerLink]="item.path"
+          routerLinkActive="is-active"
+          [routerLinkActiveOptions]="{ exact: true }"
+          (click)="closeMobileMenu()"
+        >
+          <i [class]="'pi ' + item.icon"></i>
+          <span>{{ item.labelKey | transloco }}</span>
+        </a>
+      }
+    </nav>
+
+    <button class="shell-logout" type="button" (click)="logout()">
+      <i class="pi pi-sign-out"></i>
+      <span>{{ 'nav.logout' | transloco }}</span>
+    </button>
+  </aside>
+
+  <section class="app-shell__body">
+    <header class="app-shell__topbar">
+      <button
+        class="icon-button shell-menu"
+        type="button"
+        [attr.aria-label]="'common.openMenu' | transloco"
+        aria-controls="app-shell-sidebar"
+        [attr.aria-expanded]="mobileMenuOpen()"
+        (click)="toggleMobileMenu()"
+      >
+        <i class="pi pi-bars"></i>
+      </button>
+      <span class="topbar-context">{{ 'brand.caption' | transloco }}</span>
+      <div class="topbar-status">
+        <span class="status-dot"></span>
+        <span>{{ 'nav.secureSession' | transloco }}</span>
+      </div>
+    </header>
+
+    <main class="app-shell__content">
+      <router-outlet />
+    </main>
+  </section>
+</div>

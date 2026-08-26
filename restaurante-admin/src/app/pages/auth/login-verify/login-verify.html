@@ -1,0 +1,113 @@
+<section class="auth-page">
+  <div class="auth-page__header">
+    <div class="auth-page__badge" aria-hidden="true">
+      <i class="pi pi-shield"></i>
+    </div>
+
+    <div>
+      <span class="auth-page__kicker">
+        {{ 'auth.loginVerify.kicker' | transloco }}
+      </span>
+
+      <h1>
+        {{ 'auth.loginVerify.title' | transloco }}
+      </h1>
+    </div>
+  </div>
+
+  <p class="auth-page__intro">
+    {{ 'auth.loginVerify.description' | transloco }}
+  </p>
+
+  <div class="auth-page__divider"></div>
+
+  <app-form-feedback [message]="serverMessage()" />
+
+  <form
+    class="auth-form"
+    [formGroup]="form"
+    (ngSubmit)="submit()"
+    novalidate
+  >
+    <div class="form-field">
+      <label for="login-otp">
+        {{ 'auth.fields.otp' | transloco }}
+      </label>
+
+      <div class="form-field__control form-field__control--otp">
+        <i class="pi pi-key"></i>
+
+        <input
+          id="login-otp"
+          pInputText
+          type="text"
+          inputmode="numeric"
+          maxlength="6"
+          autocomplete="one-time-code"
+          formControlName="otp"
+          [placeholder]="'auth.fields.otpPlaceholder' | transloco"
+        />
+      </div>
+
+      <app-field-error
+        [control]="form.controls.otp"
+        [submitted]="submitted()"
+      />
+    </div>
+
+    <div class="otp-help">
+      <i class="pi pi-envelope"></i>
+
+      <span>
+        {{ 'auth.loginVerify.emailHint' | transloco }}
+      </span>
+    </div>
+
+    <button
+      class="login-submit"
+      type="submit"
+      [disabled]="isSubmitting()"
+    >
+      @if (isSubmitting()) {
+        <i class="pi pi-spin pi-spinner"></i>
+      }
+
+      <span>
+        {{ 'auth.loginVerify.submit' | transloco }}
+      </span>
+
+      @if (!isSubmitting()) {
+        <i class="pi pi-arrow-right"></i>
+      }
+    </button>
+
+    <button
+      class="back-login"
+      type="button"
+      (click)="backToLogin()"
+      [disabled]="isSubmitting()"
+    >
+      <i class="pi pi-arrow-left"></i>
+
+      <span>
+        {{ 'auth.loginVerify.back' | transloco }}
+      </span>
+    </button>
+  </form>
+
+  <div class="auth-page__footer">
+    <span class="auth-page__footer-icon">
+      <i class="pi pi-lock"></i>
+    </span>
+
+    <div>
+      <strong>
+        {{ 'auth.loginVerify.footer' | transloco }}
+      </strong>
+
+      <small>
+        {{ 'auth.loginVerify.expiration' | transloco }}
+      </small>
+    </div>
+  </div>
+</section>

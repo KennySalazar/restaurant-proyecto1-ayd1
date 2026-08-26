@@ -1,0 +1,30 @@
+.status-page {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 70vh;
+  text-align: center;
+}
+
+.status-page__code {
+  color: var(--accent-deep);
+  font-size: clamp(4rem, 12vw, 8rem);
+  font-weight: 900;
+  letter-spacing: -0.1em;
+  line-height: 0.8;
+}
+
+.status-page h1 {
+  color: var(--ink);
+  font-size: 2rem;
+  letter-spacing: -0.06em;
+  margin: 1.5rem 0 0.7rem;
+}
+
+.status-page p {
+  color: var(--muted);
+  line-height: 1.6;
+  margin: 0 0 1.5rem;
+  max-width: 28rem;
+}

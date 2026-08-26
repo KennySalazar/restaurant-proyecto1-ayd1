@@ -1,0 +1,149 @@
+<section class="auth-page">
+  <div class="auth-page__header">
+    <div class="auth-page__badge" aria-hidden="true">
+      <i class="pi pi-key"></i>
+    </div>
+
+    <div>
+      <span class="auth-page__kicker">
+        {{ 'auth.recoveryReset.kicker' | transloco }}
+      </span>
+
+      <h1>
+        {{ 'auth.recoveryReset.title' | transloco }}
+      </h1>
+    </div>
+  </div>
+
+  <p class="auth-page__intro">
+    {{ 'auth.recoveryReset.description' | transloco }}
+  </p>
+
+  <div class="auth-page__divider"></div>
+
+  <app-form-feedback [message]="serverMessage()" />
+
+  @if (successMessage()) {
+    <div class="reset-success">
+      <span class="reset-success__icon">
+        <i class="pi pi-check"></i>
+      </span>
+
+      <div>
+        <strong>Contraseña actualizada</strong>
+        <p>{{ successMessage() }}</p>
+      </div>
+    </div>
+
+    <a
+      class="login-submit reset-login-link"
+      routerLink="/auth/login"
+    >
+      <span>Volver al inicio de sesión</span>
+      <i class="pi pi-arrow-right"></i>
+    </a>
+  } @else {
+    <form
+      class="auth-form"
+      [formGroup]="form"
+      (ngSubmit)="submit()"
+      novalidate
+    >
+      <div class="form-field">
+        <label for="recovery-otp">
+          {{ 'auth.fields.otp' | transloco }}
+        </label>
+
+        <div class="form-field__control otp-control">
+          <i class="pi pi-key"></i>
+
+          <input
+            id="recovery-otp"
+            pInputText
+            type="text"
+            inputmode="numeric"
+            maxlength="6"
+            autocomplete="one-time-code"
+            formControlName="otp"
+            [placeholder]="'auth.fields.otpPlaceholder' | transloco"
+          />
+        </div>
+
+        <app-field-error
+          [control]="form.controls.otp"
+          [submitted]="submitted()"
+        />
+      </div>
+
+      <div class="form-field">
+        <label for="recovery-new-password">
+          {{ 'auth.fields.newPassword' | transloco }}
+        </label>
+
+        <div class="form-field__control">
+          <i class="pi pi-lock"></i>
+
+          <input
+            id="recovery-new-password"
+            pInputText
+            type="password"
+            autocomplete="new-password"
+            formControlName="newPassword"
+            [placeholder]="'auth.fields.newPasswordPlaceholder' | transloco"
+          />
+        </div>
+
+        <app-field-error
+          [control]="form.controls.newPassword"
+          [submitted]="submitted()"
+        />
+
+        <small class="password-hint">
+          {{ 'auth.fields.passwordHint' | transloco }}
+        </small>
+      </div>
+
+      <div class="form-field">
+        <label for="recovery-confirm-password">
+          {{ 'auth.recoveryReset.confirmPassword' | transloco }}
+        </label>
+
+        <div class="form-field__control">
+          <i class="pi pi-lock"></i>
+
+          <input
+            id="recovery-confirm-password"
+            pInputText
+            type="password"
+            autocomplete="new-password"
+            formControlName="confirmPassword"
+            [placeholder]="'auth.recoveryReset.confirmPlaceholder' | transloco"
+          />
+        </div>
+
+        <app-field-error
+          [control]="form.controls.confirmPassword"
+          [submitted]="submitted()"
+        />
+      </div>
+
+      <button
+        class="login-submit"
+        type="submit"
+        [disabled]="isSubmitting()"
+      >
+        @if (isSubmitting()) {
+          <i class="pi pi-spin pi-spinner"></i>
+        }
+
+        <span>
+          {{ 'auth.recoveryReset.submit' | transloco }}
+        </span>
+
+        @if (!isSubmitting()) {
+          <i class="pi pi-arrow-right"></i>
+        }
+      </button>
+    </form>
+  }
+</section>

@@ -1,0 +1,129 @@
+{
+  "brand": {
+    "name": "Restaurante",
+    "caption": "Panel administrativo",
+    "kicker": "Gestión centralizada",
+    "footer": "Sistema de Gestión de Restaurante"
+  },
+  "publicLayout": {
+    "title": "Administra tu restaurante desde un solo lugar.",
+    "description": "Gestiona menú, inventario, mesas, personal, reservas y reportes desde el panel administrativo.",
+    "securityNote": "El acceso está protegido mediante autenticación segura y sesiones JWT."
+  },
+  "common": {
+    "back": "Volver",
+    "cancel": "Cancelar",
+    "loading": "Cargando...",
+    "openMenu": "Abrir menú",
+    "closeMenu": "Cerrar menú"
+  },
+  "nav": {
+    "workspace": "Administración",
+    "dashboard": "Resumen",
+    "security": "Seguridad",
+    "admin": "Administración",
+    "logout": "Cerrar sesión",
+    "secureSession": "Sesión protegida",
+    "main": "Navegación principal"
+  },
+  "roles": {
+    "ADMIN": "Administrador",
+    "WAITER": "Mesero",
+    "KITCHEN": "Cocina",
+    "CASHIER": "Cajero"
+  },
+  "auth": {
+    "fields": {
+      "email": "Correo electrónico",
+      "emailPlaceholder": "admin@restaurante.com",
+      "password": "Contraseña",
+      "passwordPlaceholder": "Ingresa tu contraseña",
+      "newPassword": "Nueva contraseña",
+      "newPasswordPlaceholder": "Crea una contraseña segura",
+      "passwordHint": "Usa entre 8 y 72 caracteres, con mayúsculas, minúsculas y números.",
+      "otp": "Código de verificación",
+      "otpPlaceholder": "000000"
+    },
+    "login": {
+      "kicker": "Acceso administrativo",
+      "title": "Iniciar sesión",
+      "description": "Ingresa tus credenciales para acceder al panel administrativo del restaurante.",
+      "submit": "Iniciar sesión"
+    },
+    "loginVerify": {
+      "kicker": "Verificación de seguridad",
+      "title": "Confirma tu acceso",
+      "description": "Ingresa el código de 6 dígitos que enviamos a tu correo electrónico.",
+      "emailHint": "Revisa tu bandeja de entrada. El código solamente puede utilizarse una vez.",
+      "submit": "Verificar y continuar",
+      "back": "Volver al inicio de sesión",
+      "footer": "Autenticación de dos factores",
+      "expiration": "Por seguridad, el código expira después de unos minutos."
+    },
+    "recovery": {
+      "kicker": "Recuperación de acceso",
+      "title": "Recuperar contraseña",
+      "description": "Ingresa el correo asociado a tu cuenta. Si existe una cuenta activa, enviaremos un código de recuperación.",
+      "submit": "Enviar código",
+      "back": "Volver al inicio de sesión",
+      "footer": "Recuperación protegida por código de verificación"
+    },
+    "recoveryReset": {
+      "kicker": "Verificación de identidad",
+      "title": "Crea una nueva contraseña",
+      "description": "Ingresa el código enviado a tu correo y establece una nueva contraseña para tu cuenta.",
+      "confirmPassword": "Confirmar contraseña",
+      "confirmPlaceholder": "Repite la nueva contraseña",
+      "submit": "Restablecer contraseña"
+    }
+  },
+  "validation": {
+    "required": "Este campo es obligatorio.",
+    "email": "Ingresa un correo electrónico válido.",
+    "passwordLength": "La contraseña debe tener entre 8 y 72 caracteres.",
+    "passwordPolicy": "Usa mayúsculas, minúsculas y números.",
+    "invalid": "Revisa este campo."
+  },
+  "dashboard": {
+    "eyebrow": "Panel administrativo",
+    "title": "Resumen del restaurante",
+    "description": "Accede a las herramientas administrativas y consulta el estado general del sistema.",
+    "welcomeLabel": "Sesión iniciada como",
+    "welcomeDescription": "Tu cuenta está activa y tiene acceso al panel administrativo.",
+    "accountStatus": "Estado de la cuenta",
+    "active": "Activa",
+    "accessLevel": "Nivel de acceso",
+    "nextEyebrow": "Accesos rápidos",
+    "nextTitle": "Gestiona el sistema",
+    "securityAction": "Seguridad de la cuenta",
+    "securityDescription": "Actualiza la contraseña de tu cuenta administrativa.",
+    "adminAction": "Verificar administración",
+    "adminDescription": "Comprueba que tu sesión tiene permisos de administrador."
+  },
+  "security": {
+    "eyebrow": "Cuenta y seguridad",
+    "title": "Seguridad de la cuenta",
+    "description": "Administra las credenciales utilizadas para acceder al sistema.",
+    "password": {
+      "eyebrow": "Credenciales",
+      "title": "Cambiar contraseña",
+      "description": "Confirma tu contraseña actual antes de establecer una nueva.",
+      "current": "Contraseña actual",
+      "new": "Contraseña nueva",
+      "submit": "Actualizar contraseña"
+    }
+  },
+  "admin": {
+    "eyebrow": "Acceso administrativo",
+    "title": "Administración",
+    "description": "Esta área está disponible únicamente para usuarios con rol de administrador.",
+    "checkLabel": "Autorización verificada",
+    "checkTitle": "Acceso administrativo correcto",
+    "checkDescription": "La API confirmó que tu sesión cuenta con permisos ADMIN."
+  },
+  "unauthorized": {
+    "title": "Acceso no autorizado",
+    "description": "Tu sesión es válida, pero no tienes permisos suficientes para acceder a esta sección.",
+    "action": "Volver al resumen"
+  }
+}
