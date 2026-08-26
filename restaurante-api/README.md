@@ -1,106 +1,314 @@
-# SGR API
+# Restaurante API
 
-API de SGG: autorización, cuentas, OTP y correo electrónico. La API utiliza el contexto `/api/v1` y el perfil activo `dev` se ejecuta en el puerto `8090`.
+Backend REST del **Sistema de Gestión de Restaurante**. Centraliza autenticación, autorización, JWT, recuperación de contraseña, OTP, 2FA y servirá como API compartida por `restaurante-admin` y `restaurante-pos`.
+
+La API utiliza el contexto `/api/v1`, el perfil de desarrollo `dev` y localmente se ejecuta en el puerto `8090`.
 
 ## Requisitos
 
-- Java 21.
-- Docker y Docker Compose para PostgreSQL.
-- Variables de entorno configuradas antes de ejecutar Gradle o la aplicación.
+- Java 21
+- Docker
+- Docker Compose
+- PostgreSQL 18 mediante el `docker-compose.yaml` del proyecto
+- Variables de entorno configuradas antes de ejecutar la aplicación
 
+Los comandos de esta sección deben ejecutarse desde `restaurante-api/`.
 
 ## Configuración
 
-Utiliza `.env.example` como referencia y exporta todas sus variables. Spring y Gradle no cargan automáticamente un archivo `.env`.
+Usa `.env.example` como referencia:
+
+```bash
+cp .env.example .env
+```
+
+Spring Boot y Gradle no cargan automáticamente el archivo `.env`. Antes de ejecutar la aplicación:
+
+```bash
+set -a
+source .env
+set +a
+```
 
 Variables principales:
 
-- `DATABASE_URL`, `DATABASE_USERNAME` y `DATABASE_PASSWORD`: conexión a PostgreSQL.
-- `EMAIL_SENDER_APP` y `EMAIL_SENDER_PASSWORD`: credenciales de Gmail SMTP.
-- `SECRET_KEY_JWT`: clave utilizada para firmar JWT; debe tener al menos 32 caracteres.
-- `EXPIRATION_TIME_JWT`: duración del JWT en milisegundos.
-- `INITIAL_ADMIN_PASSWORD`: contraseña inicial del administrador; debe cumplir la política de contraseñas.
-- `OTP_LENGTH`, `OTP_EXPIRATION`, `OTP_MAX_ATTEMPTS` y `OTP_RESEND_COOLDOWN`: política de los desafíos OTP.
+```env
+DATABASE_URL=jdbc:postgresql://localhost:5437/restaurante_db
+DATABASE_USERNAME=restaurante_user
+DATABASE_PASSWORD=replace-with-local-password
 
-El arranque crea de forma idempotente el usuario `sistemasss404@gmail.com` con el rol `ADMIN`. Si el usuario ya existe, no se reemplaza su contraseña en los arranques posteriores. Si `INITIAL_ADMIN_PASSWORD` no está configurada o no cumple la política, el arranque falla explícitamente.
+SECRET_KEY_JWT=replace-with-at-least-32-random-characters
+EXPIRATION_TIME_JWT=86400000
 
-Las contraseñas deben tener entre 8 y 72 caracteres, con al menos una mayúscula, una minúscula y un número. El cambio autenticado debe usar una contraseña diferente de la actual; no se conserva un historial de contraseñas. Los OTP tienen seis dígitos por defecto, expiran después de 10 minutos, permiten cinco intentos fallidos y tienen un tiempo de espera de reenvío de un minuto. Los OTP nunca se almacenan en texto plano.
+INITIAL_ADMIN_EMAIL=admin@restaurante.com
+INITIAL_ADMIN_PASSWORD=replace-with-a-strong-password
 
-El envío utiliza Gmail SMTP mediante `EMAIL_SENDER_APP` y `EMAIL_SENDER_PASSWORD`. Un fallo de entrega devuelve `email_delivery_failed` con HTTP 503 y revierte el desafío. Las credenciales, contraseñas, tokens bearer y OTP no se registran en los logs.
+MAIL_HOST=smtp.gmail.com
+MAIL_PORT=587
+MAIL_USERNAME=correo-del-restaurante@gmail.com
+MAIL_PASSWORD=replace-with-app-password
+MAIL_FROM=correo-del-restaurante@gmail.com
 
-## Ejecución
+OTP_EXPIRATION_MINUTES=10
+OTP_MAX_ATTEMPTS=5
+```
 
-Inicia la base de datos de desarrollo:
+Nunca se deben versionar `.env`, contraseñas, OTP, JWT, App Passwords ni credenciales cloud.
+
+## Política de contraseñas
+
+Las contraseñas deben tener:
+
+- entre 8 y 72 caracteres;
+- al menos una mayúscula;
+- al menos una minúscula;
+- al menos un número.
+
+Los OTP son códigos de 6 dígitos, expiran después del tiempo configurado y tienen un máximo de intentos. El código no se almacena en texto plano: se persiste su hash.
+
+## Base de datos
+
+Levantar PostgreSQL:
 
 ```bash
 docker compose up -d
 ```
 
-Ejecuta la aplicación después de exportar las variables de entorno:
+Verificar:
 
 ```bash
-./gradlew bootRun
+docker compose ps
 ```
 
-Comandos de verificación:
+Configuración local actual:
+
+```text
+Host: localhost
+Puerto: 5437
+Base de datos: restaurante_db
+Usuario: restaurante_user
+```
+
+## Flyway
+
+Las migraciones están en:
+
+```text
+src/main/resources/db/migration/
+```
+
+Migraciones actuales:
+
+```text
+V1__create_core_tables.sql
+V2__seed_roles.sql
+V3__add_two_factor_and_otp.sql
+```
+
+Las migraciones son forward-only. Una migración ya aplicada no debe editarse para introducir un cambio posterior; debe crearse una nueva `V4__...`, `V5__...`, etc.
+
+## Ejecución
+
+Compilar:
 
 ```bash
-./gradlew compileJava
+./gradlew clean compileJava
+```
+
+Pruebas:
+
+```bash
 ./gradlew test
+```
+
+Validación:
+
+```bash
 ./gradlew check
+```
+
+Build:
+
+```bash
 ./gradlew build
 ```
 
-Las pruebas de integración requieren PostgreSQL activo. El servicio de correo se reemplaza por un emisor de prueba durante las pruebas automatizadas, por lo que no se necesita acceso a Gmail.
+Ejecutar:
+
+```bash
+set -a
+source .env
+set +a
+./gradlew bootRun
+```
+
+API:
+
+```text
+http://localhost:8090/api/v1
+```
 
 ## Arquitectura
 
-El proyecto utiliza una arquitectura por capas. Las clases de aplicación permanecen bajo `com.ssg` para que Spring realice el escaneo de componentes correctamente.
+El proyecto utiliza una arquitectura por capas bajo `com.restaurante`.
 
 ```text
-src/main/java/com/ssg/
+src/main/java/com/restaurante/
 ├── application/
 │   ├── auth/       Casos de uso de autenticación, contraseñas y OTP
-│   ├── common/     Utilidades compartidas, como la normalización de correo
-│   └── mail/       Abstracción y envío de correo mediante Gmail
-├── config/         Propiedades, seguridad, OpenAPI y bootstrap del administrador
+│   ├── common/     Utilidades compartidas
+│   └── mail/       Abstracción y envío SMTP
+├── config/         Seguridad, propiedades, bootstrap y configuración
 ├── domain/
-│   ├── model/      Entidades y enumeraciones del dominio
+│   ├── model/      Entidades y enumeraciones
 │   └── repository/ Repositorios JPA
-├── exception/      Excepciones de aplicación y construcción de RFC 9457
-├── security/       Filtro JWT y respuestas de autenticación/autorización
+├── exception/      Excepciones de aplicación
+├── security/       JWT, filtro y respuestas de seguridad
 └── web/
-    ├── admin/      Controladores restringidos al rol ADMIN
-    ├── auth/       Controladores de autenticación
-    ├── dto/        Objetos de entrada y salida de la API
-    ├── exception/  Manejador central de excepciones web
-    └── validation/ Validaciones de las solicitudes
+    ├── admin/      Endpoints restringidos a ADMIN
+    ├── auth/       Endpoints de autenticación
+    ├── dto/        Contratos de entrada y salida
+    ├── exception/  Manejo global de errores HTTP
+    └── validation/ Validaciones web
 ```
 
-Las migraciones forward-only se encuentran en `src/main/resources/db/migration/`. `V1__create_core_tables.sql` crea las tablas, restricciones e índices; `V2__seed_roles.sql` registra los roles iniciales.
+La estructura crecerá con los módulos del restaurante manteniendo esta separación.
 
-## Contrato de la API
+## Roles
 
-### Endpoints públicos
+Roles actuales:
 
-- `POST /api/v1/auth/register` crea una cuenta pendiente con rol `MEMBER` y devuelve un `challengeId` de registro. Responde HTTP 201.
-- `POST /api/v1/auth/register/verify` verifica el OTP de registro.
-- `POST /api/v1/auth/register/resend` reemplaza el desafío de registro pendiente.
-- `POST /api/v1/auth/login` autentica con correo y contraseña. Las cuentas con 2FA reciben un `challengeId` en lugar de un token.
-- `POST /api/v1/auth/login/verify` intercambia un OTP de inicio de sesión válido por un JWT.
-- `POST /api/v1/auth/password-recovery` solicita recuperación sin revelar si el correo existe. Responde HTTP 202.
-- `POST /api/v1/auth/password-recovery/verify` consume un OTP de recuperación y establece una nueva contraseña.
+```text
+ADMIN
+WAITER
+KITCHEN
+CASHIER
+```
 
-### Endpoints protegidos con bearer JWT
+- `ADMIN`: plataforma administrativa.
+- `WAITER`: operación de mesas y comandas.
+- `KITCHEN`: preparación de órdenes.
+- `CASHIER`: facturación, cobros y caja.
 
-- `GET /api/v1/auth/me` devuelve la cuenta autenticada.
-- `POST /api/v1/auth/password/change` verifica la contraseña actual y cambia la contraseña.
-- `POST /api/v1/auth/2fa/enable` y `/api/v1/auth/2fa/enable/verify` habilitan el 2FA opcional mediante un desafío de confirmación.
-- `POST /api/v1/auth/2fa/disable` y `/api/v1/auth/2fa/disable/verify` deshabilitan el 2FA después de verificar la contraseña actual y un OTP.
-- `GET /api/v1/admin/ping` requiere el único rol asignado `ADMIN`.
+No existe registro público de empleados. Las cuentas operativas serán administradas internamente.
 
-Los errores utilizan `application/problem+json` y cumplen RFC 9457 mediante los campos `type`, `title`, `status`, `detail` e `instance`, además de la extensión estable `code`. Los detalles enviados al cliente están en español.
+## Autenticación
+
+### Login sin 2FA
+
+```text
+correo + contraseña
+        ↓
+POST /auth/login
+        ↓
+JWT
+```
+
+### Login con 2FA
+
+```text
+correo + contraseña
+        ↓
+POST /auth/login
+        ↓
+challengeId + OTP por correo
+        ↓
+POST /auth/login/verify
+        ↓
+JWT
+```
+
+### Recuperación
+
+```text
+correo
+  ↓
+POST /auth/password-recovery
+  ↓
+OTP
+  ↓
+POST /auth/password-recovery/verify
+  ↓
+contraseña actualizada
+```
+
+### Activar/desactivar 2FA
+
+Los endpoints requieren JWT, contraseña actual y confirmación OTP.
+
+## Contrato actual de autenticación
+
+Todos los endpoints usan el prefijo `/api/v1`.
+
+### Públicos
+
+```http
+POST /api/v1/auth/login
+POST /api/v1/auth/login/verify
+POST /api/v1/auth/password-recovery
+POST /api/v1/auth/password-recovery/verify
+```
+
+### Protegidos con Bearer JWT
+
+```http
+GET  /api/v1/auth/me
+POST /api/v1/auth/password/change
+POST /api/v1/auth/change-password
+POST /api/v1/auth/2fa/enable
+POST /api/v1/auth/2fa/enable/verify
+POST /api/v1/auth/2fa/disable
+POST /api/v1/auth/2fa/disable/verify
+```
+
+### Administrativo
+
+```http
+GET /api/v1/admin/ping
+```
+
+Requiere `ROLE_ADMIN`.
+
+## Errores HTTP
+
+La API utiliza Problem Details con campos como:
+
+```json
+{
+  "type": "...",
+  "title": "...",
+  "status": 400,
+  "detail": "...",
+  "instance": "...",
+  "code": "..."
+}
+```
+
+`code` se utiliza como identificador estable para que los frontends puedan traducir o manejar errores.
 
 ## OpenAPI y Swagger
 
-El documento OpenAPI está disponible en `/api/v1/v3/api-docs` y Swagger UI en `/api/v1/swagger-ui.html`.
+OpenAPI:
+
+```text
+http://localhost:8090/api/v1/v3/api-docs
+```
+
+Swagger UI:
+
+```text
+http://localhost:8090/api/v1/swagger-ui/index.html
+```
+
+También está configurada la ruta:
+
+```text
+/api/v1/swagger-ui.html
+```
+
+## Antes de un Pull Request
+
+```bash
+./gradlew test
+./gradlew build
+```
