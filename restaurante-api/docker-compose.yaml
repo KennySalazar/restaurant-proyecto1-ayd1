@@ -1,16 +1,25 @@
-# For development purposes only
 services:
   postgres:
-    image: 'postgres:18'
+    image: postgres:18
     restart: unless-stopped
+
     environment:
-      - 'POSTGRES_DB=restaurante_db'
-      - 'POSTGRES_PASSWORD=restaurante_password'
-      - 'POSTGRES_USER=restaurante_user'
+      POSTGRES_DB: restaurante_db
+      POSTGRES_USER: restaurante_user
+      POSTGRES_PASSWORD: restaurante_password
+
     ports:
-      - '5437:5432'
+      - "5437:5432"
+
     volumes:
-      - pg_restaurante_data:/data/postgres
+      - pg_restaurante_data:/var/lib/postgresql
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U restaurante_user -d restaurante_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
 
 volumes:
   pg_restaurante_data:
