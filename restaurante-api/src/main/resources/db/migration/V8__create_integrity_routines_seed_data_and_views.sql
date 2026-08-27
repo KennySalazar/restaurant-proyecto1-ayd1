@@ -1,13 +1,8 @@
--- Funciones, triggers, datos iniciales y vistas del dominio del restaurante.
--- V8 integra el dominio con public.app_users/public.roles y conserva a Flyway
--- como unica fuente de cambios estructurales de la base de datos.
 
 SET search_path TO restaurante, public;
 SET TIME ZONE 'UTC';
 
--- ============================================================================
--- 9. FUNCIONES Y TRIGGERS DE INTEGRIDAD
--- ============================================================================
+
 
 CREATE OR REPLACE FUNCTION fn_actualizar_timestamp()
 RETURNS TRIGGER
@@ -122,8 +117,6 @@ CREATE TRIGGER trg_proteger_configuracion_restaurante
 BEFORE UPDATE OR DELETE ON configuraciones_restaurante
 FOR EACH ROW EXECUTE FUNCTION fn_proteger_configuracion_restaurante();
 
--- Comprueba que la unidad usada en una receta pertenezca a la misma dimension
--- que la unidad en la que se controla el stock del insumo.
 CREATE OR REPLACE FUNCTION fn_validar_unidad_insumo(
     p_insumo_id BIGINT,
     p_unidad_medida_id SMALLINT
@@ -154,8 +147,6 @@ BEGIN
 END;
 $$;
 
--- Los detalles solo se editan mientras su version esta en BORRADOR. Al pasar
--- a VIGENTE o HISTORICA se vuelven inmutables y conservan el costo historico.
 CREATE OR REPLACE FUNCTION fn_validar_receta_detalle()
 RETURNS TRIGGER
 LANGUAGE plpgsql
@@ -171,8 +162,6 @@ BEGIN
           FROM receta_versiones
          WHERE id = OLD.receta_version_id;
 
-        -- Si el padre ya no es visible, la eliminacion proviene del CASCADE de
-        -- una version BORRADOR que ya fue validada por su propio trigger.
         IF FOUND AND v_estado <> 'BORRADOR' THEN
             RAISE EXCEPTION
                 'Solo se pueden modificar detalles de una receta en BORRADOR';
@@ -296,8 +285,6 @@ CREATE TRIGGER trg_validar_receta_modificador_detalle
 BEFORE INSERT OR UPDATE OR DELETE ON receta_modificador_detalles
 FOR EACH ROW EXECUTE FUNCTION fn_validar_receta_modificador_detalle();
 
--- Protege el historial de recetas: toda version nace como BORRADOR, solo puede
--- publicarse una vez y una version HISTORICA nunca vuelve a editarse.
 CREATE OR REPLACE FUNCTION fn_validar_estado_receta_version()
 RETURNS TRIGGER
 LANGUAGE plpgsql
@@ -431,9 +418,6 @@ CREATE TRIGGER trg_validar_estado_receta_modificador_version
 BEFORE INSERT OR UPDATE OR DELETE ON receta_modificador_versiones
 FOR EACH ROW EXECUTE FUNCTION fn_validar_estado_receta_modificador_version();
 
--- Centraliza la validacion de pertenencia y rol de empleados utilizados en las
--- operaciones. Un FK simple garantiza existencia, pero no que el empleado sea
--- del mismo restaurante ni que ejerza el rol requerido.
 CREATE OR REPLACE FUNCTION fn_validar_usuario_operacion(
     p_usuario_id BIGINT,
     p_restaurante_id BIGINT,
@@ -476,7 +460,6 @@ BEGIN
 END;
 $$;
 
--- Evita referencias cruzadas entre restaurantes en los catalogos principales.
 CREATE OR REPLACE FUNCTION fn_validar_catalogo_restaurante()
 RETURNS TRIGGER
 LANGUAGE plpgsql
@@ -556,8 +539,6 @@ CREATE TRIGGER trg_mesa_restaurante
 BEFORE INSERT OR UPDATE ON mesas
 FOR EACH ROW EXECUTE FUNCTION fn_validar_catalogo_restaurante();
 
--- La exclusion GiST evita traslapes incluso con reservas concurrentes. Este
--- trigger completa la validacion de capacidad y pertenencia al restaurante.
 CREATE OR REPLACE FUNCTION fn_validar_reserva()
 RETURNS TRIGGER
 LANGUAGE plpgsql
@@ -810,9 +791,6 @@ CREATE TRIGGER trg_validar_lista_espera
 BEFORE INSERT OR UPDATE ON lista_espera
 FOR EACH ROW EXECUTE FUNCTION fn_validar_lista_espera();
 
--- Reserva visualmente la mesa mientras la sugerencia esta activa y la libera
--- si el cliente vuelve a la cola o se retira. Si ya se abrio una cuenta, la
--- mesa permanece ocupada y la liberacion se omite.
 CREATE OR REPLACE FUNCTION fn_sincronizar_mesa_lista_espera()
 RETURNS TRIGGER
 LANGUAGE plpgsql
@@ -906,8 +884,6 @@ CREATE TRIGGER trg_sincronizar_mesa_lista_espera
 AFTER INSERT OR UPDATE OF estado, mesa_sugerida_id ON lista_espera
 FOR EACH ROW EXECUTE FUNCTION fn_sincronizar_mesa_lista_espera();
 
--- Selecciona de forma concurrente al primer cliente compatible de la cola.
--- Spring debe invocarla cuando una mesa se libere y notificar el resultado.
 CREATE OR REPLACE FUNCTION fn_sugerir_siguiente_lista_espera(
     p_restaurante_id BIGINT,
     p_mesa_id BIGINT
@@ -1115,9 +1091,6 @@ CREATE TRIGGER trg_validar_cuenta
 BEFORE INSERT OR UPDATE ON cuentas
 FOR EACH ROW EXECUTE FUNCTION fn_validar_cuenta();
 
--- Una fusion consolida las comandas en la cuenta destino y conserva todas las
--- mesas ocupadas hasta el cierre de esa cuenta. Para evitar ambiguedades
--- contables solo se permite antes de crear divisiones o facturas.
 CREATE OR REPLACE FUNCTION fn_validar_fusion_cuenta()
 RETURNS TRIGGER
 LANGUAGE plpgsql
@@ -1141,8 +1114,6 @@ BEGIN
         RAISE EXCEPTION 'Una cuenta no puede fusionarse consigo misma';
     END IF;
 
-    -- Orden estable de bloqueo para evitar interbloqueos entre fusiones
-    -- concurrentes que involucren las mismas cuentas.
     PERFORM 1
       FROM cuentas c
      WHERE c.id IN (NEW.cuenta_origen_id, NEW.cuenta_destino_id)
@@ -1263,8 +1234,6 @@ BEGIN
       FROM rondas_origen ro
      WHERE co.id = ro.id;
 
-    -- El AFTER UPDATE de cuentas transfiere a la cuenta destino todas las
-    -- asociaciones activas de mesa antes de cerrar logicamente el origen.
     UPDATE cuentas
        SET estado = 'FUSIONADA',
            observaciones = CONCAT_WS(
@@ -1308,8 +1277,6 @@ CREATE TRIGGER trg_proteger_cuenta_terminal
 BEFORE UPDATE ON cuentas
 FOR EACH ROW EXECUTE FUNCTION fn_proteger_cuenta_terminal();
 
--- Transiciones permitidas para mesas y cuentas. Las transiciones terminales no
--- pueden revertirse y el cierre de una cuenta exige facturas totalmente pagadas.
 CREATE OR REPLACE FUNCTION fn_validar_transicion_mesa()
 RETURNS TRIGGER
 LANGUAGE plpgsql
@@ -1594,7 +1561,7 @@ BEGIN
      WHERE id = COALESCE(NEW.subcuenta_id, OLD.subcuenta_id);
 
     IF NOT FOUND THEN
-        -- El padre puede haber desaparecido durante un DELETE CASCADE.
+
         IF TG_OP = 'DELETE' THEN
             RETURN OLD;
         END IF;
@@ -2144,8 +2111,6 @@ BEGIN
             'Elimine las asignaciones de subcuenta antes de quitar agregados';
     END IF;
 
-    -- Cuando el detalle padre se elimina en cascada ya fue validado por
-    -- trg_bloquear_eliminacion_detalle_enviado y puede no ser visible aqui.
     IF FOUND AND v_estado_comanda <> 'BORRADOR' THEN
         RAISE EXCEPTION
             'Un modificador enviado no puede eliminarse de la comanda';
@@ -2159,8 +2124,6 @@ CREATE TRIGGER trg_bloquear_eliminacion_modificador_enviado
 BEFORE DELETE ON comanda_detalle_modificadores
 FOR EACH ROW EXECUTE FUNCTION fn_bloquear_eliminacion_modificador_enviado();
 
--- Toda cancelacion de un platillo enviado queda asociada a la misma operacion
--- y sus cambios de resolucion son irreversibles.
 CREATE OR REPLACE FUNCTION fn_validar_cancelacion_comanda_detalle()
 RETURNS TRIGGER
 LANGUAGE plpgsql
@@ -3897,9 +3860,6 @@ AFTER INSERT OR UPDATE ON turnos_caja
 DEFERRABLE INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION fn_validar_transacciones_turno_diferido();
 
--- Comprueba al COMMIT que la cabecera, sus lineas, modificadores y pagos
--- coincidan. Es diferido para permitir que Spring inserte toda la factura en
--- cualquier orden dentro de una misma transaccion.
 CREATE OR REPLACE FUNCTION fn_validar_totales_factura_diferido()
 RETURNS TRIGGER
 LANGUAGE plpgsql
@@ -4200,8 +4160,6 @@ CREATE TRIGGER trg_factura_modificador_inmutable
 BEFORE UPDATE OR DELETE ON factura_detalle_modificadores
 FOR EACH ROW EXECUTE FUNCTION fn_bloquear_libro_mayor();
 
--- Los puntos se administran como libro mayor inmutable y el saldo del cliente
--- se actualiza bajo bloqueo de fila para evitar redenciones concurrentes.
 CREATE OR REPLACE FUNCTION fn_aplicar_movimiento_puntos()
 RETURNS TRIGGER
 LANGUAGE plpgsql
@@ -4397,15 +4355,6 @@ CREATE TRIGGER trg_registrar_visita_cliente
 AFTER UPDATE OF estado ON cuentas
 FOR EACH ROW EXECUTE FUNCTION fn_registrar_visita_cliente();
 
--- ----------------------------------------------------------------------------
--- CORRECCION: sincronizacion automatica de mesas.estado_actual con el estado
--- de la cuenta que ocupa la mesa, y poblacion automatica de
--- historial_estados_mesa. Sin este trigger, el panel de ocupacion en tiempo
--- real y el reporte "ocupacion de mesas por horario" dependen por completo de
--- que la aplicacion recuerde actualizar mesas manualmente en cada operacion
--- (abrir cuenta, pedir cobro, transferir, cerrar/cancelar/fusionar), lo cual
--- es fragil y puede desincronizar el panel administrativo del salon real.
--- ----------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION fn_estado_mesa_para_cuenta(p_estado_cuenta VARCHAR)
 RETURNS VARCHAR
 LANGUAGE sql
@@ -4418,8 +4367,6 @@ AS $$
         WHEN 'PARCIALMENTE_PAGADA'  THEN 'CUENTA_SOLICITADA'
         WHEN 'CERRADA'              THEN 'LIBRE'
         WHEN 'CANCELADA'            THEN 'LIBRE'
-        -- FUSIONADA se trata de forma especial: sus mesas pasan a la cuenta
-        -- destino y no se liberan hasta que esa cuenta finalice.
         WHEN 'FUSIONADA'            THEN NULL
         ELSE NULL
     END;
@@ -4438,9 +4385,7 @@ DECLARE
     v_usuario_fusion     BIGINT;
     v_mesa               RECORD;
 BEGIN
-    -- Al crear una cuenta registra su mesa principal. En una transferencia
-    -- desactiva solo la principal anterior; las mesas anexas de una fusion se
-    -- conservan vinculadas a la misma cuenta.
+
     IF TG_OP = 'INSERT'
        OR (TG_OP = 'UPDATE' AND NEW.mesa_id IS DISTINCT FROM OLD.mesa_id) THEN
         IF TG_OP = 'UPDATE' THEN
@@ -4512,8 +4457,7 @@ BEGIN
         END IF;
     END IF;
 
-    -- Una cuenta origen fusionada cede todas sus mesas a la cuenta destino.
-    -- La mesa nunca pasa por LIBRE, por lo que no puede asignarse por carrera.
+
     IF TG_OP = 'UPDATE'
        AND OLD.estado <> 'FUSIONADA'
        AND NEW.estado = 'FUSIONADA' THEN
@@ -4591,8 +4535,6 @@ BEGIN
         RETURN NEW;
     END IF;
 
-    -- Sincroniza todas las mesas activas, incluida cualquier mesa anexa que
-    -- provenga de una fusion. Al cerrar/cancelar se desactivan los vinculos.
     FOR v_mesa IN
         SELECT cm.id AS vinculo_id, cm.mesa_id
           FROM cuenta_mesas cm
@@ -4673,9 +4615,6 @@ CREATE TRIGGER trg_validar_calificacion_servicio
 BEFORE INSERT OR UPDATE ON calificaciones_servicio
 FOR EACH ROW EXECUTE FUNCTION fn_validar_calificacion_servicio();
 
--- Devuelve y actualiza el siguiente correlativo dentro de la misma transaccion.
--- Uso desde Spring: SELECT restaurante.fn_siguiente_numero_factura(1,
--- 'COMPROBANTE', 'A');
 CREATE OR REPLACE FUNCTION fn_siguiente_numero_factura(
     p_restaurante_id BIGINT,
     p_tipo_documento VARCHAR(20),
@@ -4706,18 +4645,13 @@ END;
 $$;
 
 
--- ============================================================================
--- 10. DATOS INICIALES
--- ============================================================================
 
 INSERT INTO restaurantes (
     id, nombre, nombre_comercial, moneda, zona_horaria
 ) VALUES (
     1, 'Restaurante Principal', 'Restaurante Principal', 'GTQ', 'America/Guatemala'
 );
--- Crea el perfil operativo de las cuentas de autenticacion que ya existan.
--- En instalaciones nuevas, Spring crea la cuenta administradora despues de
--- Flyway; el bootstrap de la aplicacion debe crear tambien este perfil.
+
 INSERT INTO usuarios (
     id, restaurante_id, codigo_empleado,
     nombres, apellidos, fecha_contratacion
@@ -4792,19 +4726,9 @@ INSERT INTO secuencias_facturacion (
 ) VALUES
     (1, 'COMPROBANTE', 'A', 0);
 
--- Los catalogos anteriores insertan algunos identificadores explicitos para
--- que las referencias iniciales sean predecibles. Se adelantan sus identidades
--- para que los siguientes INSERT no intenten reutilizar esos valores.
 ALTER TABLE restaurantes ALTER COLUMN id RESTART WITH 2;
 ALTER TABLE unidades_medida ALTER COLUMN id RESTART WITH 6;
 ALTER TABLE metodos_pago ALTER COLUMN id RESTART WITH 3;
-
--- Las credenciales se crean exclusivamente desde Spring; esta migracion no
--- almacena contrasenas ni secretos predeterminados.
-
--- ============================================================================
--- 11. VISTAS PARA OPERACION Y REPORTES
--- ============================================================================
 
 CREATE OR REPLACE VIEW vw_stock_bajo AS
 SELECT
