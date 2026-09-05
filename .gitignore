@@ -37,3 +37,5 @@ Thumbs.db
 # ==============================
 *.log
 logs/
+
+restaurante-api/docker-compose.yaml

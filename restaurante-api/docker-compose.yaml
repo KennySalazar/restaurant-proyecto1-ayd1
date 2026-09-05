@@ -20,6 +20,7 @@ services:
       timeout: 5s
       retries: 10
       start_period: 10s
+      - pg_restaurante_data:/var/lib/postgresql 
 
 volumes:
   pg_restaurante_data:
