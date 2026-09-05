@@ -1,0 +1,497 @@
+                                                   CENTRO UNIVERSITARIO DE OCCIDENTE
+                                                   DIVISIÓN DE CIENCIAS DE LA INGENIERÍA
+                                                         ANÁLISIS Y DISEÑO DE SISTEMAS 1
+                                                                SEGUNDO SEMESTRE 2026
+                                                                             PROYECTO 1
+
+
+
+
+           Proyecto 1 - Sistema de Gestión de Restaurante
+
+Objetivos generales
+
+  ●​ Diseñar e implementar un sistema compuesto por dos aplicaciones (una administrativa
+     y una operativa) que permitan a un restaurante gestionar de manera eficiente su
+     menú, inventario, mesas, comandas, facturación y control de caja.
+  ●​ Aplicar la metodología BDD (Behavior Driven Development) para la especificación y
+     validación de requerimientos mediante historias de usuario en sintaxis Gherkin.
+  ●​ Implementar un ciclo de integración y despliegue continuo (CI/CD) que automatice la
+     construcción y el despliegue del sistema completo en un proveedor en la nube.
+  ●​ Fomentar el trabajo colaborativo en equipo mediante el uso de herramientas de control
+     de versiones y gestión ágil de tareas.
+
+
+Objetivos específicos
+
+  ●​ Diseñar un modelo de datos coherente que relacione insumos, recetas y platillos, de
+     forma que el costo y la disponibilidad de un platillo se deriven de su receta.
+  ●​ Implementar el descuento automático de inventario a partir de las ventas registradas
+     en el punto de venta.
+  ●​ Documentar la API mediante Swagger/OpenAPI, facilitando la integración entre ambas
+     aplicaciones.
+  ●​ Redactar historias de usuario en formato Gherkin (Given-When-Then) y
+     documentarlas en un tablero de gestión en JIRA.
+  ●​ Configurar un pipeline de CI/CD en Jenkins que despliegue backend, frontend y base
+     de datos en un proveedor en la nube.
+                                                    CENTRO UNIVERSITARIO DE OCCIDENTE
+                                                    DIVISIÓN DE CIENCIAS DE LA INGENIERÍA
+                                                          ANÁLISIS Y DISEÑO DE SISTEMAS 1
+                                                                 SEGUNDO SEMESTRE 2026
+                                                                              PROYECTO 1
+
+
+
+
+Descripción de la actividad
+
+El presente proyecto tiene como objetivo el análisis, diseño e implementación de un sistema
+para la gestión integral de un restaurante, compuesto por dos aplicaciones independientes
+pero conectadas entre sí:
+
+   ●​ Aplicación Administrativa: utilizada por el administrador del restaurante para
+      configurar el menú, los insumos, las recetas, el inventario, las mesas, los empleados y
+      para consultar reportes del negocio.
+   ●​ Aplicación de Operación (Punto de Venta / Comandas): utilizada por meseros,
+      personal de cocina y cajeros para el día a día del restaurante - abrir cuentas, tomar
+      órdenes, preparar comandas, cobrar y emitir facturas.
+
+Ambas aplicaciones deben consumir la misma base de datos / API backend, de forma que un
+cambio realizado en la administración (por ejemplo, deshabilitar un platillo por falta de stock,
+o modificar una receta) se refleje inmediatamente en la operación, y que una venta realizada
+en el punto de venta impacte de inmediato el inventario y los reportes visibles para el
+administrador.
+
+El sistema busca modernizar la operación de un restaurante que actualmente maneja su
+inventario, sus comandas y su facturación de forma manual o desconectada entre sí,
+reduciendo pérdidas por descontrol de insumos, errores en cuentas y tiempos de espera en
+cocina, y dándole al administrador información real de costos y rentabilidad por platillo - algo
+que en un restaurante manejado "a ojo" normalmente no existe.
+
+Para diferenciarlo de un sistema de punto de venta genérico, el proyecto incorpora
+funcionalidades adicionales que le dan mayor valor y realismo al negocio:
+                                                   CENTRO UNIVERSITARIO DE OCCIDENTE
+                                                   DIVISIÓN DE CIENCIAS DE LA INGENIERÍA
+                                                         ANÁLISIS Y DISEÑO DE SISTEMAS 1
+                                                                SEGUNDO SEMESTRE 2026
+                                                                             PROYECTO 1
+
+
+
+
+   ●​ Reservas de mesa: el restaurante puede recibir reservas con fecha, hora y número
+      de personas, bloqueando la mesa correspondiente para ese horario y evitando que se
+      le asigne a otro cliente al momento de sentar.
+   ●​ Lista de espera (walk-in): cuando un cliente llega sin reserva y no hay mesas
+      disponibles, se le agrega a una cola de espera; al liberarse una mesa, el sistema
+      sugiere al siguiente cliente en la lista.
+   ●​ Programa de fidelización por puntos: los clientes frecuentes (identificados por
+      número de teléfono o cuenta) acumulan puntos según su consumo, redimibles en
+      visitas futuras como descuento.
+   ●​ Tiempo estimado de preparación: cada platillo puede tener un tiempo estimado de
+      preparación, que se muestra al mesero y ayuda a cocina a priorizar comandas cuando
+      hay varias órdenes simultáneas.
+   ●​ Panel de ocupación en tiempo real: el administrador puede ver, desde la Aplicación
+      Administrativa, el estado actual de todas las mesas del restaurante (libres, ocupadas,
+      con cuenta solicitada) sin necesidad de estar físicamente en el salón.
+   ●​ Calificación del servicio: al cerrar una cuenta, se puede solicitar al cliente una
+      calificación breve del servicio recibido, asociada al mesero que lo atendió, alimentando
+      un reporte de desempeño por empleado.
+
+
+Aplicación 1: Plataforma Administrativa
+
+Administrador
+
+El administrador es el único usuario de esta aplicación y tiene control total sobre la
+configuración del restaurante: insumos, recetas, platillos, inventario, mesas, empleados y
+reportes.
+                                                     CENTRO UNIVERSITARIO DE OCCIDENTE
+                                                     DIVISIÓN DE CIENCIAS DE LA INGENIERÍA
+                                                           ANÁLISIS Y DISEÑO DE SISTEMAS 1
+                                                                  SEGUNDO SEMESTRE 2026
+                                                                               PROYECTO 1
+
+
+
+
+Módulo de Productos Base (Insumos)
+
+Aquí se gestiona la materia prima del restaurante, es decir, los ingredientes utilizados para
+preparar los platillos.
+
+   ●​ Catálogo de insumos: nombre, unidad de medida (kg, litro, unidad, gramo), categoría
+       (proteína, verdura, lácteo, abarrote, etc.) y costo unitario de compra.
+   ●​ Control de stock por insumo: cantidad disponible actual, stock mínimo (para alertas
+       de reabastecimiento) y, opcionalmente, stock máximo.
+   ●​ Alertas de inventario bajo: cuando un insumo alcanza su stock mínimo, el sistema
+       debe notificar al administrador.
+   ●​ Registro de entradas de inventario: al recibir mercadería, se registra la cantidad,
+       fecha y costo de compra.
+   ●​ Registro de mermas: insumos dados de baja por vencimiento, daño o error de
+       manejo, indicando el motivo. Esto afecta el costo real del restaurante y alimenta el
+       reporte de mermas.
+
+Módulo de Recetas
+
+Este módulo conecta los insumos con los platillos y es la base para calcular costos y
+disponibilidad de forma automática.
+
+   ●​ Definición de receta por platillo: cada platillo tiene asociada una lista de insumos
+       con la cantidad exacta que requiere (por ejemplo, "Hamburguesa Clásica" = 150g de
+       carne molida + 1 unidad de pan + 30g de queso + 50g de lechuga).
+   ●​ Definición de receta por modificador: los modificadores de un platillo (por ejemplo,
+       "extra queso") también deben tener asociados los insumos adicionales que consumen,
+       ya que al aplicarse en una comanda deben descontar inventario igual que la
+       receta base.
+                                                  CENTRO UNIVERSITARIO DE OCCIDENTE
+                                                  DIVISIÓN DE CIENCIAS DE LA INGENIERÍA
+                                                        ANÁLISIS Y DISEÑO DE SISTEMAS 1
+                                                               SEGUNDO SEMESTRE 2026
+                                                                            PROYECTO 1
+
+
+
+
+  ●​ Costo del platillo calculado automáticamente: a partir de la receta y el costo
+     unitario de cada insumo, el sistema calcula el costo de producción del platillo, dándole
+     al administrador información real para fijar el precio de venta con un margen de
+     ganancia definido.
+  ●​ Historial de cambios de receta: si el restaurante ajusta una receta (cambia una
+     cantidad o sustituye un ingrediente), debe quedar registro de cuándo cambió, para no
+     alterar retroactivamente el costo de ventas ya realizadas.
+
+     Módulo de Platillos / Menú
+
+  ●​ CRUD de platillos: nombre, descripción, categoría (entrada, plato fuerte, bebida,
+     postre), precio de venta, imagen y tiempo estimado de preparación (usado por
+     cocina para priorizar comandas cuando hay varias órdenes simultáneas).
+  ●​ Disponibilidad: un platillo puede marcarse como "no disponible" manualmente, o de
+     forma automática si el sistema detecta que no hay stock suficiente de algún insumo de
+     su receta para prepararlo.
+  ●​ Modificadores: opciones que alteran el platillo (por ejemplo, "sin cebolla", "extra
+     queso"), cada uno con su propio impacto en inventario y, si aplica, un costo adicional
+     para el cliente.
+  ●​ Combos/promociones: agrupación de varios platillos con un precio especial (por
+     ejemplo, "menú del día").
+
+Módulo de Inventario
+
+  ●​ Descuento automático de stock: cuando se envía una comanda desde la Aplicación
+     de Operación, el sistema descuenta automáticamente del inventario los insumos
+     correspondientes según la receta de cada platillo y modificador incluido en la orden.
+  ●​ Kardex / historial de movimientos: registro de entradas (compras), salidas (ventas,
+     mermas) y ajustes manuales, todos con fecha y usuario responsable.
+                                                  CENTRO UNIVERSITARIO DE OCCIDENTE
+                                                  DIVISIÓN DE CIENCIAS DE LA INGENIERÍA
+                                                        ANÁLISIS Y DISEÑO DE SISTEMAS 1
+                                                               SEGUNDO SEMESTRE 2026
+                                                                            PROYECTO 1
+
+
+
+
+  ●​ Validación de disponibilidad: si un insumo no alcanza para preparar un platillo, el
+     sistema no debe permitir agregarlo a una comanda desde la Aplicación de Operación,
+     o debe alertar claramente al mesero.
+
+Módulo de Configuración del Restaurante
+
+  ●​ Gestión de mesas: número, capacidad, zona (salón, terraza, barra) y estado inicial.
+  ●​ Gestión de empleados: meseros, cocina y cajeros, cada uno con su rol asignado
+     dentro de la Aplicación de Operación.
+  ●​ Configuración de impuestos y propina sugerida (por ejemplo, IVA y un porcentaje
+     de propina sugerido configurable).
+  ●​ Configuración del programa de fidelización: definición de cuántos puntos se
+     otorgan por unidad de moneda gastada, y cuánto vale cada punto al momento de
+     redimir.
+
+Módulo de Reservas y Lista de Espera
+
+  ●​ Reservas de mesa: registro de una reserva con nombre del cliente, teléfono, fecha,
+     hora y número de personas. El sistema debe bloquear automáticamente la mesa
+     asignada durante ese horario para que no pueda ser ocupada por otro cliente desde la
+     Aplicación de Operación.
+  ●​ Lista de espera: cuando un cliente llega sin reserva y no hay mesas disponibles para
+     su número de personas, se agrega a una cola de espera con hora de llegada. Al
+     liberarse una mesa compatible, el sistema debe sugerir automáticamente al primer
+     cliente en la lista.
+  ●​ Panel de ocupación en tiempo real: vista consolidada, visible desde la Aplicación
+     Administrativa, del estado actual de todas las mesas del restaurante (libre, reservada,
+     ocupada, cuenta solicitada), sin necesidad de estar físicamente en el salón.
+                                                   CENTRO UNIVERSITARIO DE OCCIDENTE
+                                                   DIVISIÓN DE CIENCIAS DE LA INGENIERÍA
+                                                         ANÁLISIS Y DISEÑO DE SISTEMAS 1
+                                                                SEGUNDO SEMESTRE 2026
+                                                                             PROYECTO 1
+
+
+
+
+Módulo de Reportes
+
+   ●​ Ventas por período, por categoría de platillo y por mesero.
+   ●​ Platillos más vendidos y menos vendidos.
+   ●​ Rentabilidad por platillo: comparación entre precio de venta y costo de receta.
+   ●​ Reporte de inventario: insumos con stock bajo, mermas del período y valor total del
+      inventario.
+   ●​ Ocupación de mesas por horario.
+   ●​ Reporte de desempeño por mesero: incluyendo la calificación promedio del servicio
+      recibida de los clientes.
+   ●​ Reporte de fidelización: puntos otorgados, puntos redimidos y clientes con mayor
+      frecuencia de visita.
+   ●​ Exportación a PDF/Excel.
+
+
+Aplicación 2: Operación (Punto de Venta / Comandas)
+
+      Regla general: la caja debe estar abierta para operar
+
+No se puede procesar ningún cobro ni cerrar ninguna cuenta si no existe una caja
+abierta en el turno actual. El cajero debe abrir la caja al inicio de su turno (indicando el
+monto inicial de efectivo) antes de que el sistema permita registrar pagos. Si un mesero
+marca una cuenta como lista para cobro y no hay ninguna caja abierta, el sistema debe
+bloquear el cobro y notificarlo claramente, indicando que se necesita abrir turno de caja
+primero. La apertura de mesas y el envío de comandas sí pueden realizarse sin una caja
+abierta (para no detener el servicio en el salón), pero ninguna venta puede completarse ni
+facturarse mientras no haya una caja abierta.
+                                                      CENTRO UNIVERSITARIO DE OCCIDENTE
+                                                      DIVISIÓN DE CIENCIAS DE LA INGENIERÍA
+                                                            ANÁLISIS Y DISEÑO DE SISTEMAS 1
+                                                                   SEGUNDO SEMESTRE 2026
+                                                                                PROYECTO 1
+
+
+
+
+       Mesero
+
+El mesero es responsable de atender las mesas del salón. Puede visualizar el estado de
+cada mesa (libre, reservada, ocupada, cuenta solicitada), abrir una cuenta al sentar a un
+cliente asociándola a una mesa, y agregar platillos a la cuenta indicando cantidad,
+modificadores y notas especiales.
+
+El mesero puede consultar las reservas próximas y la lista de espera, y sentar a un cliente en
+la mesa que le corresponda según su reserva o su turno en la cola de espera. También
+puede enviar la comanda a cocina, consultar el estado de cada platillo ordenado (recibido, en
+preparación, listo, entregado) y marcar los platillos como entregados una vez servidos en la
+mesa. Puede dividir una cuenta -por número de personas o por ítems específicos- cuando el
+cliente lo solicite, y marcar la cuenta como lista para cobro, notificando al cajero.
+
+Adicionalmente, el mesero debe poder transferir una cuenta abierta de una mesa a otra
+(por ejemplo, si el cliente pide cambiarse de mesa) sin perder el detalle de lo ya ordenado, y
+agregar rondas adicionales de platillos a una cuenta ya abierta (por ejemplo, una cuenta
+que ya tiene una comanda "entregada" puede recibir una nueva comanda con más platillos,
+sin afectar el estado de la orden anterior). El sistema debe alertar visualmente al mesero si
+algún platillo de sus mesas ha superado su tiempo estimado de preparación sin haber sido
+marcado como "listo" por cocina.
+
+       Cocina
+
+Cocina es un rol independiente dentro de la Aplicación de Operación, con una vista
+reducida enfocada únicamente en la preparación de alimentos. Puede visualizar las
+comandas entrantes en tiempo real, con el detalle de platillos, cantidades, modificadores,
+notas y tiempo estimado de preparación de cada orden, lo cual le permite priorizar cuando
+hay varias comandas activas.
+                                                    CENTRO UNIVERSITARIO DE OCCIDENTE
+                                                    DIVISIÓN DE CIENCIAS DE LA INGENIERÍA
+                                                          ANÁLISIS Y DISEÑO DE SISTEMAS 1
+                                                                 SEGUNDO SEMESTRE 2026
+                                                                              PROYECTO 1
+
+
+
+
+Las comandas deben mostrarse ordenadas por antigüedad (la más antigua primero), y el
+sistema debe resaltar visualmente aquellas que ya superaron su tiempo estimado de
+preparación, para que cocina pueda priorizarlas. Este usuario puede actualizar el estado de
+cada platillo de una comanda conforme avanza su preparación (recibido → en preparación →
+listo), lo cual se refleja automáticamente en la vista del mesero para que este sepa cuándo
+puede recoger y servir el platillo. Si un platillo no puede prepararse por falta de un insumo
+detectada al momento de cocinar (por ejemplo, una discrepancia con el inventario), cocina
+debe poder marcarlo como "no disponible" y notificar al mesero para que informe al cliente.
+
+      Cajero
+
+El cajero es responsable de cerrar cuentas y procesar pagos, siempre y cuando tenga una
+caja abierta en su turno actual; si intenta procesar un cobro sin haber abierto caja, el
+sistema debe impedirlo y solicitarle primero la apertura de turno. Puede ver las cuentas
+marcadas como listas para cobro, calcular el subtotal, impuestos, propina y total
+(considerando divisiones de cuenta si aplica), y registrar el pago mediante el método
+correspondiente (efectivo, tarjeta), incluyendo pagos combinados o divididos entre varias
+personas.
+
+Si el cliente está registrado en el programa de fidelización, el cajero puede consultar sus
+puntos acumulados, aplicar la redención de puntos como descuento, y el sistema debe
+acreditar automáticamente los nuevos puntos generados por la compra. Al finalizar el cobro,
+el sistema puede solicitar al cliente una breve calificación del servicio recibido, asociada al
+mesero que lo atendió.
+
+Adicionalmente, el cajero es responsable de abrir y cerrar el turno de caja, registrando el
+monto inicial de efectivo, revisando el historial de transacciones del turno (ventas, propinas,
+redenciones de puntos) y realizando el cuadre al finalizar (efectivo esperado vs. efectivo real,
+con las diferencias que pudieran surgir). Mientras la caja permanezca abierta, todas las
+                                                   CENTRO UNIVERSITARIO DE OCCIDENTE
+                                                   DIVISIÓN DE CIENCIAS DE LA INGENIERÍA
+                                                         ANÁLISIS Y DISEÑO DE SISTEMAS 1
+                                                                SEGUNDO SEMESTRE 2026
+                                                                             PROYECTO 1
+
+
+
+
+ventas procesadas por ese cajero quedan asociadas a ese turno específico, de forma que el
+cuadre final sea trazable.
+
+Módulo de Mesas y Cuentas
+
+   ●​ Estados de la mesa: libre, reservada, ocupada y con cuenta solicitada. El sistema
+      debe controlar las transiciones válidas entre estos estados (por ejemplo, una mesa
+      "reservada" solo puede pasar a "ocupada" cuando el mesero sienta al cliente
+      correspondiente).
+   ●​ Apertura de cuenta asociada a una mesa y a un mesero, con hora de apertura para
+      efectos de reportes de tiempo de servicio.
+   ●​ Transferencia de cuenta: mover una cuenta abierta de una mesa a otra sin perder el
+      detalle de las comandas ya registradas.
+   ●​ Fusión de cuentas: en caso de que dos mesas se unan físicamente (por ejemplo, un
+      grupo grande), permitir combinar sus cuentas en una sola antes del cobro.
+   ●​ División de cuenta: por número de personas o por ítems específicos, generando
+      sub-cuentas dentro de la cuenta principal de la mesa, cada una con su propio subtotal.
+
+Módulo de Comandas (Órdenes)
+
+   ●​ El mesero agrega platillos a la cuenta con cantidad, modificadores y notas.
+   ●​ Al enviar la comanda, se descuenta el inventario correspondiente (receta del platillo +
+      recetas de los modificadores incluidos) y se notifica a cocina en tiempo real.
+   ●​ Estados de la comanda: recibida → en preparación → lista → entregada. Cocina
+      actualiza el estado de cada platillo; el mesero visualiza el avance para saber cuándo
+      servir.
+   ●​ Rondas adicionales: una cuenta ya abierta puede recibir nuevas comandas conforme
+      el cliente va ordenando más (por ejemplo, primero entrada y bebida, luego plato
+                                                  CENTRO UNIVERSITARIO DE OCCIDENTE
+                                                  DIVISIÓN DE CIENCIAS DE LA INGENIERÍA
+                                                        ANÁLISIS Y DISEÑO DE SISTEMAS 1
+                                                               SEGUNDO SEMESTRE 2026
+                                                                            PROYECTO 1
+
+
+
+
+     fuerte, luego postre), cada ronda con su propio ciclo de estados independiente de las
+     anteriores.
+  ●​ Modificación y cancelación: un platillo puede eliminarse de una comanda
+     únicamente si aún no ha sido enviado a cocina o si cocina aún no ha comenzado su
+     preparación; una vez marcado "en preparación", el sistema no debe permitir
+     cancelarlo directamente (debe requerir intervención del mesero/administrador y
+     quedar registrado como excepción).
+  ●​ Alerta de tiempo excedido: si un platillo supera su tiempo estimado de preparación
+     sin haber sido marcado como "listo", el sistema debe resaltarlo tanto en la vista de
+     cocina como en la del mesero correspondiente.
+
+Módulo de Facturación
+
+  ●​ Cierre de cuenta: cálculo de subtotal, impuestos, propina y total, considerando
+     divisiones de cuenta si aplica. Este proceso solo puede completarse si existe una
+     caja abierta en el turno actual, conforme a la regla general de operación descrita al
+     inicio de esta sección.
+  ●​ Registro del método de pago (efectivo, tarjeta), incluyendo pagos combinados o
+     divididos entre varias personas.
+  ●​ Numeración correlativa de facturas/comprobantes, para mantener trazabilidad y
+     evitar duplicados.
+  ●​ Desglose visible en el comprobante de: platillos y cantidades, subtotal, descuentos
+     aplicados (por ejemplo, redención de puntos), impuestos y propina.
+  ●​ Emisión e impresión de factura/comprobante: generación de un documento
+     imprimible (PDF o vista de impresión) con el detalle completo de la cuenta, desde la
+     propia Aplicación de Operación.
+  ●​ Historial de facturas: consulta de comprobantes emitidos, filtrable por fecha, mesa,
+     mesero o cajero, útil tanto para el cajero como para los reportes del administrador.
+                                                     CENTRO UNIVERSITARIO DE OCCIDENTE
+                                                     DIVISIÓN DE CIENCIAS DE LA INGENIERÍA
+                                                           ANÁLISIS Y DISEÑO DE SISTEMAS 1
+                                                                  SEGUNDO SEMESTRE 2026
+                                                                               PROYECTO 1
+
+
+
+
+Módulo de Caja
+
+   ●​ Apertura de turno: obligatoria antes de poder procesar cualquier cobro; requiere el
+      registro del monto inicial de efectivo y queda asociada al cajero que la abrió.
+   ●​ Registro de todas las transacciones del turno: ventas, propinas y redenciones de
+      puntos, con fecha y hora de cada movimiento.
+   ●​ Cierre de turno con cuadre de caja: comparación entre el efectivo esperado (monto
+      inicial + ventas en efectivo del turno) y el efectivo real contado por el cajero,
+      mostrando la diferencia si la hubiera.
+   ●​ Mientras no exista una caja abierta, el sistema debe impedir cualquier intento de cobro
+      desde el módulo de Facturación, mostrando un mensaje claro que indique que se
+      requiere abrir turno primero.
+
+
+Historias de usuario y validación (BDD)
+
+El proyecto debe contar con historias de usuario redactadas siguiendo la metodología BDD y
+utilizando la sintaxis Gherkin (Given-When-Then), documentadas en un tablero de gestión en
+JIRA. Las historias deben cubrir la totalidad de los módulos y funcionalidades descritos
+en este documento, tanto de la Aplicación Administrativa (insumos, recetas, platillos,
+inventario, configuración, reservas/lista de espera, reportes) como de la Aplicación de
+Operación (mesas y cuentas, comandas, facturación, caja, fidelización), sirviendo como base
+de validación completa del sistema.
+
+
+Despliegue
+
+El sistema (backend, frontend de ambas aplicaciones y base de datos) debe estar
+desplegado y accesible en un proveedor en la nube (AWS, GCP u otro) al momento de la
+entrega, para efectos de calificación. Es obligatorio el uso de una herramienta de
+                                                     CENTRO UNIVERSITARIO DE OCCIDENTE
+                                                     DIVISIÓN DE CIENCIAS DE LA INGENIERÍA
+                                                           ANÁLISIS Y DISEÑO DE SISTEMAS 1
+                                                                  SEGUNDO SEMESTRE 2026
+                                                                               PROYECTO 1
+
+
+
+
+automatización específica (Jenkins u otra) y la construcción de un pipeline de CI/CD formal.
+El equipo es libre de elegir la herramienta que prefiera.
+
+
+Importante
+
+   ●​ Java (Spring Boot) para el desarrollo de Backend, Angular para el Frontend.
+   ●​ Uso de Swagger para documentación de API.
+   ●​ Es válido utilizar algún IDE o cualquier editor de texto.
+   ●​ Las copias obtendrán nota de cero y se notificará a coordinación.
+   ●​ No es válido copy/paste desde internet. Se realizarán preguntas sobre el código o
+       funcionalidad, y si el estudiante no sabe explicar el porqué, tendrá una fuerte
+       penalización.
+   ●​ El estudiante deberá obtener al menos el 5% de la nota para tener derecho a los
+       siguientes proyectos.
+   ●​ Grupos de 4 personas por afinidad.
+
+
+Entrega
+
+La fecha de entrega es el día jueves 17 de septiembre de 2026 a las 23:59 por medio de
+Classroom. Los componentes a entregar:
+
+   ●​ Código fuente
+   ●​ Historias de usuario
+   ●​ Proyecto desplegado para su calificación
+   ●​ Manual Técnico
+   ●​ Manual de usuario
+
+
+Calificación
+                        CENTRO UNIVERSITARIO DE OCCIDENTE
+                        DIVISIÓN DE CIENCIAS DE LA INGENIERÍA
+                              ANÁLISIS Y DISEÑO DE SISTEMAS 1
+                                     SEGUNDO SEMESTRE 2026
+                                                  PROYECTO 1
+
+
+
+
+Pendiente de definir.
+
