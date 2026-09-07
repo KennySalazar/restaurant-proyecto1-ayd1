@@ -1,0 +1,18 @@
+# Allow only the sources required to compile and test the API.
+**
+!Dockerfile
+!.dockerignore
+!gradlew
+!build.gradle
+!settings.gradle
+!gradle/
+!gradle/**
+!src/
+!src/**
+# Never include local secrets, even if placed under an allowed directory.
+**/.env
+**/.env.*
+**/*.pem
+**/*.key
+**/*.p12
+**/*.jks
