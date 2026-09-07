@@ -6,7 +6,7 @@ services:
     environment:
       POSTGRES_DB: restaurante_db
       POSTGRES_USER: restaurante_user
-      POSTGRES_PASSWORD: restaurante_password
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:?Define DATABASE_PASSWORD in .env}
 
     ports:
       - "5437:5432"

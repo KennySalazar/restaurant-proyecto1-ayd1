@@ -4,6 +4,10 @@ Backend REST del **Sistema de Gestión de Restaurante**. Centraliza autenticaci�
 
 La API utiliza el contexto `/api/v1`, el perfil de desarrollo `dev` y localmente se ejecuta en el puerto `8090`.
 
+La preparación de Docker, variables y pasos pendientes para Render/Neon está en
+[Despliegue del backend](../docs/despliegue-backend.md). El perfil `dev` continúa
+siendo el predeterminado para ejecución local; la imagen Docker selecciona `prod`.
+
 ## Requisitos
 
 - Java 21
@@ -54,6 +58,33 @@ OTP_MAX_ATTEMPTS=5
 ```
 
 Nunca se deben versionar `.env`, contraseñas, OTP, JWT, App Passwords ni credenciales cloud.
+
+## Correo por HTTPS en Render Free
+
+El proveedor predeterminado sigue siendo SMTP para desarrollo. Para usar Brevo,
+configurar estas variables únicamente en el entorno de ejecución:
+
+| Variable | Propósito |
+|---|---|
+| `MAIL_PROVIDER` | Seleccionar `brevo` para HTTPS o `smtp` para SMTP. |
+| `BREVO_API_KEY` | Clave API privada de Brevo; no es una clave SMTP. |
+| `MAIL_FROM` | Dirección real del remitente verificado en Brevo. |
+| `MAIL_SENDER_NAME` | Nombre visible del restaurante; opcional. |
+
+Con Brevo no se necesitan las credenciales SMTP. La integración usa
+`POST https://api.brevo.com/v3/smtp/email`, con 5 segundos de espera de conexión
+y 10 segundos de espera de respuesta. No reintenta automáticamente los envíos:
+ante una respuesta incierta, un reintento podría duplicar el correo.
+Los errores no incluyen el cuerpo de respuesta del proveedor ni la excepción original.
+
+Las pruebas automatizadas simulan Brevo y no envían correos. Para validar la cuenta
+real, configurar las variables de forma privada y solicitar un OTP desde un flujo
+existente del sistema para una cuenta controlada por el equipo. Comprobar el evento
+en Brevo y la recepción en el buzón: una respuesta de aceptación no garantiza entrega.
+La verificación del remitente tampoco garantiza que el envío transaccional esté habilitado.
+No registrar códigos, claves ni el contenido del correo como evidencia.
+
+Referencia: [API transaccional de Brevo](https://developers.brevo.com/docs/send-a-transactional-email).
 
 ## Política de contraseñas
 

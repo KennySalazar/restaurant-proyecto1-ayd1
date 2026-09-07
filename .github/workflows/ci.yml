@@ -1,0 +1,116 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main, develop]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  backend:
+    name: Backend y PostgreSQL
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Preparar evidencias
+        run: mkdir -p ci-reports
+      # Tests run inside the Docker build, using the versioned Java/Gradle setup.
+      - name: Compilar y probar Java
+        run: docker build --target build --progress=plain -t restaurante-api:ci-tests restaurante-api
+      - name: Extraer reportes de pruebas
+        run: |
+          docker create --name backend-test-reports restaurante-api:ci-tests true
+          docker cp backend-test-reports:/workspace/build/reports ci-reports/gradle
+          docker cp backend-test-reports:/workspace/build/test-results ci-reports/junit
+      - name: Construir imagen de producción
+        run: docker build --progress=plain -t restaurante-api:local-prod-check restaurante-api
+      - name: Probar arranque, migraciones, seguridad y reinicio
+        run: python3 scripts/ci/backend_smoke.py | tee ci-reports/backend-smoke.txt
+      - name: Guardar evidencias del backend
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-reports-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ci-reports/
+          if-no-files-found: warn
+          retention-days: 14
+
+  frontend:
+    name: Frontend (${{ matrix.project }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        project: [restaurante-admin, restaurante-pos]
+    defaults:
+      run:
+        working-directory: ${{ matrix.project }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: ${{ matrix.project }}/package-lock.json
+      - name: Seleccionar npm
+        run: npm install --global npm@11.6.2
+      - name: Instalar dependencias exactas
+        run: npm ci
+      - name: Ejecutar pruebas
+        run: |
+          mkdir -p ci-reports
+          npm test -- --watch=false | tee ci-reports/tests.txt
+      - name: Compilar producción
+        run: npm run build -- --configuration production | tee ci-reports/build.txt
+      - name: Verificar directorio publicable
+        env:
+          PROJECT: ${{ matrix.project }}
+        run: test -f "dist/$PROJECT/browser/index.html"
+      - name: Guardar build
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.project }}-build-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ matrix.project }}/dist/${{ matrix.project }}/browser/
+          if-no-files-found: error
+          retention-days: 7
+      - name: Guardar evidencias del frontend
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.project }}-reports-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ matrix.project }}/ci-reports/
+          if-no-files-found: warn
+          retention-days: 14
+
+  ci-approved:
+    name: CI aprobada
+    if: always()
+    needs: [backend, frontend]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+      - name: Comprobar todos los resultados
+        env:
+          BACKEND_RESULT: ${{ needs.backend.result }}
+          FRONTEND_RESULT: ${{ needs.frontend.result }}
+        run: |
+          printf 'Backend: %s\nFrontends: %s\nCommit: %s\n' "$BACKEND_RESULT" "$FRONTEND_RESULT" "$GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
+          test "$BACKEND_RESULT" = success
+          test "$FRONTEND_RESULT" = success
