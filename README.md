@@ -2,6 +2,8 @@
 
 Proyecto 1 del curso **Análisis y Diseño de Sistemas 1**, Segundo Semestre 2026.
 
+Para retomar la preparación cloud, consultar el [punto de continuación del despliegue](docs/CONTINUAR-DESPLIEGUE.md).
+
 El sistema está diseñado como una solución integral para la administración y operación de un restaurante. Está compuesto por **dos aplicaciones Angular independientes**, conectadas a un **mismo backend Spring Boot** y a una **base de datos PostgreSQL**.
 
 Actualmente el repositorio contiene el **esqueleto técnico funcional**, incluyendo autenticación, autorización por roles, JWT, recuperación de contraseña y autenticación de dos factores (2FA). Los módulos de negocio se implementarán de forma incremental utilizando GitFlow y ramas `feature/*`.
@@ -20,7 +22,7 @@ restaurante-proyecto1-ayd1/
 │   ├── diagramas/
 │   ├── manual-tecnico/
 │   └── manual-usuario/
-├── Jenkinsfile             # Pipeline CI/CD
+├── .github/workflows/ci.yml # Compilación y pruebas con GitHub Actions
 ├── .gitignore
 └── README.md
 ```
@@ -140,7 +142,7 @@ Ambas aplicaciones utilizan:
 - GitFlow
 - JIRA
 - BDD con Gherkin
-- Jenkins para CI/CD
+- GitHub Actions para CI/CD
 - Proveedor cloud para despliegue final
 
 ---
@@ -1207,40 +1209,23 @@ ci: agregar pipeline de build
 
 # 12. CI/CD
 
-El proyecto debe utilizar un pipeline formal.
+La integración continua se define en `.github/workflows/ci.yml` con GitHub Actions.
+Ejecuta pruebas y builds para cada pull request, y para pushes a `develop` y `main`.
+El backend se prueba además en Docker contra PostgreSQL 18 aislado: migraciones,
+login, autorización, CORS y reinicio. Ambos Angular ejecutan pruebas y build de producción.
 
-Archivo previsto:
+El resultado `CI aprobada` solo pasa si el backend y ambos frontend pasan. Debe
+configurarse como comprobación obligatoria en GitHub al habilitar las protecciones
+correspondientes. El workflow por sí solo no impide merges ni pushes directos.
 
-```text
-Jenkinsfile
-```
+**Estado actual: CI preparada localmente; despliegue automático todavía pendiente.**
+Este workflow no publica aplicaciones ni accede a Neon o Brevo. No requiere secretos
+de producción. Los despliegues se incorporarán después, únicamente para `main` y
+condicionados a verificaciones satisfactorias del mismo commit.
 
-Flujo general:
-
-```text
-Checkout
-   ↓
-Backend compile
-   ↓
-Backend tests
-   ↓
-Backend build
-   ↓
-Admin npm ci
-   ↓
-Admin build
-   ↓
-POS npm ci
-   ↓
-POS build
-   ↓
-Empaquetado / imágenes
-   ↓
-Despliegue
-```
-
-Las credenciales del despliegue deben almacenarse como secretos del proveedor o de Jenkins.
-
+Los logs y artefactos servirán como evidencia una vez ejecutado el workflow en GitHub.
+No existe ni se necesita un `Jenkinsfile`: el enunciado permite otra herramienta.
+Consultar [la guía de CI](docs/integracion-continua.md).
 
 ---
 
@@ -1380,7 +1365,7 @@ package-lock.json
 gradle wrapper
 README
 documentación
-Jenkinsfile
+.github/workflows/ci.yml
 ```
 
 ---

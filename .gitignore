@@ -37,3 +37,12 @@ Thumbs.db
 # ==============================
 *.log
 logs/
+
+
+# Private environment variants; example templates remain versioned.
+**/.env.*
+!**/.env.example
+
+# Local CI evidence
+**/ci-reports/
+**/__pycache__/

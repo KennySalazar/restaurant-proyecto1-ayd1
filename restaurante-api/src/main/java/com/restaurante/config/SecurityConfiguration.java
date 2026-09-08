@@ -5,6 +5,7 @@ import com.restaurante.security.ProblemAccessDeniedHandler;
 import com.restaurante.security.ProblemAuthenticationEntryPoint;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -25,6 +26,7 @@ public class SecurityConfiguration {
     ) throws Exception {
 
         http
+                .cors(Customizer.withDefaults())
                 .csrf(AbstractHttpConfigurer::disable)
 
                 .sessionManagement(session ->
@@ -39,6 +41,8 @@ public class SecurityConfiguration {
                 )
 
                 .authorizeHttpRequests(authorize -> authorize
+
+                        .requestMatchers("/actuator/health/readiness").permitAll()
 
                         .requestMatchers(
                                 "/auth/login",
