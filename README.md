@@ -2,7 +2,8 @@
 
 Proyecto 1 del curso **Análisis y Diseño de Sistemas 1**, Segundo Semestre 2026.
 
-Para retomar la preparación cloud, consultar el [punto de continuación del despliegue](docs/CONTINUAR-DESPLIEGUE.md).
+Consultar la [arquitectura y guía para el equipo](docs/ARQUITECTURA-EQUIPO.md) y la
+[configuración de despliegue y CI/CD](docs/CONFIGURACION-DESPLIEGUE.md).
 
 El sistema está diseñado como una solución integral para la administración y operación de un restaurante. Está compuesto por **dos aplicaciones Angular independientes**, conectadas a un **mismo backend Spring Boot** y a una **base de datos PostgreSQL**.
 
@@ -1218,14 +1219,14 @@ El resultado `CI aprobada` solo pasa si backend, ambos frontend y automatizació
 configurarse como comprobación obligatoria en GitHub al habilitar las protecciones
 correspondientes. El workflow por sí solo no impide merges ni pushes directos.
 
-**Estado actual: CI ejecutada en GitHub; CD preparada, pendiente de activación y validación real.**
+**Estado comprobado al 9 de septiembre de 2026: CI/CD activa y primer despliegue automático exitoso.**
 El workflow incluye publicación de Render y ambos Pages únicamente para pushes a
 `main`, tras aprobar CI y con `PRODUCTION_DEPLOY_ENABLED=true`. Los PR no despliegan.
-Consultar [configuración y activación de CD](docs/despliegue-continuo.md).
+Consultar [configuración de despliegue y CI/CD](docs/CONFIGURACION-DESPLIEGUE.md).
 
-Los logs y artefactos servirán como evidencia una vez ejecutado el workflow en GitHub.
+Los logs y artefactos de Actions registran las pruebas y publicaciones realizadas.
 No existe ni se necesita un `Jenkinsfile`: el enunciado permite otra herramienta.
-Consultar [la guía de CI](docs/integracion-continua.md).
+Consultar [acceso a las aplicaciones y flujo del equipo](docs/ARQUITECTURA-EQUIPO.md).
 
 ---
 
@@ -1247,7 +1248,8 @@ dev
 prod
 ```
 
-El pipeline deberá controlar el proceso de despliegue.
+El pipeline controla la publicación de Render y ambos Pages. PostgreSQL permanece
+en Neon y Flyway aplica las migraciones pendientes al arrancar el backend.
 
 ---
 
