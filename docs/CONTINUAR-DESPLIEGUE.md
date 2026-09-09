@@ -1,5 +1,37 @@
 # Punto de continuación del despliegue
 
+## Actualización al 9 de septiembre de 2026
+
+Esta sección prevalece sobre las notas históricas siguientes:
+
+- PR #3 fusionado en develop (`aace07c`), PR #4 fusionado en main (`9ff594f`),
+  con autorización del usuario. Las CI de ambos PR y de main aprobaron.
+- Backend desplegado por el usuario en Render Free:
+  `https://restaurant-proyecto1-ayd1.onrender.com`.
+- El primer arranque falló por credenciales de Neon. El usuario las corrigió;
+  Flyway aplicó las ocho migraciones y Render indicó Live.
+- Verificado por HTTPS: readiness 200/UP, OpenAPI 200 y `/auth/me` anónimo 401.
+- El usuario verificó login 200, token JWT y `/auth/me` con ADMIN habilitado.
+  También confirmó recepción real del correo de recuperación enviado por Brevo.
+  No se completó el cambio de contraseña ni se probó el flujo completo de 2FA.
+- Pendiente eliminar la autoconfiguración de usuario en memoria de Spring Security
+  que imprime una contraseña generada. No copiar logs con ese valor a documentos.
+- Preparación local de Pages en `feature/frontends-cloud` desde develop:
+  URL de producción real en ambos Angular y guía `docs/despliegue-frontends.md`.
+  El usuario autorizó commit, push y preparación del PR hacia develop para estos
+  ocho archivos. Merge y publicación en Pages siguen pendientes de autorización.
+  Las pruebas y builds de ambos frontend pasaron y se verificó la URL en los bundles.
+  Los cuatro paquetes con avisos npm detectados al preparar Pages se corrigieron:
+  Vitest y asociados 4.1.11, Hono 4.13.7 y js-yaml 4.3.2. La corrección conserva
+  el resto de versiones. Ver validación en la guía de frontend y comprobar el estado
+  efectivo de la rama y del PR en GitHub al retomar.
+- `docs/Render Dashboard.pdf` es un archivo del usuario, no versionado. Conservarlo
+  y no incorporarlo por accidente a un commit ni extraer posibles secretos.
+- Faltan publicar Pages, configurar CORS con sus URL y completar CD para backend
+  y ambos frontend. Auto-Deploy de Render se configuró en Off según el usuario.
+
+## Notas históricas de preparación
+
 Guardado inicialmente el 5 de septiembre de 2026 y actualizado el 7 de septiembre.
 El usuario pidió conservar un punto seguro para retomar el trabajo.
 
