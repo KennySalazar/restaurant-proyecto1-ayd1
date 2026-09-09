@@ -11,13 +11,23 @@ permissions:
 
 concurrency:
   group: ci-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name != 'push' || github.ref != 'refs/heads/main' }}
 
 defaults:
   run:
     shell: bash
 
 jobs:
+  automation:
+    name: Pruebas de automatización
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: python3 -m unittest discover -s scripts/ci -p 'test_*.py' -v
+
   backend:
     name: Backend y PostgreSQL
     runs-on: ubuntu-24.04
@@ -102,7 +112,7 @@ jobs:
   ci-approved:
     name: CI aprobada
     if: always()
-    needs: [backend, frontend]
+    needs: [backend, frontend, automation]
     runs-on: ubuntu-24.04
     timeout-minutes: 2
     steps:
@@ -110,7 +120,54 @@ jobs:
         env:
           BACKEND_RESULT: ${{ needs.backend.result }}
           FRONTEND_RESULT: ${{ needs.frontend.result }}
+          AUTOMATION_RESULT: ${{ needs.automation.result }}
         run: |
           printf 'Backend: %s\nFrontends: %s\nCommit: %s\n' "$BACKEND_RESULT" "$FRONTEND_RESULT" "$GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
           test "$BACKEND_RESULT" = success
           test "$FRONTEND_RESULT" = success
+          test "$AUTOMATION_RESULT" = success
+
+  production:
+    name: Desplegar producción
+    needs: ci-approved
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.PRODUCTION_DEPLOY_ENABLED == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    concurrency:
+      group: production
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: restaurante-admin-build-${{ github.run_id }}-${{ github.run_attempt }}
+          path: deploy-builds/restaurante-admin
+      - uses: actions/download-artifact@v4
+        with:
+          name: restaurante-pos-build-${{ github.run_id }}-${{ github.run_attempt }}
+          path: deploy-builds/restaurante-pos
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Instalar herramienta de Pages sin credenciales
+        run: npm install --prefix "$RUNNER_TEMP/pages-tools" --no-audit --no-fund wrangler@4.130.0
+      - name: Publicar y verificar el commit aprobado
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+          RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          WRANGLER_SEND_METRICS: 'false'
+          WRANGLER_BIN: ${{ runner.temp }}/pages-tools/node_modules/.bin/wrangler
+        run: python3 scripts/ci/deploy.py
+      - name: Guardar evidencia de despliegue
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-report-${{ github.run_id }}-${{ github.run_attempt }}
+          path: deploy-reports/
+          if-no-files-found: warn
+          retention-days: 14
