@@ -2,8 +2,12 @@
 
 ## Estado
 
-Preparación en `feature/frontends-cloud`, con commit, push y PR hacia develop
-autorizados. La publicación de los sitios en Pages sigue pendiente.
+Publicados manualmente tras los PR #5 y #6: `https://restaurante-admin-ayd1.pages.dev`
+y `https://restaurante-pos-ayd1.pages.dev`. El usuario confirmó login y dashboard
+Admin; POS carga y rechaza al ADMIN por rol. Cuenta operativa y su prueba pendientes.
+CORS de ambos orígenes ya configurado. CD está preparada localmente, pendiente de
+publicación y activación: [guía de CD](despliegue-continuo.md).
+Las instrucciones siguientes conservan el procedimiento de publicación inicial.
 Ambos `environment.production.ts` apuntan a:
 
 `https://restaurant-proyecto1-ayd1.onrender.com/api/v1`
@@ -27,26 +31,26 @@ La creación y publicación de los proyectos requiere autorización del usuario.
 Compilar con Node 24 y npm 11.6.2: `npm ci` y
 `npm run build -- --configuration production` en cada frontend.
 La CI existente ya compila y conserva esos directorios como artefactos.
-Falta implementar los pasos de CD después del control de éxito de todos los jobs,
-solo para producción en main. Los pull requests no deben desplegar.
+Los pasos de CD están preparados después del control de éxito de todos los jobs,
+solo para producción en main, pendientes de activación. Los PR no despliegan.
 
 Para CD, el usuario configurará en GitHub Secrets `CLOUDFLARE_API_TOKEN` (permiso
 de edición de Pages limitado a su cuenta) y `CLOUDFLARE_ACCOUNT_ID` (identificador
-de la cuenta). Los nombres definitivos de los proyectos se fijarán al crearlos.
+de la cuenta). Los proyectos son `restaurante-admin-ayd1` y `restaurante-pos-ayd1`.
 No se requieren secretos del backend en Cloudflare Pages.
 
 ## Navegación y conexión
 
 Pages admite rutas de SPA automáticamente si no existe un `404.html` en la raíz.
-No se agrega uno. Tras publicar, probar la entrada directa y recarga de `/login`.
+No se agrega uno. Probar la entrada directa y recarga de `/auth/login`.
 
 Cuando existan las dos URL reales, configurar en Render `CORS_ALLOWED_ORIGINS`
 con ambos orígenes HTTPS separados por coma, sin rutas, comodines ni barra final.
 Guardar esa variable con redeploy requiere autorización. Hasta entonces el navegador
 no podrá completar las llamadas entre Pages y la API, aunque el frontend cargue.
 
-Validar login, `/auth/me`, roles, recuperación de contraseña y recarga de rutas desde
-los sitios publicados. Aún faltan pruebas reales desde el navegador en Pages.
+Completar las pruebas de recuperación y recarga de rutas desde los sitios publicados.
+Login Admin ya fue confirmado por el usuario; acceso POS con rol operativo pendiente.
 
 ## Validación
 

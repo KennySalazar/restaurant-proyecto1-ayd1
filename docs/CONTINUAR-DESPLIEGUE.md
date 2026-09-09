@@ -1,5 +1,28 @@
 # Punto de continuación del despliegue
 
+## Última continuación: CD local — 9 de septiembre de 2026
+
+Esta sección prevalece sobre TODAS las notas anteriores conservadas abajo.
+
+- PR #5 y #6 fusionados con autorización; main en `11e000b` y CI 34314981825 aprobada.
+- Admin y POS publicados por el usuario mediante Direct Upload en Cloudflare Pages:
+  `https://restaurante-admin-ayd1.pages.dev` y `https://restaurante-pos-ayd1.pages.dev`.
+- CORS real configurado; usuario confirmó login/dashboard Admin. POS rechaza ADMIN
+  por rol y el usuario pidió posponer la cuenta operativa. No implementar ese CRUD ahora.
+- Backend Render, Neon con ocho migraciones y correo Brevo ya probados.
+- Rama local `feature/despliegue-continuo` desde develop. Workflow extendido,
+  `scripts/ci/deploy.py`, pruebas simuladas y `docs/despliegue-continuo.md` preparados.
+- Nueve pruebas de automatización y actionlint aprobados. No despliegues de prueba.
+- CD requiere cuatro secretos de proveedor y `PRODUCTION_DEPLOY_ENABLED=true`;
+  todavía no se ha configurado ni probado en remoto. Render Auto-Deploy sigue Off.
+- El usuario autorizó commit y push de los ocho archivos de esta preparación en
+  `feature/despliegue-continuo` y preparar el PR hacia develop. Merge, activación de
+  CD y despliegue siguen pendientes de autorización. Comprobar el PR y su CI al retomar.
+- Sigue pendiente la limpieza de autoconfiguración de usuario de Spring Security,
+  prueba de POS operativo, flujo completo de 2FA y documentación final de entrega.
+
+Para retomar: git status, leer esta sección y la guía de CD. No leer `.env` ni secretos.
+
 ## Actualización al 9 de septiembre de 2026
 
 Esta sección prevalece sobre las notas históricas siguientes:

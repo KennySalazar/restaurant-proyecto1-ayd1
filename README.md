@@ -1214,14 +1214,14 @@ Ejecuta pruebas y builds para cada pull request, y para pushes a `develop` y `ma
 El backend se prueba además en Docker contra PostgreSQL 18 aislado: migraciones,
 login, autorización, CORS y reinicio. Ambos Angular ejecutan pruebas y build de producción.
 
-El resultado `CI aprobada` solo pasa si el backend y ambos frontend pasan. Debe
+El resultado `CI aprobada` solo pasa si backend, ambos frontend y automatización pasan. Debe
 configurarse como comprobación obligatoria en GitHub al habilitar las protecciones
 correspondientes. El workflow por sí solo no impide merges ni pushes directos.
 
-**Estado actual: CI preparada localmente; despliegue automático todavía pendiente.**
-Este workflow no publica aplicaciones ni accede a Neon o Brevo. No requiere secretos
-de producción. Los despliegues se incorporarán después, únicamente para `main` y
-condicionados a verificaciones satisfactorias del mismo commit.
+**Estado actual: CI ejecutada en GitHub; CD preparada, pendiente de activación y validación real.**
+El workflow incluye publicación de Render y ambos Pages únicamente para pushes a
+`main`, tras aprobar CI y con `PRODUCTION_DEPLOY_ENABLED=true`. Los PR no despliegan.
+Consultar [configuración y activación de CD](docs/despliegue-continuo.md).
 
 Los logs y artefactos servirán como evidencia una vez ejecutado el workflow en GitHub.
 No existe ni se necesita un `Jenkinsfile`: el enunciado permite otra herramienta.
