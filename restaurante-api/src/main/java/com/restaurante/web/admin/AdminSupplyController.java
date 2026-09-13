@@ -172,7 +172,7 @@ public class AdminSupplyController {
         public ResponseEntity<SupplyEntryRegistrationResponse> registerSupplyEntry(
                         @Parameter(description = "Identificador único del insumo", required = true) @PathVariable Long id,
                         @Valid @RequestBody CreateSupplyEntryRequest request,
-                        Authentication authentication) {
+                        @Parameter(hidden = true) Authentication authentication) {
                 return ResponseEntity.status(HttpStatus.CREATED)
                                 .body(supplyService.registerSupplyEntry(id, request, authentication));
         }
@@ -188,7 +188,7 @@ public class AdminSupplyController {
         })
         public ResponseEntity<SupplyEntryRegistrationResponse> registerGeneralSupplyEntry(
                         @Valid @RequestBody CreateSupplyEntryRequest request,
-                        Authentication authentication) {
+                        @Parameter(hidden = true) Authentication authentication) {
                 return ResponseEntity.status(HttpStatus.CREATED)
                                 .body(supplyService.registerSupplyEntry(request.supplyId(), request, authentication));
         }
