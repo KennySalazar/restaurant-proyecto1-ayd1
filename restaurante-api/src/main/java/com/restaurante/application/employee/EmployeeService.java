@@ -19,8 +19,10 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.restaurante.web.dto.employee.UpdateEmployeeRequest;
-
 import java.util.List;
+import com.restaurante.domain.model.RoleName;
+import com.restaurante.domain.model.UserAccount;
+
 
 @Service
 public class EmployeeService {
@@ -249,6 +251,94 @@ public class EmployeeService {
 
         return new EmployeeResponse(
                 account.getId(),
+                profile.getEmployeeCode(),
+                profile.getFirstName(),
+                profile.getLastName(),
+                account.getEmail(),
+                profile.getHireDate(),
+                account.getRole().getName(),
+                account.isEnabled()
+        );
+    }
+
+    @Transactional(readOnly = true)
+    public List<EmployeeResponse> getEmployees(
+            Authentication authentication) {
+
+        Long restaurantId = getRestaurantId(authentication);
+
+        return profiles
+                .findAllByRestaurantIdOrderByIdAsc(restaurantId)
+                .stream()
+                .filter(profile -> {
+                    UserAccount account = users
+                            .findById(profile.getId())
+                            .orElse(null);
+
+                    return account != null
+                            && account.getRole() != null
+                            && account.getRole().getName() != RoleName.ADMIN;
+                })
+                .map(profile -> {
+                    UserAccount account = users
+                            .findById(profile.getId())
+                            .orElseThrow(() -> new ApiException(
+                                    HttpStatus.NOT_FOUND,
+                                    "employee_account_not_found",
+                                    "Cuenta de empleado no encontrada",
+                                    "No se encontró la cuenta asociada al empleado"
+                            ));
+
+                    return toResponse(profile, account);
+                })
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public EmployeeResponse getEmployee(
+            Long employeeId,
+            Authentication authentication) {
+
+        Long restaurantId = getRestaurantId(authentication);
+
+        RestaurantUserProfile profile = profiles
+                .findByIdAndRestaurantId(employeeId, restaurantId)
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "employee_not_found",
+                        "Empleado no encontrado",
+                        "El empleado seleccionado no existe"
+                ));
+
+        UserAccount account = users
+                .findById(profile.getId())
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "employee_not_found",
+                        "Empleado no encontrado",
+                        "El empleado seleccionado no existe"
+                ));
+
+        if (account.getRole() == null
+                || account.getRole().getName() == RoleName.ADMIN) {
+
+            throw new ApiException(
+                    HttpStatus.NOT_FOUND,
+                    "employee_not_found",
+                    "Empleado no encontrado",
+                    "El empleado seleccionado no existe"
+            );
+        }
+
+        return toResponse(profile, account);
+    }
+
+    private EmployeeResponse toResponse(
+            RestaurantUserProfile profile,
+            UserAccount account) {
+
+        return new EmployeeResponse(
+                profile.getId(),
                 profile.getEmployeeCode(),
                 profile.getFirstName(),
                 profile.getLastName(),
