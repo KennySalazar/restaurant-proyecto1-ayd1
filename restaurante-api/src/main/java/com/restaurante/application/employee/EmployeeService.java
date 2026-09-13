@@ -18,6 +18,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.restaurante.web.dto.employee.UpdateEmployeeRequest;
 
 import java.util.List;
 
@@ -155,5 +156,106 @@ public class EmployeeService {
                 ));
 
         return profile.getRestaurantId();
+    }
+
+    @Transactional
+    public EmployeeResponse updateEmployee(
+            Long employeeId,
+            UpdateEmployeeRequest request,
+            Authentication authentication) {
+
+        Long restaurantId = getRestaurantId(authentication);
+
+        RestaurantUserProfile profile = profiles
+                .findById(employeeId)
+                .filter(existing -> existing.getRestaurantId().equals(restaurantId))
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "employee_not_found",
+                        "Empleado no encontrado",
+                        "El empleado seleccionado no existe"
+                ));
+
+        UserAccount account = users.findById(employeeId)
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "employee_account_not_found",
+                        "Cuenta de empleado no encontrada",
+                        "La cuenta asociada al empleado no existe"
+                ));
+
+        String email = EmailNormalizer.normalize(request.email());
+        String employeeCode = request.codigoEmpleado().trim();
+
+        if (users.findByEmailAndIdNot(email, employeeId).isPresent()) {
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "employee_login_in_use",
+                    "Identificador de acceso en uso",
+                    "El identificador de acceso ya está en uso"
+            );
+        }
+
+        if (profiles.existsByRestaurantIdAndEmployeeCodeAndIdNot(
+                restaurantId,
+                employeeCode,
+                employeeId)) {
+
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "employee_code_in_use",
+                    "Código de empleado en uso",
+                    "El código de empleado ya está en uso"
+            );
+        }
+
+        if (!isOperationalRole(request.rol())) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "invalid_operational_role",
+                    "Rol operativo inválido",
+                    "Debe seleccionarse un rol operativo válido"
+            );
+        }
+
+        Role role = roles.findByName(request.rol())
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.CONFLICT,
+                        "role_not_configured",
+                        "Rol no configurado",
+                        "El rol seleccionado no se encuentra configurado"
+                ));
+
+        boolean accessChanged =
+                !account.getEmail().equals(email)
+                        || account.getRole().getName() != request.rol();
+
+        account.setEmail(email);
+        account.setRole(role);
+
+        if (accessChanged) {
+            account.incrementTokenVersion();
+        }
+
+        profile.updateInformation(
+                employeeCode,
+                request.nombres().trim(),
+                request.apellidos().trim(),
+                request.fechaContratacion()
+        );
+
+        users.save(account);
+        profiles.save(profile);
+
+        return new EmployeeResponse(
+                account.getId(),
+                profile.getEmployeeCode(),
+                profile.getFirstName(),
+                profile.getLastName(),
+                account.getEmail(),
+                profile.getHireDate(),
+                account.getRole().getName(),
+                account.isEnabled()
+        );
     }
 }

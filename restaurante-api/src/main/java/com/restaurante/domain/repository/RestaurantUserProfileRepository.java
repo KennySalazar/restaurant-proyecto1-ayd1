@@ -10,4 +10,10 @@ public interface RestaurantUserProfileRepository
             Long restaurantId,
             String employeeCode
     );
+
+    boolean existsByRestaurantIdAndEmployeeCodeAndIdNot(
+            Long restaurantId,
+            String employeeCode,
+            Long id
+    );
 }
