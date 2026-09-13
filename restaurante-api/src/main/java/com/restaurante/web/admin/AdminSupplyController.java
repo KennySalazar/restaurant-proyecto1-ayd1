@@ -1,11 +1,13 @@
 package com.restaurante.web.admin;
 
 import com.restaurante.application.supply.SupplyService;
+import com.restaurante.web.dto.supply.ConfigureStockLimitsRequest;
 import com.restaurante.web.dto.supply.CreateSupplyRequest;
 import com.restaurante.web.dto.supply.MeasurementUnitResponse;
 import com.restaurante.web.dto.supply.SupplyCategoryResponse;
 import com.restaurante.web.dto.supply.SupplyRegistrationResponse;
 import com.restaurante.web.dto.supply.SupplyResponse;
+import com.restaurante.web.dto.supply.SupplyStockLimitsResponse;
 import com.restaurante.web.dto.supply.SupplyUpdateResponse;
 import com.restaurante.web.dto.supply.UpdateSupplyRequest;
 import io.swagger.v3.oas.annotations.Operation;
@@ -93,6 +95,21 @@ public class AdminSupplyController {
                         @Parameter(description = "Identificador único del insumo a modificar", required = true) @PathVariable Long id,
                         @Valid @RequestBody UpdateSupplyRequest request) {
                 return ResponseEntity.ok(supplyService.updateSupply(id, request));
+        }
+
+        @PutMapping("/{id}/stock-limits")
+        @Operation(summary = "Configurar límites de stock de un insumo", description = "Configura los límites de stock mínimo y máximo de un insumo registrado para controlar existencias y detectar oportunamente la necesidad de reabastecimiento. Permite configurar únicamente el stock mínimo dejando el stock máximo sin configurar (vacío).")
+        @ApiResponses({
+                        @ApiResponse(responseCode = "200", description = "Límites de stock guardados exitosamente", content = @Content(schema = @Schema(implementation = SupplyStockLimitsResponse.class))),
+                        @ApiResponse(responseCode = "400", description = "Límites de stock inválidos o negativos", content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+                        @ApiResponse(responseCode = "401", description = "No autenticado o token JWT no provisto", content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+                        @ApiResponse(responseCode = "403", description = "Acceso denegado (requiere rol ADMIN)", content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+                        @ApiResponse(responseCode = "404", description = "Insumo no encontrado o inactivo", content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+        })
+        public ResponseEntity<SupplyStockLimitsResponse> configureStockLimits(
+                        @Parameter(description = "Identificador único del insumo", required = true) @PathVariable Long id,
+                        @Valid @RequestBody ConfigureStockLimitsRequest request) {
+                return ResponseEntity.ok(supplyService.configureStockLimits(id, request));
         }
 
         @GetMapping("/categories")
