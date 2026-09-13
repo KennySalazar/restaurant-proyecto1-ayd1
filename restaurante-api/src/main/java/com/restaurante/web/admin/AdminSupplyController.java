@@ -6,6 +6,8 @@ import com.restaurante.web.dto.supply.MeasurementUnitResponse;
 import com.restaurante.web.dto.supply.SupplyCategoryResponse;
 import com.restaurante.web.dto.supply.SupplyRegistrationResponse;
 import com.restaurante.web.dto.supply.SupplyResponse;
+import com.restaurante.web.dto.supply.SupplyUpdateResponse;
+import com.restaurante.web.dto.supply.UpdateSupplyRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -21,6 +23,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -59,7 +62,7 @@ public class AdminSupplyController {
         }
 
         @GetMapping
-        @Operation(summary = "Consultar catálogo de insumos [HU-002]", description = "Retorna el catálogo de insumos registrados con su nombre, unidad de medida, categoría, costo unitario y cantidad disponible en inventario. Permite filtrar opcionalmente por categoría o término de búsqueda.")
+        @Operation(summary = "Consultar catálogo de insumos", description = "Retorna el catálogo de insumos registrados con su nombre, unidad de medida, categoría, costo unitario y cantidad disponible en inventario. Permite filtrar opcionalmente por categoría o término de búsqueda.")
         @ApiResponse(responseCode = "200", description = "Catálogo de insumos obtenido exitosamente (devuelve lista vacía si no hay insumos)")
         public ResponseEntity<List<SupplyResponse>> listSupplies(
                         @Parameter(description = "Identificador de la categoría para filtrar (opcional)") @RequestParam(required = false) Long categoryId,
@@ -68,7 +71,7 @@ public class AdminSupplyController {
         }
 
         @GetMapping("/{id}")
-        @Operation(summary = "Consultar detalle de un insumo por ID [HU-002]", description = "Retorna la información detallada de un insumo registrado en el catálogo.")
+        @Operation(summary = "Consultar detalle de un insumo por ID", description = "Retorna la información detallada de un insumo registrado en el catálogo.")
         @ApiResponses({
                         @ApiResponse(responseCode = "200", description = "Insumo encontrado exitosamente"),
                         @ApiResponse(responseCode = "404", description = "Insumo no encontrado o inactivo", content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
@@ -76,6 +79,20 @@ public class AdminSupplyController {
         public ResponseEntity<SupplyResponse> getSupplyById(
                         @Parameter(description = "Identificador único del insumo", required = true) @PathVariable Long id) {
                 return ResponseEntity.ok(supplyService.getSupplyById(id));
+        }
+
+        @PutMapping("/{id}")
+        @Operation(summary = "Actualizar información de un insumo", description = "Actualiza los datos de identificación, clasificación y costo de compra de un insumo registrado en el catálogo.")
+        @ApiResponses({
+                        @ApiResponse(responseCode = "200", description = "Insumo actualizado exitosamente", content = @Content(schema = @Schema(implementation = SupplyUpdateResponse.class))),
+                        @ApiResponse(responseCode = "400", description = "Campos obligatorios vacíos o datos inválidos", content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+                        @ApiResponse(responseCode = "404", description = "Insumo no encontrado o inactivo", content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+                        @ApiResponse(responseCode = "409", description = "Nombre o código de insumo duplicado en otro registro", content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+        })
+        public ResponseEntity<SupplyUpdateResponse> updateSupply(
+                        @Parameter(description = "Identificador único del insumo a modificar", required = true) @PathVariable Long id,
+                        @Valid @RequestBody UpdateSupplyRequest request) {
+                return ResponseEntity.ok(supplyService.updateSupply(id, request));
         }
 
         @GetMapping("/categories")

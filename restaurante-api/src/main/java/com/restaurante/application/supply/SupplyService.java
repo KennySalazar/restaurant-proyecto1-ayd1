@@ -12,6 +12,10 @@ import com.restaurante.web.dto.supply.MeasurementUnitResponse;
 import com.restaurante.web.dto.supply.SupplyCategoryResponse;
 import com.restaurante.web.dto.supply.SupplyRegistrationResponse;
 import com.restaurante.web.dto.supply.SupplyResponse;
+import com.restaurante.web.dto.supply.SupplyUpdateResponse;
+import com.restaurante.web.dto.supply.UpdateSupplyRequest;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,6 +34,9 @@ public class SupplyService {
         private final SupplyRepository supplyRepository;
         private final SupplyCategoryRepository categoryRepository;
         private final MeasurementUnitRepository unitRepository;
+
+        @PersistenceContext
+        private EntityManager entityManager;
 
         public SupplyService(SupplyRepository supplyRepository,
                         SupplyCategoryRepository categoryRepository,
@@ -155,6 +162,120 @@ public class SupplyService {
                                                 "supply_not_found",
                                                 "Insumo no encontrado",
                                                 "No se encontró un insumo activo con el identificador " + id));
+        }
+
+        /**
+         * Actualiza la informacion de identificacion, clasificacion y costo de un
+         * insumo registrado
+         *
+         * @param id      Identificador unico del insumo a modificar.
+         * @param request Datos actualizados del insumo.
+         * @return Confirmacion y datos actualizados del insumo.
+         */
+        @Transactional
+        public SupplyUpdateResponse updateSupply(Long id, UpdateSupplyRequest request) {
+                Long restaurantId = DEFAULT_RESTAURANT_ID;
+
+                // verificando existencia del insumo activo
+                Supply supply = supplyRepository
+                                .findByIdAndRestaurantIdAndActiveTrue(id, restaurantId)
+                                .orElseThrow(() -> new ApiException(
+                                                HttpStatus.NOT_FOUND,
+                                                "supply_not_found",
+                                                "Insumo no encontrado",
+                                                "No se encontró un insumo activo con el identificador " + id));
+
+                // validando que el nuevo nombre no esté duplicado en otro insumo
+                String trimmedName = request.name().trim();
+                if (supplyRepository.existsByRestaurantIdAndNameIgnoreCaseAndIdNot(restaurantId, trimmedName, id)) {
+                        throw new ApiException(
+                                        HttpStatus.CONFLICT,
+                                        "duplicate_supply_name",
+                                        "Nombre duplicado",
+                                        "Ya existe otro insumo registrado con el nombre '" + trimmedName + "'");
+                }
+
+                // validadnod existencia y estado de la nueva categoría
+                SupplyCategory category = categoryRepository
+                                .findByIdAndRestaurantIdAndActiveTrue(request.categoryId(), restaurantId)
+                                .orElseThrow(() -> new ApiException(
+                                                HttpStatus.BAD_REQUEST,
+                                                "category_not_found",
+                                                "Categoría no válida",
+                                                "La categoría de insumo seleccionada no existe o no se encuentra activa"));
+
+                // validando existencia y estado de la unidad de medida
+                MeasurementUnit unit = unitRepository
+                                .findByIdAndActiveTrue(request.unitId())
+                                .orElseThrow(() -> new ApiException(
+                                                HttpStatus.BAD_REQUEST,
+                                                "unit_not_found",
+                                                "Unidad de medida no válida",
+                                                "La unidad de medida seleccionada no existe o no se encuentra activa"));
+
+                // validando coherencia de stock mínimo y máximo
+                BigDecimal minStock = request.minimumStock() != null ? request.minimumStock() : BigDecimal.ZERO;
+                BigDecimal maxStock = request.maximumStock();
+                if (maxStock != null && maxStock.compareTo(minStock) < 0) {
+                        throw new ApiException(
+                                        HttpStatus.BAD_REQUEST,
+                                        "invalid_stock_limits",
+                                        "Límites de stock inválidos",
+                                        "El stock máximo (" + maxStock + ") no puede ser menor al stock mínimo ("
+                                                        + minStock + ")");
+                }
+
+                // validandoo si se especifico uno nuevo
+                if (request.code() != null && !request.code().isBlank()) {
+                        String sanitizedCode = request.code().trim().toUpperCase();
+                        if (supplyRepository.existsByRestaurantIdAndCodeIgnoreCaseAndIdNot(restaurantId, sanitizedCode,
+                                        id)) {
+                                throw new ApiException(
+                                                HttpStatus.CONFLICT,
+                                                "duplicate_supply_code",
+                                                "Código duplicado",
+                                                "Ya existe otro insumo registrado con el código '" + sanitizedCode
+                                                                + "'");
+                        }
+                        supply.setCode(sanitizedCode);
+                }
+
+                // habilitar permiso en sesión transaccional de PostgreSQL para actualizar
+                // insumo
+                entityManager.createNativeQuery(
+                                "SELECT set_config('restaurante.permitir_actualizacion_stock', 'true', true)")
+                                .getSingleResult();
+
+                // registrar en historial de costos si el costo unitario cambió
+                BigDecimal oldCost = supply.getCurrentUnitCost();
+                BigDecimal newCost = request.unitCost();
+                if (oldCost != null && newCost != null && oldCost.compareTo(newCost) != 0) {
+                        entityManager.createNativeQuery(
+                                        """
+                                                        INSERT INTO restaurante.historial_costos_insumo (insumo_id, costo_anterior, costo_nuevo, motivo, vigente_desde)
+                                                        VALUES (:insumoId, :costoAnterior, :costoNuevo, :motivo, CURRENT_TIMESTAMP)
+                                                        """)
+                                        .setParameter("insumoId", supply.getId())
+                                        .setParameter("costoAnterior", oldCost)
+                                        .setParameter("costoNuevo", newCost)
+                                        .setParameter("motivo", "Actualización de costo de insumo por administrador")
+                                        .executeUpdate();
+                }
+
+                // apliocar cambios a la entidad
+                supply.setName(trimmedName);
+                supply.setDescription(request.description() != null ? request.description().trim() : null);
+                supply.setCategory(category);
+                supply.setMeasurementUnit(unit);
+                supply.setCurrentUnitCost(newCost);
+                supply.setMinimumStock(minStock);
+                supply.setMaximumStock(maxStock);
+
+                Supply updated = supplyRepository.save(supply);
+
+                return new SupplyUpdateResponse(
+                                "Insumo actualizado exitosamente",
+                                mapToResponse(updated));
         }
 
         /**
