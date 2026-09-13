@@ -7,11 +7,13 @@ import com.restaurante.domain.repository.MeasurementUnitRepository;
 import com.restaurante.domain.repository.SupplyCategoryRepository;
 import com.restaurante.domain.repository.SupplyRepository;
 import com.restaurante.exception.ApiException;
+import com.restaurante.web.dto.supply.ConfigureStockLimitsRequest;
 import com.restaurante.web.dto.supply.CreateSupplyRequest;
 import com.restaurante.web.dto.supply.MeasurementUnitResponse;
 import com.restaurante.web.dto.supply.SupplyCategoryResponse;
 import com.restaurante.web.dto.supply.SupplyRegistrationResponse;
 import com.restaurante.web.dto.supply.SupplyResponse;
+import com.restaurante.web.dto.supply.SupplyStockLimitsResponse;
 import com.restaurante.web.dto.supply.SupplyUpdateResponse;
 import com.restaurante.web.dto.supply.UpdateSupplyRequest;
 import jakarta.persistence.EntityManager;
@@ -275,6 +277,72 @@ public class SupplyService {
 
                 return new SupplyUpdateResponse(
                                 "Insumo actualizado exitosamente",
+                                mapToResponse(updated));
+        }
+
+        /**
+         * Configura los límites de stock (mínimo y máximo) de un insumo registrado
+         *
+         * @param id      Identificador único del insumo
+         * @param request Límites de stock a configurar
+         * @return Confirmación y datos del insumo con los límites actualizados
+         */
+        @Transactional
+        public SupplyStockLimitsResponse configureStockLimits(Long id, ConfigureStockLimitsRequest request) {
+                Long restaurantId = DEFAULT_RESTAURANT_ID;
+
+                // verificando existencia del insumo activo
+                Supply supply = supplyRepository
+                                .findByIdAndRestaurantIdAndActiveTrue(id, restaurantId)
+                                .orElseThrow(() -> new ApiException(
+                                                HttpStatus.NOT_FOUND,
+                                                "supply_not_found",
+                                                "Insumo no encontrado",
+                                                "No se encontró un insumo activo con el identificador " + id));
+
+                BigDecimal minStock = request.minimumStock();
+                BigDecimal maxStock = request.maximumStock();
+
+                // validando que el stock minimo sea obligatorio
+                if (minStock == null) {
+                        throw new ApiException(
+                                        HttpStatus.BAD_REQUEST,
+                                        "invalid_stock_limits",
+                                        "Límites de stock inválidos",
+                                        "El stock mínimo es obligatorio");
+                }
+
+                // validando que los limites no sean negativos
+                if (minStock.compareTo(BigDecimal.ZERO) < 0 || (maxStock != null && maxStock.compareTo(BigDecimal.ZERO) < 0)) {
+                        throw new ApiException(
+                                        HttpStatus.BAD_REQUEST,
+                                        "invalid_stock_limits",
+                                        "Límites de stock inválidos",
+                                        "Los límites de stock no pueden ser negativos");
+                }
+
+                // validando coherencia de stock minimo y maximo
+                if (maxStock != null && maxStock.compareTo(minStock) < 0) {
+                        throw new ApiException(
+                                        HttpStatus.BAD_REQUEST,
+                                        "invalid_stock_limits",
+                                        "Límites de stock inválidos",
+                                        "El stock máximo (" + maxStock + ") no puede ser menor al stock mínimo ("
+                                                        + minStock + ")");
+                }
+
+                // habilitar permiso en sesión transaccional de PostgreSQL para actualizar insumo
+                entityManager.createNativeQuery(
+                                "SELECT set_config('restaurante.permitir_actualizacion_stock', 'true', true)")
+                                .getSingleResult();
+
+                supply.setMinimumStock(minStock);
+                supply.setMaximumStock(maxStock);
+
+                Supply updated = supplyRepository.save(supply);
+
+                return new SupplyStockLimitsResponse(
+                                "Límites de stock configurados exitosamente",
                                 mapToResponse(updated));
         }
 
