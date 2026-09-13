@@ -80,4 +80,11 @@ public class RestaurantTable {
     public boolean isActive() {
         return active;
     }
+
+    public void updateConfiguration(String number, Short capacity, TableZone zone) {
+        this.number = number;
+        this.capacity = capacity;
+        this.zone = zone;
+    }
 }
+
