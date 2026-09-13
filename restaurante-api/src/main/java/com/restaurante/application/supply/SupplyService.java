@@ -113,15 +113,48 @@ public class SupplyService {
         }
 
         /**
-         * Lista todos los insumos activos del restaurante
+         * Lista todos los insumos activos del restaurante, con soporte opcional de
+         * filtro por categoria y busqueda
+         *
+         * @param categoryId Identificador opcional de la categoria
+         * @param search     Termino opcional de busqueda por nombre o codigo
+         * @return Listado de insumos que coinciden con los criterios
          */
         @Transactional(readOnly = true)
-        public List<SupplyResponse> listSupplies() {
+        public List<SupplyResponse> listSupplies(Long categoryId, String search) {
+                String sanitizedSearch = (search != null && !search.isBlank()) ? search.trim() : null;
                 return supplyRepository
-                                .findByRestaurantIdAndActiveTrueOrderByCreatedAtDesc(DEFAULT_RESTAURANT_ID)
+                                .searchCatalog(DEFAULT_RESTAURANT_ID, categoryId, sanitizedSearch)
                                 .stream()
                                 .map(this::mapToResponse)
                                 .toList();
+        }
+
+        /**
+         * Lista todos los insumos activos del restaurante ordenados por fecha de
+         * creacion
+         */
+        @Transactional(readOnly = true)
+        public List<SupplyResponse> listSupplies() {
+                return listSupplies(null, null);
+        }
+
+        /**
+         * Obtiene el detalle de un insumo especifico por su ID.
+         *
+         * @param id Identificador unico del insumo.
+         * @return Detalle del insumo.
+         */
+        @Transactional(readOnly = true)
+        public SupplyResponse getSupplyById(Long id) {
+                return supplyRepository
+                                .findByIdAndRestaurantIdAndActiveTrue(id, DEFAULT_RESTAURANT_ID)
+                                .map(this::mapToResponse)
+                                .orElseThrow(() -> new ApiException(
+                                                HttpStatus.NOT_FOUND,
+                                                "supply_not_found",
+                                                "Insumo no encontrado",
+                                                "No se encontró un insumo activo con el identificador " + id));
         }
 
         /**

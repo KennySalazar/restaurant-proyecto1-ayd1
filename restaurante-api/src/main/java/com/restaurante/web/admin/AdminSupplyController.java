@@ -7,6 +7,7 @@ import com.restaurante.web.dto.supply.SupplyCategoryResponse;
 import com.restaurante.web.dto.supply.SupplyRegistrationResponse;
 import com.restaurante.web.dto.supply.SupplyResponse;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -18,9 +19,11 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -56,10 +59,23 @@ public class AdminSupplyController {
         }
 
         @GetMapping
-        @Operation(summary = "Listar catálogo de insumos", description = "Retorna todos los insumos activos registrados en el restaurante.")
-        @ApiResponse(responseCode = "200", description = "Listado de insumos obtenido exitosamente")
-        public ResponseEntity<List<SupplyResponse>> listSupplies() {
-                return ResponseEntity.ok(supplyService.listSupplies());
+        @Operation(summary = "Consultar catálogo de insumos [HU-002]", description = "Retorna el catálogo de insumos registrados con su nombre, unidad de medida, categoría, costo unitario y cantidad disponible en inventario. Permite filtrar opcionalmente por categoría o término de búsqueda.")
+        @ApiResponse(responseCode = "200", description = "Catálogo de insumos obtenido exitosamente (devuelve lista vacía si no hay insumos)")
+        public ResponseEntity<List<SupplyResponse>> listSupplies(
+                        @Parameter(description = "Identificador de la categoría para filtrar (opcional)") @RequestParam(required = false) Long categoryId,
+                        @Parameter(description = "Término de búsqueda por nombre o código (opcional)") @RequestParam(required = false) String search) {
+                return ResponseEntity.ok(supplyService.listSupplies(categoryId, search));
+        }
+
+        @GetMapping("/{id}")
+        @Operation(summary = "Consultar detalle de un insumo por ID [HU-002]", description = "Retorna la información detallada de un insumo registrado en el catálogo.")
+        @ApiResponses({
+                        @ApiResponse(responseCode = "200", description = "Insumo encontrado exitosamente"),
+                        @ApiResponse(responseCode = "404", description = "Insumo no encontrado o inactivo", content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+        })
+        public ResponseEntity<SupplyResponse> getSupplyById(
+                        @Parameter(description = "Identificador único del insumo", required = true) @PathVariable Long id) {
+                return ResponseEntity.ok(supplyService.getSupplyById(id));
         }
 
         @GetMapping("/categories")
