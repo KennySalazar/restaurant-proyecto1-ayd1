@@ -19,7 +19,8 @@ import org.springframework.web.bind.annotation.RestController;
 import com.restaurante.web.dto.table.UpdateTableRequest;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
-
+import org.springframework.web.bind.annotation.GetMapping;
+import java.util.List;
 import java.util.List;
 
 @RestController
@@ -63,6 +64,26 @@ public class TableAdminController {
         return tableService.updateTable(
                 id,
                 request,
+                authentication
+        );
+    }
+
+    @GetMapping
+    @Operation(summary = "Consultar las mesas registradas")
+    public List<TableResponse> getTables(
+            Authentication authentication) {
+
+        return tableService.getTables(authentication);
+    }
+
+    @GetMapping("/{id}")
+    @Operation(summary = "Consultar una mesa específica")
+    public TableResponse getTable(
+            @PathVariable Long id,
+            Authentication authentication) {
+
+        return tableService.getTable(
+                id,
                 authentication
         );
     }
