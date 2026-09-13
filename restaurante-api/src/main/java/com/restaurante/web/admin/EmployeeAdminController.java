@@ -19,8 +19,11 @@ import org.springframework.web.bind.annotation.RestController;
 import com.restaurante.web.dto.employee.UpdateEmployeeRequest;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 
 import java.util.List;
+
 
 @RestController
 @RequestMapping("/admin/empleados")
@@ -67,6 +70,26 @@ public class EmployeeAdminController {
         return employeeService.updateEmployee(
                 id,
                 request,
+                authentication
+        );
+    }
+
+    @GetMapping
+    @Operation(summary = "Consultar los empleados registrados")
+    public List<EmployeeResponse> getEmployees(
+            Authentication authentication) {
+
+        return employeeService.getEmployees(authentication);
+    }
+
+    @GetMapping("/{id}")
+    @Operation(summary = "Consultar el detalle de un empleado")
+    public EmployeeResponse getEmployee(
+            @PathVariable Long id,
+            Authentication authentication) {
+
+        return employeeService.getEmployee(
+                id,
                 authentication
         );
     }
