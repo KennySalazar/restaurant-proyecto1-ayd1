@@ -4,6 +4,9 @@ import com.restaurante.application.supply.SupplyService;
 import com.restaurante.web.dto.supply.ConfigureStockLimitsRequest;
 import com.restaurante.web.dto.supply.CreateSupplyRequest;
 import com.restaurante.web.dto.supply.MeasurementUnitResponse;
+import com.restaurante.web.dto.supply.SingleSupplyAlertStatusResponse;
+import com.restaurante.web.dto.supply.SupplyAlertResponse;
+import com.restaurante.web.dto.supply.SupplyAlertSummaryResponse;
 import com.restaurante.web.dto.supply.SupplyCategoryResponse;
 import com.restaurante.web.dto.supply.SupplyRegistrationResponse;
 import com.restaurante.web.dto.supply.SupplyResponse;
@@ -110,6 +113,33 @@ public class AdminSupplyController {
                         @Parameter(description = "Identificador único del insumo", required = true) @PathVariable Long id,
                         @Valid @RequestBody ConfigureStockLimitsRequest request) {
                 return ResponseEntity.ok(supplyService.configureStockLimits(id, request));
+        }
+
+        @GetMapping("/alerts")
+        @Operation(summary = "Consultar alertas de inventario bajo", description = "Retorna la lista de alertas activas para insumos cuya cantidad disponible ha alcanzado o se encuentra por debajo de su stock mínimo. Permite filtrar opcionalmente por categoría o severidad (BAJO, AGOTADO).")
+        @ApiResponse(responseCode = "200", description = "Listado de alertas obtenido exitosamente")
+        public ResponseEntity<List<SupplyAlertResponse>> listLowStockAlerts(
+                        @Parameter(description = "Identificador de la categoría para filtrar (opcional)") @RequestParam(required = false) Long categoryId,
+                        @Parameter(description = "Nivel de severidad para filtrar: BAJO o AGOTADO (opcional)") @RequestParam(required = false) String level) {
+                return ResponseEntity.ok(supplyService.listLowStockAlerts(categoryId, level));
+        }
+
+        @GetMapping("/alerts/summary")
+        @Operation(summary = "Resumen de alertas de inventario bajo", description = "Retorna el resumen cuantitativo de alertas (total, agotados, bajo stock) y el listado de insumos afectados.")
+        @ApiResponse(responseCode = "200", description = "Resumen de alertas obtenido exitosamente")
+        public ResponseEntity<SupplyAlertSummaryResponse> getAlertSummary() {
+                return ResponseEntity.ok(supplyService.getLowStockAlertSummary());
+        }
+
+        @GetMapping("/{id}/alert")
+        @Operation(summary = "Consultar estado de alerta de un insumo", description = "Verifica si un insumo específico tiene una alerta activa de inventario bajo y retorna su detalle.")
+        @ApiResponses({
+                        @ApiResponse(responseCode = "200", description = "Estado de alerta consultado exitosamente"),
+                        @ApiResponse(responseCode = "404", description = "Insumo no encontrado o inactivo", content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+        })
+        public ResponseEntity<SingleSupplyAlertStatusResponse> getSupplyAlertStatus(
+                        @Parameter(description = "Identificador único del insumo", required = true) @PathVariable Long id) {
+                return ResponseEntity.ok(supplyService.getSupplyAlertStatus(id));
         }
 
         @GetMapping("/categories")

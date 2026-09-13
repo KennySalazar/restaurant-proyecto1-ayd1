@@ -1,15 +1,20 @@
 package com.restaurante.application.supply;
 
 import com.restaurante.domain.model.MeasurementUnit;
+import com.restaurante.domain.model.Notification;
 import com.restaurante.domain.model.Supply;
 import com.restaurante.domain.model.SupplyCategory;
 import com.restaurante.domain.repository.MeasurementUnitRepository;
+import com.restaurante.domain.repository.NotificationRepository;
 import com.restaurante.domain.repository.SupplyCategoryRepository;
 import com.restaurante.domain.repository.SupplyRepository;
 import com.restaurante.exception.ApiException;
 import com.restaurante.web.dto.supply.ConfigureStockLimitsRequest;
 import com.restaurante.web.dto.supply.CreateSupplyRequest;
 import com.restaurante.web.dto.supply.MeasurementUnitResponse;
+import com.restaurante.web.dto.supply.SingleSupplyAlertStatusResponse;
+import com.restaurante.web.dto.supply.SupplyAlertResponse;
+import com.restaurante.web.dto.supply.SupplyAlertSummaryResponse;
 import com.restaurante.web.dto.supply.SupplyCategoryResponse;
 import com.restaurante.web.dto.supply.SupplyRegistrationResponse;
 import com.restaurante.web.dto.supply.SupplyResponse;
@@ -23,6 +28,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.List;
 
 /**
@@ -36,16 +42,19 @@ public class SupplyService {
         private final SupplyRepository supplyRepository;
         private final SupplyCategoryRepository categoryRepository;
         private final MeasurementUnitRepository unitRepository;
+        private final NotificationRepository notificationRepository;
 
         @PersistenceContext
         private EntityManager entityManager;
 
         public SupplyService(SupplyRepository supplyRepository,
                         SupplyCategoryRepository categoryRepository,
-                        MeasurementUnitRepository unitRepository) {
+                        MeasurementUnitRepository unitRepository,
+                        NotificationRepository notificationRepository) {
                 this.supplyRepository = supplyRepository;
                 this.categoryRepository = categoryRepository;
                 this.unitRepository = unitRepository;
+                this.notificationRepository = notificationRepository;
         }
 
         /**
@@ -274,6 +283,7 @@ public class SupplyService {
                 supply.setMaximumStock(maxStock);
 
                 Supply updated = supplyRepository.save(supply);
+                syncSupplyLowStockAlert(updated);
 
                 return new SupplyUpdateResponse(
                                 "Insumo actualizado exitosamente",
@@ -313,7 +323,8 @@ public class SupplyService {
                 }
 
                 // validando que los limites no sean negativos
-                if (minStock.compareTo(BigDecimal.ZERO) < 0 || (maxStock != null && maxStock.compareTo(BigDecimal.ZERO) < 0)) {
+                if (minStock.compareTo(BigDecimal.ZERO) < 0
+                                || (maxStock != null && maxStock.compareTo(BigDecimal.ZERO) < 0)) {
                         throw new ApiException(
                                         HttpStatus.BAD_REQUEST,
                                         "invalid_stock_limits",
@@ -331,7 +342,8 @@ public class SupplyService {
                                                         + minStock + ")");
                 }
 
-                // habilitar permiso en sesión transaccional de PostgreSQL para actualizar insumo
+                // habilitar permiso en sesión transaccional de PostgreSQL para actualizar
+                // insumo
                 entityManager.createNativeQuery(
                                 "SELECT set_config('restaurante.permitir_actualizacion_stock', 'true', true)")
                                 .getSingleResult();
@@ -340,10 +352,190 @@ public class SupplyService {
                 supply.setMaximumStock(maxStock);
 
                 Supply updated = supplyRepository.save(supply);
+                syncSupplyLowStockAlert(updated);
 
                 return new SupplyStockLimitsResponse(
                                 "Límites de stock configurados exitosamente",
                                 mapToResponse(updated));
+        }
+
+        /**
+         * Consulta las alertas activas de inventario bajo, sincronizando el estado con
+         * notificaciones
+         *
+         * @param categoryId Filtro opcional por categoría
+         * @param level      Filtro opcional por severidad (BAJO, AGOTADO)
+         * @return Lista de alertas de insumos con stock bajo
+         */
+        @Transactional
+        public List<SupplyAlertResponse> listLowStockAlerts(Long categoryId, String level) {
+                Long restaurantId = DEFAULT_RESTAURANT_ID;
+
+                List<Supply> lowStockSupplies = supplyRepository.findLowStockSupplies(restaurantId);
+
+                // Sincronizar notificaciones de stock bajo
+                syncLowStockNotifications(restaurantId, lowStockSupplies);
+
+                return lowStockSupplies.stream()
+                                .filter(s -> categoryId == null || s.getCategory().getId().equals(categoryId))
+                                .map(this::mapToAlertResponse)
+                                .filter(a -> level == null || level.isBlank()
+                                                || a.alertLevel().equalsIgnoreCase(level.trim()))
+                                .toList();
+        }
+
+        /**
+         * Obtiene el resumen consolidado de alertas de inventario bajo
+         *
+         * @return Resumen con totales por severidad y listado detallado
+         */
+        @Transactional
+        public SupplyAlertSummaryResponse getLowStockAlertSummary() {
+                List<SupplyAlertResponse> alerts = listLowStockAlerts(null, null);
+                int outOfStock = 0;
+                int lowStock = 0;
+
+                for (SupplyAlertResponse a : alerts) {
+                        if ("AGOTADO".equalsIgnoreCase(a.alertLevel())) {
+                                outOfStock++;
+                        } else {
+                                lowStock++;
+                        }
+                }
+
+                return new SupplyAlertSummaryResponse(
+                                alerts.size(),
+                                outOfStock,
+                                lowStock,
+                                alerts);
+        }
+
+        /**
+         * Consulta el estado de alerta de inventario bajo para un insumo específico
+         *
+         * @param supplyId Identificador único del insumo
+         * @return Estado indicando si tiene alerta activa y el detalle correspondiente
+         */
+        @Transactional(readOnly = true)
+        public SingleSupplyAlertStatusResponse getSupplyAlertStatus(Long supplyId) {
+                Supply supply = supplyRepository
+                                .findByIdAndRestaurantIdAndActiveTrue(supplyId, DEFAULT_RESTAURANT_ID)
+                                .orElseThrow(() -> new ApiException(
+                                                HttpStatus.NOT_FOUND,
+                                                "supply_not_found",
+                                                "Insumo no encontrado",
+                                                "No se encontró un insumo activo con el identificador " + supplyId));
+
+                boolean hasAlert = supply.getCurrentStock().compareTo(supply.getMinimumStock()) <= 0;
+                SupplyAlertResponse alert = hasAlert ? mapToAlertResponse(supply) : null;
+
+                return new SingleSupplyAlertStatusResponse(hasAlert, alert);
+        }
+
+        /**
+         * Evalúa y sincroniza la alerta individual de un insumo tras cambios de stock o
+         * límites
+         */
+        private void syncSupplyLowStockAlert(Supply supply) {
+                Long restaurantId = supply.getRestaurantId();
+                boolean isLowStock = supply.getCurrentStock().compareTo(supply.getMinimumStock()) <= 0;
+
+                if (isLowStock) {
+                        boolean exists = notificationRepository
+                                        .existsByRestaurantIdAndTypeAndEntityAndEntityIdAndReadFalse(
+                                                        restaurantId, "STOCK_BAJO", "INSUMO",
+                                                        supply.getId().toString());
+
+                        if (!exists) {
+                                boolean isOutOfStock = supply.getCurrentStock().compareTo(BigDecimal.ZERO) <= 0;
+                                String message = isOutOfStock
+                                                ? "El insumo " + supply.getName() + " se encuentra agotado"
+                                                : "El insumo " + supply.getName() + " alcanzo el nivel minimo de stock";
+
+                                Notification notification = new Notification(
+                                                restaurantId,
+                                                null,
+                                                1L, // rol ADMIN
+                                                "STOCK_BAJO",
+                                                "Insumo con stock bajo",
+                                                message,
+                                                "INSUMO",
+                                                supply.getId().toString(),
+                                                isOutOfStock ? "CRITICA" : "ALTA");
+
+                                notificationRepository.save(notification);
+                        }
+                } else {
+                        // Si el insumo está por encima del stock mínimo, retirar la alerta activa
+                        notificationRepository.markAsReadByEntity(
+                                        restaurantId, "STOCK_BAJO", "INSUMO", supply.getId().toString(), Instant.now());
+                }
+        }
+
+        /**
+         * Sincroniza las alertas con la tabla notificaciones
+         */
+        private void syncLowStockNotifications(Long restaurantId, List<Supply> lowStockSupplies) {
+                for (Supply supply : lowStockSupplies) {
+                        boolean exists = notificationRepository
+                                        .existsByRestaurantIdAndTypeAndEntityAndEntityIdAndReadFalse(
+                                                        restaurantId, "STOCK_BAJO", "INSUMO",
+                                                        supply.getId().toString());
+
+                        if (!exists) {
+                                boolean isOutOfStock = supply.getCurrentStock().compareTo(BigDecimal.ZERO) <= 0;
+                                String message = isOutOfStock
+                                                ? "El insumo " + supply.getName() + " se encuentra agotado"
+                                                : "El insumo " + supply.getName() + " alcanzo el nivel minimo de stock";
+
+                                Notification notification = new Notification(
+                                                restaurantId,
+                                                null,
+                                                1L,
+                                                "STOCK_BAJO",
+                                                "Insumo con stock bajo",
+                                                message,
+                                                "INSUMO",
+                                                supply.getId().toString(),
+                                                isOutOfStock ? "CRITICA" : "ALTA");
+
+                                notificationRepository.save(notification);
+                        }
+                }
+        }
+
+        /**
+         * Mapeador de un Supply a su DTO de alerta de stock bajo
+         */
+        private SupplyAlertResponse mapToAlertResponse(Supply supply) {
+                BigDecimal current = supply.getCurrentStock();
+                BigDecimal min = supply.getMinimumStock();
+                BigDecimal deficit = min.compareTo(current) > 0 ? min.subtract(current) : BigDecimal.ZERO;
+                boolean isOutOfStock = current.compareTo(BigDecimal.ZERO) <= 0;
+                String level = isOutOfStock ? "AGOTADO" : "BAJO";
+                String priority = isOutOfStock ? "CRITICA" : "ALTA";
+                String message = isOutOfStock
+                                ? "El insumo '" + supply.getName() + "' se encuentra agotado (stock actual: 0)"
+                                : "El insumo '" + supply.getName() + "' ha alcanzado el nivel mínimo de stock (actual: "
+                                                + current + ", mínimo: " + min + ")";
+
+                return new SupplyAlertResponse(
+                                supply.getId(),
+                                supply.getCode(),
+                                supply.getName(),
+                                supply.getCategory().getId(),
+                                supply.getCategory().getName(),
+                                supply.getMeasurementUnit().getId(),
+                                supply.getMeasurementUnit().getName(),
+                                supply.getMeasurementUnit().getAbbreviation(),
+                                current,
+                                min,
+                                supply.getMaximumStock(),
+                                deficit,
+                                level,
+                                priority,
+                                message,
+                                supply.getUpdatedAt() != null ? supply.getUpdatedAt() : supply.getCreatedAt());
         }
 
         /**

@@ -40,4 +40,14 @@ public interface SupplyRepository extends JpaRepository<Supply, Long> {
       ORDER BY s.name ASC
       """)
   List<Supply> searchCatalog(Long restaurantId, Long categoryId, String search);
+
+  @EntityGraph(attributePaths = { "category", "measurementUnit" })
+  @org.springframework.data.jpa.repository.Query("""
+      SELECT s FROM Supply s
+      WHERE s.restaurantId = :restaurantId
+        AND s.active = true
+        AND s.currentStock <= s.minimumStock
+      ORDER BY s.currentStock ASC, s.name ASC
+      """)
+  List<Supply> findLowStockSupplies(Long restaurantId);
 }
