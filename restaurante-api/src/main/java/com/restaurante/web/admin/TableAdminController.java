@@ -16,6 +16,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import com.restaurante.web.dto.table.UpdateTableRequest;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
 
 import java.util.List;
 
@@ -48,5 +51,19 @@ public class TableAdminController {
     @Operation(summary = "Consultar las zonas de mesa disponibles")
     public List<TableZoneResponse> getAvailableZones(Authentication authentication) {
         return tableService.getAvailableZones(authentication);
+    }
+
+    @PutMapping("/{id}")
+    @Operation(summary = "Actualizar la configuración de una mesa")
+    public TableResponse updateTable(
+            @PathVariable Long id,
+            @Valid @RequestBody UpdateTableRequest request,
+            Authentication authentication) {
+
+        return tableService.updateTable(
+                id,
+                request,
+                authentication
+        );
     }
 }

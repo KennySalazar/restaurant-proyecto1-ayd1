@@ -15,6 +15,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.restaurante.web.dto.table.UpdateTableRequest;
 
 import java.util.List;
 
@@ -115,5 +116,58 @@ public class TableService {
                 table.getStatus(),
                 table.isActive()
         );
+    }
+
+    @Transactional
+    public TableResponse updateTable(Long tableId,
+                                     UpdateTableRequest request,
+                                     Authentication authentication) {
+
+        Long restaurantId = getRestaurantId(authentication);
+        String number = request.numero().trim();
+
+        RestaurantTable table = tables
+                .findByIdAndRestaurantIdAndActiveTrue(tableId, restaurantId)
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "table_not_found",
+                        "Mesa no encontrada",
+                        "La mesa seleccionada no existe o no está activa"
+                ));
+
+        if (tables.existsByRestaurantIdAndNumberAndIdNot(
+                restaurantId,
+                number,
+                tableId)) {
+
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "table_number_in_use",
+                    "Número de mesa en uso",
+                    "El número de mesa ya está en uso"
+            );
+        }
+
+        TableZone zone = zones
+                .findByIdAndRestaurantIdAndActiveTrue(
+                        request.zonaId(),
+                        restaurantId
+                )
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.BAD_REQUEST,
+                        "invalid_table_zone",
+                        "Zona de mesa inválida",
+                        "La zona seleccionada no existe o no está disponible"
+                ));
+
+        table.updateConfiguration(
+                number,
+                request.capacidad(),
+                zone
+        );
+
+        RestaurantTable saved = tables.save(table);
+
+        return toResponse(saved);
     }
 }
