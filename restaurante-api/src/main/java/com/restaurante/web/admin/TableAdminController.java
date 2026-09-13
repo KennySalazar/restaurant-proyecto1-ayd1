@@ -21,7 +21,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import java.util.List;
-import java.util.List;
+import org.springframework.web.bind.annotation.DeleteMapping;
 
 @RestController
 @RequestMapping("/admin/mesas")
@@ -87,4 +87,18 @@ public class TableAdminController {
                 authentication
         );
     }
+
+    @DeleteMapping("/{id}")
+    @Operation(summary = "Retirar una mesa")
+    public TableResponse retireTable(
+            @PathVariable Long id,
+            Authentication authentication) {
+
+        return tableService.retireTable(
+                id,
+                authentication
+        );
+    }
+
+
 }

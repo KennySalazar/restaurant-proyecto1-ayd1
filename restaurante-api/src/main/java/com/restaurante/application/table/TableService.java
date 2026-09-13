@@ -2,6 +2,7 @@ package com.restaurante.application.table;
 
 import com.restaurante.domain.model.RestaurantTable;
 import com.restaurante.domain.model.RestaurantUserProfile;
+import com.restaurante.domain.model.TableStatus;
 import com.restaurante.domain.model.TableZone;
 import com.restaurante.domain.repository.RestaurantTableRepository;
 import com.restaurante.domain.repository.RestaurantUserProfileRepository;
@@ -200,5 +201,64 @@ public class TableService {
                 ));
 
         return toResponse(table);
+    }
+
+    @Transactional
+    public TableResponse retireTable(
+            Long tableId,
+            Authentication authentication) {
+
+        Long restaurantId = getRestaurantId(authentication);
+
+        RestaurantTable table = tables
+                .findByIdAndRestaurantId(tableId, restaurantId)
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "table_not_found",
+                        "Mesa no encontrada",
+                        "La mesa seleccionada no existe"
+                ));
+
+        if (!table.isActive()) {
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "table_already_retired",
+                    "Mesa ya retirada",
+                    "La mesa seleccionada ya se encuentra retirada"
+            );
+        }
+
+        if (tables.hasActiveOrder(tableId)) {
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "table_has_active_order",
+                    "Comanda activa",
+                    "Primero debe finalizarse la operación asociada a la mesa"
+            );
+        }
+
+        if (table.getStatus() == TableStatus.OCUPADA) {
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "table_in_use",
+                    "Mesa en uso",
+                    "La mesa está siendo utilizada y no puede retirarse"
+            );
+        }
+
+        if (tables.hasActiveAccount(tableId)) {
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "table_has_active_account",
+                    "Cuenta activa",
+                    "La mesa tiene una operación activa y no puede retirarse"
+            );
+        }
+
+        table.retire();
+
+        RestaurantTable saved = tables.save(table);
+
+        return toResponse(saved);
     }
 }
