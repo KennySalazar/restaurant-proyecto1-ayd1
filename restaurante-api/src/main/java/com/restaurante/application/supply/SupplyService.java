@@ -1,0 +1,208 @@
+package com.restaurante.application.supply;
+
+import com.restaurante.domain.model.MeasurementUnit;
+import com.restaurante.domain.model.Supply;
+import com.restaurante.domain.model.SupplyCategory;
+import com.restaurante.domain.repository.MeasurementUnitRepository;
+import com.restaurante.domain.repository.SupplyCategoryRepository;
+import com.restaurante.domain.repository.SupplyRepository;
+import com.restaurante.exception.ApiException;
+import com.restaurante.web.dto.supply.CreateSupplyRequest;
+import com.restaurante.web.dto.supply.MeasurementUnitResponse;
+import com.restaurante.web.dto.supply.SupplyCategoryResponse;
+import com.restaurante.web.dto.supply.SupplyRegistrationResponse;
+import com.restaurante.web.dto.supply.SupplyResponse;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.util.List;
+
+/**
+ * Service para la gestion del catalogo de insumos y materia prima
+ */
+@Service
+public class SupplyService {
+
+        // Identificador por defecto del restaurante principal en el sistema
+        private static final Long DEFAULT_RESTAURANT_ID = 1L;
+        private final SupplyRepository supplyRepository;
+        private final SupplyCategoryRepository categoryRepository;
+        private final MeasurementUnitRepository unitRepository;
+
+        public SupplyService(SupplyRepository supplyRepository,
+                        SupplyCategoryRepository categoryRepository,
+                        MeasurementUnitRepository unitRepository) {
+                this.supplyRepository = supplyRepository;
+                this.categoryRepository = categoryRepository;
+                this.unitRepository = unitRepository;
+        }
+
+        /**
+         * registra un nuevo insumo con su informacion basica, categoria, unidad de
+         * medida y costo de compra
+         *
+         * @param request Datos de registro del insumo
+         * @return Confirmacion y datos del insumo guardado
+         */
+        @Transactional
+        public SupplyRegistrationResponse registerSupply(CreateSupplyRequest request) {
+                Long restaurantId = DEFAULT_RESTAURANT_ID;
+
+                // validando que el nombre no este duplicado en el mismo restaurante
+                String trimmedName = request.name().trim();
+                if (supplyRepository.existsByRestaurantIdAndNameIgnoreCase(restaurantId, trimmedName)) {
+                        throw new ApiException(
+                                        HttpStatus.CONFLICT,
+                                        "duplicate_supply_name",
+                                        "Nombre duplicado",
+                                        "Ya existe un insumo registrado con el nombre '" + trimmedName + "'");
+                }
+
+                // validando existencia y estado de la categoria
+                SupplyCategory category = categoryRepository
+                                .findByIdAndRestaurantIdAndActiveTrue(request.categoryId(), restaurantId)
+                                .orElseThrow(() -> new ApiException(
+                                                HttpStatus.BAD_REQUEST,
+                                                "category_not_found",
+                                                "Categoría no válida",
+                                                "La categoría de insumo seleccionada no existe o no se encuentra activa"));
+
+                // validando existencia y estado de la unidad de medida
+                MeasurementUnit unit = unitRepository
+                                .findByIdAndActiveTrue(request.unitId())
+                                .orElseThrow(() -> new ApiException(
+                                                HttpStatus.BAD_REQUEST,
+                                                "unit_not_found",
+                                                "Unidad de medida no válida",
+                                                "La unidad de medida seleccionada no existe o no se encuentra activa"));
+
+                // validando coherencia de stock minimo y maximo
+                BigDecimal minStock = request.minimumStock() != null ? request.minimumStock() : BigDecimal.ZERO;
+                BigDecimal maxStock = request.maximumStock();
+                if (maxStock != null && maxStock.compareTo(minStock) < 0) {
+                        throw new ApiException(
+                                        HttpStatus.BAD_REQUEST,
+                                        "invalid_stock_limits",
+                                        "Límites de stock inválidos",
+                                        "El stock máximo (" + maxStock + ") no puede ser menor al stock mínimo ("
+                                                        + minStock + ")");
+                }
+
+                // resolviendo o autogenerando codigo de insumo unico
+                String code = resolveSupplyCode(restaurantId, request.code());
+
+                // construyendo la entidad con stock inicial en 0
+                Supply supply = new Supply(
+                                restaurantId,
+                                category,
+                                unit,
+                                code,
+                                trimmedName,
+                                request.description() != null ? request.description().trim() : null,
+                                request.unitCost(),
+                                minStock,
+                                maxStock);
+
+                Supply saved = supplyRepository.save(supply);
+
+                return new SupplyRegistrationResponse(
+                                "Insumo registrado exitosamente",
+                                mapToResponse(saved));
+        }
+
+        /**
+         * Lista todos los insumos activos del restaurante
+         */
+        @Transactional(readOnly = true)
+        public List<SupplyResponse> listSupplies() {
+                return supplyRepository
+                                .findByRestaurantIdAndActiveTrueOrderByCreatedAtDesc(DEFAULT_RESTAURANT_ID)
+                                .stream()
+                                .map(this::mapToResponse)
+                                .toList();
+        }
+
+        /**
+         * lista las categorias de insumo disponibles
+         */
+        @Transactional(readOnly = true)
+        public List<SupplyCategoryResponse> listCategories() {
+                return categoryRepository
+                                .findByRestaurantIdAndActiveTrueOrderByNameAsc(DEFAULT_RESTAURANT_ID)
+                                .stream()
+                                .map(category -> new SupplyCategoryResponse(
+                                                category.getId(),
+                                                category.getName(),
+                                                category.getDescription()))
+                                .toList();
+        }
+
+        /**
+         * lista las unidades de medida activas del sistema
+         */
+        @Transactional(readOnly = true)
+        public List<MeasurementUnitResponse> listMeasurementUnits() {
+                return unitRepository
+                                .findByActiveTrueOrderByNameAsc()
+                                .stream()
+                                .map(unit -> new MeasurementUnitResponse(
+                                                unit.getId(),
+                                                unit.getCode(),
+                                                unit.getName(),
+                                                unit.getAbbreviation(),
+                                                unit.getDimension()))
+                                .toList();
+        }
+
+        /**
+         * resuelve el codigo a asignar: utiliza el provisto o autogenera uno secuencial
+         * unico.
+         */
+        private String resolveSupplyCode(Long restaurantId, String providedCode) {
+                if (providedCode != null && !providedCode.isBlank()) {
+                        String sanitized = providedCode.trim().toUpperCase();
+                        if (supplyRepository.existsByRestaurantIdAndCodeIgnoreCase(restaurantId, sanitized)) {
+                                throw new ApiException(
+                                                HttpStatus.CONFLICT,
+                                                "duplicate_supply_code",
+                                                "Código duplicado",
+                                                "Ya existe un insumo registrado con el código '" + sanitized + "'");
+                        }
+                        return sanitized;
+                }
+
+                // generar codigo correlativo con formato INS-0001
+                long nextIndex = supplyRepository.countByRestaurantId(restaurantId) + 1;
+                String generated = String.format("INS-%04d", nextIndex);
+                while (supplyRepository.existsByRestaurantIdAndCodeIgnoreCase(restaurantId, generated)) {
+                        nextIndex++;
+                        generated = String.format("INS-%04d", nextIndex);
+                }
+                return generated;
+        }
+
+        /**
+         * mapeador de una entidad Supply en su DTO de respuesta
+         */
+        private SupplyResponse mapToResponse(Supply supply) {
+                return new SupplyResponse(
+                                supply.getId(),
+                                supply.getRestaurantId(),
+                                supply.getCode(),
+                                supply.getName(),
+                                supply.getDescription(),
+                                supply.getCategory().getId(),
+                                supply.getCategory().getName(),
+                                supply.getMeasurementUnit().getId(),
+                                supply.getMeasurementUnit().getName(),
+                                supply.getMeasurementUnit().getAbbreviation(),
+                                supply.getCurrentUnitCost(),
+                                supply.getCurrentStock(),
+                                supply.getMinimumStock(),
+                                supply.getMaximumStock(),
+                                supply.isActive(),
+                                supply.getCreatedAt());
+        }
+}
