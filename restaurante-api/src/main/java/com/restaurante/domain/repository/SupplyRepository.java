@@ -13,7 +13,11 @@ public interface SupplyRepository extends JpaRepository<Supply, Long> {
 
   boolean existsByRestaurantIdAndNameIgnoreCase(Long restaurantId, String name);
 
+  boolean existsByRestaurantIdAndNameIgnoreCaseAndIdNot(Long restaurantId, String name, Long id);
+
   boolean existsByRestaurantIdAndCodeIgnoreCase(Long restaurantId, String code);
+
+  boolean existsByRestaurantIdAndCodeIgnoreCaseAndIdNot(Long restaurantId, String code, Long id);
 
   long countByRestaurantId(Long restaurantId);
 
