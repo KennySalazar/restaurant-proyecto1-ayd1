@@ -16,6 +16,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.restaurante.web.dto.table.UpdateTableRequest;
+import java.util.List;
 
 import java.util.List;
 
@@ -169,5 +170,35 @@ public class TableService {
         RestaurantTable saved = tables.save(table);
 
         return toResponse(saved);
+    }
+
+    @Transactional(readOnly = true)
+    public List<TableResponse> getTables(Authentication authentication) {
+
+        Long restaurantId = getRestaurantId(authentication);
+
+        return tables.findAllByRestaurantIdOrderByIdAsc(restaurantId)
+                .stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public TableResponse getTable(
+            Long tableId,
+            Authentication authentication) {
+
+        Long restaurantId = getRestaurantId(authentication);
+
+        RestaurantTable table = tables
+                .findByIdAndRestaurantId(tableId, restaurantId)
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "table_not_found",
+                        "Mesa no encontrada",
+                        "La mesa seleccionada no existe"
+                ));
+
+        return toResponse(table);
     }
 }
