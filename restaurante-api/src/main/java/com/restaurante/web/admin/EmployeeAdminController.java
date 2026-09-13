@@ -16,6 +16,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import com.restaurante.web.dto.employee.UpdateEmployeeRequest;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
 
 import java.util.List;
 
@@ -52,5 +55,19 @@ public class EmployeeAdminController {
     @Operation(summary = "Consultar roles operativos disponibles")
     public List<OperationalRoleResponse> getOperationalRoles() {
         return employeeService.getOperationalRoles();
+    }
+
+    @PutMapping("/{id}")
+    @Operation(summary = "Actualizar un empleado y su rol")
+    public EmployeeResponse updateEmployee(
+            @PathVariable Long id,
+            @Valid @RequestBody UpdateEmployeeRequest request,
+            Authentication authentication) {
+
+        return employeeService.updateEmployee(
+                id,
+                request,
+                authentication
+        );
     }
 }
