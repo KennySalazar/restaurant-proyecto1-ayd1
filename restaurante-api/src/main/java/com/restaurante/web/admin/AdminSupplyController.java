@@ -2,12 +2,15 @@ package com.restaurante.web.admin;
 
 import com.restaurante.application.supply.SupplyService;
 import com.restaurante.web.dto.supply.ConfigureStockLimitsRequest;
+import com.restaurante.web.dto.supply.CreateSupplyEntryRequest;
 import com.restaurante.web.dto.supply.CreateSupplyRequest;
 import com.restaurante.web.dto.supply.MeasurementUnitResponse;
 import com.restaurante.web.dto.supply.SingleSupplyAlertStatusResponse;
 import com.restaurante.web.dto.supply.SupplyAlertResponse;
 import com.restaurante.web.dto.supply.SupplyAlertSummaryResponse;
 import com.restaurante.web.dto.supply.SupplyCategoryResponse;
+import com.restaurante.web.dto.supply.SupplyEntryRegistrationResponse;
+import com.restaurante.web.dto.supply.SupplyEntryResponse;
 import com.restaurante.web.dto.supply.SupplyRegistrationResponse;
 import com.restaurante.web.dto.supply.SupplyResponse;
 import com.restaurante.web.dto.supply.SupplyStockLimitsResponse;
@@ -24,6 +27,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
+import org.springframework.security.core.Authentication;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -154,5 +158,49 @@ public class AdminSupplyController {
         @ApiResponse(responseCode = "200", description = "Listado de unidades de medida obtenido exitosamente")
         public ResponseEntity<List<MeasurementUnitResponse>> listMeasurementUnits() {
                 return ResponseEntity.ok(supplyService.listMeasurementUnits());
+        }
+
+        @PostMapping("/{id}/entries")
+        @Operation(summary = "Registrar entrada de inventario para un insumo", description = "Registra una entrada de inventario para el insumo indicado, aumentando su cantidad disponible en inventario y recalculando su costo unitario promedio ponderado.")
+        @ApiResponses({
+                        @ApiResponse(responseCode = "201", description = "Entrada de inventario registrada exitosamente", content = @Content(schema = @Schema(implementation = SupplyEntryRegistrationResponse.class))),
+                        @ApiResponse(responseCode = "400", description = "Campos obligatorios vacíos o valores inválidos (cantidad menor o igual a cero, costo negativo, fecha futura, etc.)", content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+                        @ApiResponse(responseCode = "401", description = "No autenticado o token JWT no provisto", content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+                        @ApiResponse(responseCode = "403", description = "Acceso denegado (requiere rol ADMIN)", content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+                        @ApiResponse(responseCode = "404", description = "Insumo no encontrado o inactivo", content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+        })
+        public ResponseEntity<SupplyEntryRegistrationResponse> registerSupplyEntry(
+                        @Parameter(description = "Identificador único del insumo", required = true) @PathVariable Long id,
+                        @Valid @RequestBody CreateSupplyEntryRequest request,
+                        @Parameter(hidden = true) Authentication authentication) {
+                return ResponseEntity.status(HttpStatus.CREATED)
+                                .body(supplyService.registerSupplyEntry(id, request, authentication));
+        }
+
+        @PostMapping("/entries")
+        @Operation(summary = "Registrar entrada de inventario", description = "Registra una entrada de inventario indicando el identificador del insumo en el cuerpo de la solicitud.")
+        @ApiResponses({
+                        @ApiResponse(responseCode = "201", description = "Entrada de inventario registrada exitosamente", content = @Content(schema = @Schema(implementation = SupplyEntryRegistrationResponse.class))),
+                        @ApiResponse(responseCode = "400", description = "Campos obligatorios vacíos o valores inválidos", content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+                        @ApiResponse(responseCode = "401", description = "No autenticado o token JWT no provisto", content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+                        @ApiResponse(responseCode = "403", description = "Acceso denegado (requiere rol ADMIN)", content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+                        @ApiResponse(responseCode = "404", description = "Insumo no encontrado o inactivo", content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+        })
+        public ResponseEntity<SupplyEntryRegistrationResponse> registerGeneralSupplyEntry(
+                        @Valid @RequestBody CreateSupplyEntryRequest request,
+                        @Parameter(hidden = true) Authentication authentication) {
+                return ResponseEntity.status(HttpStatus.CREATED)
+                                .body(supplyService.registerSupplyEntry(request.supplyId(), request, authentication));
+        }
+
+        @GetMapping("/{id}/entries")
+        @Operation(summary = "Consultar historial de entradas de inventario de un insumo", description = "Retorna el historial cronológico de entradas y compras registradas para un insumo específico.")
+        @ApiResponses({
+                        @ApiResponse(responseCode = "200", description = "Historial de entradas obtenido exitosamente"),
+                        @ApiResponse(responseCode = "404", description = "Insumo no encontrado o inactivo", content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+        })
+        public ResponseEntity<List<SupplyEntryResponse>> listSupplyEntries(
+                        @Parameter(description = "Identificador único del insumo", required = true) @PathVariable Long id) {
+                return ResponseEntity.ok(supplyService.listSupplyEntries(id));
         }
 }

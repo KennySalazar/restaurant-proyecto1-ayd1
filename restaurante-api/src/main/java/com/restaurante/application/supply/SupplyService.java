@@ -1,21 +1,29 @@
 package com.restaurante.application.supply;
 
+import com.restaurante.domain.model.InventoryEntry;
+import com.restaurante.domain.model.InventoryEntryDetail;
 import com.restaurante.domain.model.MeasurementUnit;
 import com.restaurante.domain.model.Notification;
 import com.restaurante.domain.model.Supply;
 import com.restaurante.domain.model.SupplyCategory;
+import com.restaurante.domain.repository.InventoryEntryDetailRepository;
+import com.restaurante.domain.repository.InventoryEntryRepository;
 import com.restaurante.domain.repository.MeasurementUnitRepository;
 import com.restaurante.domain.repository.NotificationRepository;
 import com.restaurante.domain.repository.SupplyCategoryRepository;
 import com.restaurante.domain.repository.SupplyRepository;
 import com.restaurante.exception.ApiException;
+import com.restaurante.security.JwtData;
 import com.restaurante.web.dto.supply.ConfigureStockLimitsRequest;
+import com.restaurante.web.dto.supply.CreateSupplyEntryRequest;
 import com.restaurante.web.dto.supply.CreateSupplyRequest;
 import com.restaurante.web.dto.supply.MeasurementUnitResponse;
 import com.restaurante.web.dto.supply.SingleSupplyAlertStatusResponse;
 import com.restaurante.web.dto.supply.SupplyAlertResponse;
 import com.restaurante.web.dto.supply.SupplyAlertSummaryResponse;
 import com.restaurante.web.dto.supply.SupplyCategoryResponse;
+import com.restaurante.web.dto.supply.SupplyEntryRegistrationResponse;
+import com.restaurante.web.dto.supply.SupplyEntryResponse;
 import com.restaurante.web.dto.supply.SupplyRegistrationResponse;
 import com.restaurante.web.dto.supply.SupplyResponse;
 import com.restaurante.web.dto.supply.SupplyStockLimitsResponse;
@@ -24,11 +32,15 @@ import com.restaurante.web.dto.supply.UpdateSupplyRequest;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.util.List;
 
 /**
@@ -43,6 +55,8 @@ public class SupplyService {
         private final SupplyCategoryRepository categoryRepository;
         private final MeasurementUnitRepository unitRepository;
         private final NotificationRepository notificationRepository;
+        private final InventoryEntryRepository inventoryEntryRepository;
+        private final InventoryEntryDetailRepository inventoryEntryDetailRepository;
 
         @PersistenceContext
         private EntityManager entityManager;
@@ -50,11 +64,15 @@ public class SupplyService {
         public SupplyService(SupplyRepository supplyRepository,
                         SupplyCategoryRepository categoryRepository,
                         MeasurementUnitRepository unitRepository,
-                        NotificationRepository notificationRepository) {
+                        NotificationRepository notificationRepository,
+                        InventoryEntryRepository inventoryEntryRepository,
+                        InventoryEntryDetailRepository inventoryEntryDetailRepository) {
                 this.supplyRepository = supplyRepository;
                 this.categoryRepository = categoryRepository;
                 this.unitRepository = unitRepository;
                 this.notificationRepository = notificationRepository;
+                this.inventoryEntryRepository = inventoryEntryRepository;
+                this.inventoryEntryDetailRepository = inventoryEntryDetailRepository;
         }
 
         /**
@@ -140,12 +158,26 @@ public class SupplyService {
          */
         @Transactional(readOnly = true)
         public List<SupplyResponse> listSupplies(Long categoryId, String search) {
-                String sanitizedSearch = (search != null && !search.isBlank()) ? search.trim() : null;
-                return supplyRepository
-                                .searchCatalog(DEFAULT_RESTAURANT_ID, categoryId, sanitizedSearch)
-                                .stream()
-                                .map(this::mapToResponse)
-                                .toList();
+                String pattern = (search != null && !search.isBlank())
+                                ? "%" + search.trim().toLowerCase() + "%"
+                                : null;
+
+                List<Supply> supplies;
+                if (categoryId != null && pattern != null) {
+                        supplies = supplyRepository.findByRestaurantIdAndActiveTrueAndCategoryIdAndSearchPattern(
+                                        DEFAULT_RESTAURANT_ID, categoryId, pattern);
+                } else if (categoryId != null) {
+                        supplies = supplyRepository.findByRestaurantIdAndActiveTrueAndCategoryIdOrderByNameAsc(
+                                        DEFAULT_RESTAURANT_ID, categoryId);
+                } else if (pattern != null) {
+                        supplies = supplyRepository.findByRestaurantIdAndActiveTrueAndSearchPattern(
+                                        DEFAULT_RESTAURANT_ID, pattern);
+                } else {
+                        supplies = supplyRepository.findByRestaurantIdAndActiveTrueOrderByNameAsc(
+                                        DEFAULT_RESTAURANT_ID);
+                }
+
+                return supplies.stream().map(this::mapToResponse).toList();
         }
 
         /**
@@ -595,6 +627,235 @@ public class SupplyService {
                         generated = String.format("INS-%04d", nextIndex);
                 }
                 return generated;
+        }
+
+        /**
+         * Registra una entrada de inventario para un insumo recibido
+         *
+         * @param supplyId       Identificador del insumo (puede venir de la ruta URL o
+         *                       del request)
+         * @param request        Datos de la entrada (cantidad, costo, fecha, etc.)
+         * @param authentication Información de autenticación del usuario administrador
+         * @return Confirmación y detalle de la entrada registrada
+         */
+        @Transactional
+        public SupplyEntryRegistrationResponse registerSupplyEntry(Long supplyId, CreateSupplyEntryRequest request,
+                        Authentication authentication) {
+                Long restaurantId = DEFAULT_RESTAURANT_ID;
+
+                Long targetSupplyId = supplyId != null ? supplyId : request.supplyId();
+                if (targetSupplyId == null) {
+                        throw new ApiException(
+                                        HttpStatus.BAD_REQUEST,
+                                        "missing_supply_id",
+                                        "Insumo no especificado",
+                                        "Debe especificar el identificador del insumo para registrar la entrada");
+                }
+
+                if (supplyId != null && request.supplyId() != null && !supplyId.equals(request.supplyId())) {
+                        throw new ApiException(
+                                        HttpStatus.BAD_REQUEST,
+                                        "supply_id_mismatch",
+                                        "Insumo no coincide",
+                                        "El insumo de la ruta no coincide con el insumo del cuerpo de la solicitud");
+                }
+
+                // Validacion de cantidad
+                if (request.quantity() == null || request.quantity().compareTo(BigDecimal.ZERO) <= 0) {
+                        throw new ApiException(
+                                        HttpStatus.BAD_REQUEST,
+                                        "invalid_quantity",
+                                        "Cantidad no válida",
+                                        "La cantidad debe ser mayor a cero");
+                }
+
+                // Validacion de costo unitario
+                if (request.unitCost() == null || request.unitCost().compareTo(BigDecimal.ZERO) < 0) {
+                        throw new ApiException(
+                                        HttpStatus.BAD_REQUEST,
+                                        "invalid_unit_cost",
+                                        "Costo no válido",
+                                        "El costo de compra no puede ser negativo");
+                }
+
+                // Validacion de fecha de recepcion
+                if (request.date() == null) {
+                        throw new ApiException(
+                                        HttpStatus.BAD_REQUEST,
+                                        "missing_date",
+                                        "Fecha obligatoria",
+                                        "La fecha de recepción es obligatoria");
+                }
+
+                if (request.date().isAfter(LocalDate.now())) {
+                        throw new ApiException(
+                                        HttpStatus.BAD_REQUEST,
+                                        "future_date_not_allowed",
+                                        "Fecha no válida",
+                                        "La fecha de recepción no puede ser futura");
+                }
+
+                // Validación de coherencia de fecha de vencimiento si se provee
+                if (request.expirationDate() != null && request.expirationDate().isBefore(request.date())) {
+                        throw new ApiException(
+                                        HttpStatus.BAD_REQUEST,
+                                        "invalid_expiration_date",
+                                        "Fecha de vencimiento no válida",
+                                        "La fecha de vencimiento no puede ser anterior a la fecha de recepción");
+                }
+
+                // Verificando existencia del insumo activo
+                Supply supply = supplyRepository
+                                .findByIdAndRestaurantIdAndActiveTrue(targetSupplyId, restaurantId)
+                                .orElseThrow(() -> new ApiException(
+                                                HttpStatus.NOT_FOUND,
+                                                "supply_not_found",
+                                                "Insumo no encontrado",
+                                                "No se encontró un insumo activo con el identificador "
+                                                                + targetSupplyId));
+
+                BigDecimal previousStock = supply.getCurrentStock();
+                Long receivedById = resolveAdminUserId(authentication);
+                String documentNumber = generateDocumentNumber(restaurantId);
+
+                Instant receptionInstant = request.date().atStartOfDay(ZoneOffset.UTC).toInstant();
+
+                // Creando cabecera de entrada de inventario
+                InventoryEntry entry = new InventoryEntry(
+                                restaurantId,
+                                documentNumber,
+                                receptionInstant,
+                                request.supplierName() != null ? request.supplierName().trim() : null,
+                                request.purchaseReference() != null ? request.purchaseReference().trim() : null,
+                                request.notes() != null ? request.notes().trim() : null,
+                                receivedById);
+                InventoryEntry savedEntry = inventoryEntryRepository.save(entry);
+
+                // Creando detalle de la entrada
+                InventoryEntryDetail detail = new InventoryEntryDetail(
+                                savedEntry,
+                                supply,
+                                request.quantity(),
+                                request.unitCost(),
+                                request.batchNumber() != null ? request.batchNumber().trim() : null,
+                                request.expirationDate());
+                InventoryEntryDetail savedDetail = inventoryEntryDetailRepository.save(detail);
+
+                // Forzar flush para ejecutar los triggers de base de datos que actualizan
+                // kardex, stock y costo ponderado
+                entityManager.flush();
+                entityManager.refresh(supply);
+                entityManager.refresh(savedDetail);
+
+                // Sincronizar alertas de inventario bajo por si el stock disponible superó el
+                // mínimo
+                syncSupplyLowStockAlert(supply);
+
+                BigDecimal totalCost = savedDetail.getTotalCost() != null
+                                ? savedDetail.getTotalCost()
+                                : request.quantity().multiply(request.unitCost()).setScale(4, RoundingMode.HALF_UP);
+
+                SupplyEntryResponse entryResponse = new SupplyEntryResponse(
+                                savedEntry.getId(),
+                                savedDetail.getId(),
+                                savedEntry.getDocumentNumber(),
+                                supply.getId(),
+                                supply.getCode(),
+                                supply.getName(),
+                                supply.getMeasurementUnit().getName(),
+                                supply.getMeasurementUnit().getAbbreviation(),
+                                savedDetail.getQuantity(),
+                                savedDetail.getUnitCost(),
+                                totalCost,
+                                previousStock,
+                                supply.getCurrentStock(),
+                                supply.getCurrentUnitCost(),
+                                request.date(),
+                                savedEntry.getSupplierName(),
+                                savedEntry.getPurchaseReference(),
+                                savedDetail.getBatchNumber(),
+                                savedDetail.getExpirationDate(),
+                                savedEntry.getNotes(),
+                                savedEntry.getCreatedAt());
+
+                return new SupplyEntryRegistrationResponse(
+                                "Entrada de inventario registrada exitosamente",
+                                entryResponse);
+        }
+
+        /**
+         * Consulta el historial de entradas de inventario registradas para un insumo
+         *
+         * @param supplyId Identificador único del insumo
+         * @return Lista de entradas registradas para dicho insumo
+         */
+        @Transactional(readOnly = true)
+        public List<SupplyEntryResponse> listSupplyEntries(Long supplyId) {
+                Long restaurantId = DEFAULT_RESTAURANT_ID;
+
+                Supply supply = supplyRepository
+                                .findByIdAndRestaurantIdAndActiveTrue(supplyId, restaurantId)
+                                .orElseThrow(() -> new ApiException(
+                                                HttpStatus.NOT_FOUND,
+                                                "supply_not_found",
+                                                "Insumo no encontrado",
+                                                "No se encontró un insumo activo con el identificador " + supplyId));
+
+                return inventoryEntryDetailRepository
+                                .findBySupplyIdOrderByDateDesc(supplyId)
+                                .stream()
+                                .map(detail -> mapToEntryResponse(detail, supply))
+                                .toList();
+        }
+
+        private SupplyEntryResponse mapToEntryResponse(InventoryEntryDetail detail, Supply supply) {
+                InventoryEntry entry = detail.getEntry();
+                BigDecimal totalCost = detail.getTotalCost() != null
+                                ? detail.getTotalCost()
+                                : detail.getQuantity().multiply(detail.getUnitCost()).setScale(4, RoundingMode.HALF_UP);
+                LocalDate date = entry.getReceptionDate() != null
+                                ? entry.getReceptionDate().atZone(ZoneOffset.UTC).toLocalDate()
+                                : null;
+
+                return new SupplyEntryResponse(
+                                entry.getId(),
+                                detail.getId(),
+                                entry.getDocumentNumber(),
+                                supply.getId(),
+                                supply.getCode(),
+                                supply.getName(),
+                                supply.getMeasurementUnit().getName(),
+                                supply.getMeasurementUnit().getAbbreviation(),
+                                detail.getQuantity(),
+                                detail.getUnitCost(),
+                                totalCost,
+                                null,
+                                supply.getCurrentStock(),
+                                supply.getCurrentUnitCost(),
+                                date,
+                                entry.getSupplierName(),
+                                entry.getPurchaseReference(),
+                                detail.getBatchNumber(),
+                                detail.getExpirationDate(),
+                                entry.getNotes(),
+                                entry.getCreatedAt());
+        }
+
+        private String generateDocumentNumber(Long restaurantId) {
+                long count = inventoryEntryRepository.countByRestaurantId(restaurantId) + 1;
+                String docNumber = String.format("ENT-%05d", count);
+                while (inventoryEntryRepository.existsByRestaurantIdAndDocumentNumber(restaurantId, docNumber)) {
+                        count++;
+                        docNumber = String.format("ENT-%05d", count);
+                }
+                return docNumber;
+        }
+
+        private Long resolveAdminUserId(Authentication authentication) {
+                if (authentication != null && authentication.getDetails() instanceof JwtData jwtData) {
+                        return jwtData.userId();
+                }
+                return 1L;
         }
 
         /**

@@ -35,11 +35,40 @@ public interface SupplyRepository extends JpaRepository<Supply, Long> {
       SELECT s FROM Supply s
       WHERE s.restaurantId = :restaurantId
         AND s.active = true
-        AND (:categoryId IS NULL OR s.category.id = :categoryId)
-        AND (:search IS NULL OR LOWER(s.name) LIKE LOWER(CONCAT('%', :search, '%')) OR LOWER(s.code) LIKE LOWER(CONCAT('%', :search, '%')))
       ORDER BY s.name ASC
       """)
-  List<Supply> searchCatalog(Long restaurantId, Long categoryId, String search);
+  List<Supply> findByRestaurantIdAndActiveTrueOrderByNameAsc(Long restaurantId);
+
+  @EntityGraph(attributePaths = { "category", "measurementUnit" })
+  @org.springframework.data.jpa.repository.Query("""
+      SELECT s FROM Supply s
+      WHERE s.restaurantId = :restaurantId
+        AND s.active = true
+        AND s.category.id = :categoryId
+      ORDER BY s.name ASC
+      """)
+  List<Supply> findByRestaurantIdAndActiveTrueAndCategoryIdOrderByNameAsc(Long restaurantId, Long categoryId);
+
+  @EntityGraph(attributePaths = { "category", "measurementUnit" })
+  @org.springframework.data.jpa.repository.Query("""
+      SELECT s FROM Supply s
+      WHERE s.restaurantId = :restaurantId
+        AND s.active = true
+        AND (LOWER(s.name) LIKE :pattern OR LOWER(s.code) LIKE :pattern)
+      ORDER BY s.name ASC
+      """)
+  List<Supply> findByRestaurantIdAndActiveTrueAndSearchPattern(Long restaurantId, String pattern);
+
+  @EntityGraph(attributePaths = { "category", "measurementUnit" })
+  @org.springframework.data.jpa.repository.Query("""
+      SELECT s FROM Supply s
+      WHERE s.restaurantId = :restaurantId
+        AND s.active = true
+        AND s.category.id = :categoryId
+        AND (LOWER(s.name) LIKE :pattern OR LOWER(s.code) LIKE :pattern)
+      ORDER BY s.name ASC
+      """)
+  List<Supply> findByRestaurantIdAndActiveTrueAndCategoryIdAndSearchPattern(Long restaurantId, Long categoryId, String pattern);
 
   @EntityGraph(attributePaths = { "category", "measurementUnit" })
   @org.springframework.data.jpa.repository.Query("""
