@@ -333,6 +333,59 @@ public class EmployeeService {
         return toResponse(profile, account);
     }
 
+    @Transactional
+    public EmployeeResponse deactivateEmployee(
+            Long employeeId,
+            Authentication authentication) {
+
+        Long restaurantId = getRestaurantId(authentication);
+
+        RestaurantUserProfile profile = profiles
+                .findByIdAndRestaurantId(employeeId, restaurantId)
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "employee_not_found",
+                        "Empleado no encontrado",
+                        "El empleado seleccionado no existe"
+                ));
+
+        UserAccount account = users
+                .findById(profile.getId())
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "employee_not_found",
+                        "Empleado no encontrado",
+                        "El empleado seleccionado no existe"
+                ));
+
+        if (account.getRole() == null
+                || account.getRole().getName() == RoleName.ADMIN) {
+
+            throw new ApiException(
+                    HttpStatus.NOT_FOUND,
+                    "employee_not_found",
+                    "Empleado no encontrado",
+                    "El empleado seleccionado no existe"
+            );
+        }
+
+        if (!account.isEnabled()) {
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "employee_already_disabled",
+                    "Empleado ya desactivado",
+                    "El empleado seleccionado ya se encuentra desactivado"
+            );
+        }
+
+        account.disable();
+        account.incrementTokenVersion();
+
+        UserAccount saved = users.save(account);
+
+        return toResponse(profile, saved);
+    }
+
     private EmployeeResponse toResponse(
             RestaurantUserProfile profile,
             UserAccount account) {

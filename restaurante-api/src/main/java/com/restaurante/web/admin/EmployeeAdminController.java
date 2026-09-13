@@ -21,6 +21,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.DeleteMapping;
 
 import java.util.List;
 
@@ -89,6 +90,18 @@ public class EmployeeAdminController {
             Authentication authentication) {
 
         return employeeService.getEmployee(
+                id,
+                authentication
+        );
+    }
+
+    @DeleteMapping("/{id}")
+    @Operation(summary = "Desactivar un empleado")
+    public EmployeeResponse deactivateEmployee(
+            @PathVariable Long id,
+            Authentication authentication) {
+
+        return employeeService.deactivateEmployee(
                 id,
                 authentication
         );
