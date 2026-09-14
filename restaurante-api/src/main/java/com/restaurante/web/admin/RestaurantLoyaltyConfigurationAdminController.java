@@ -13,6 +13,8 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import com.restaurante.web.dto.configuration.PointsRedemptionConfigurationRequest;
+import com.restaurante.web.dto.configuration.PointsRedemptionConfigurationResponse;
 
 @RestController
 @RequestMapping("/admin/configuracion/fidelizacion")
@@ -47,6 +49,28 @@ public class RestaurantLoyaltyConfigurationAdminController {
 
         return configurationService
                 .updatePointsAccumulationConfiguration(
+                        request,
+                        authentication
+                );
+    }
+
+    @GetMapping("/redencion-puntos")
+    @Operation(summary = "Consultar el valor de redención de los puntos")
+    public PointsRedemptionConfigurationResponse getCurrentPointsRedemptionConfiguration(
+            Authentication authentication) {
+
+        return configurationService
+                .getCurrentPointsRedemptionConfiguration(authentication);
+    }
+
+    @PutMapping("/redencion-puntos")
+    @Operation(summary = "Configurar el valor de redención de los puntos")
+    public PointsRedemptionConfigurationResponse updatePointsRedemptionConfiguration(
+            @Valid @RequestBody PointsRedemptionConfigurationRequest request,
+            Authentication authentication) {
+
+        return configurationService
+                .updatePointsRedemptionConfiguration(
                         request,
                         authentication
                 );
