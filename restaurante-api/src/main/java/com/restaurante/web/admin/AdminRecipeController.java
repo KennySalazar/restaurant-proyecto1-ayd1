@@ -8,7 +8,6 @@ import com.restaurante.web.dto.recipe.DishProductionCostResponse;
 import com.restaurante.web.dto.recipe.ModifierProductionCostResponse;
 import com.restaurante.web.dto.recipe.ModifierRecipeHistoryResponse;
 import com.restaurante.web.dto.recipe.ModifierRecipeRegistrationResponse;
-import com.restaurante.web.dto.recipe.ModifierRecipeResponse;
 import com.restaurante.web.dto.recipe.ModifierRecipeVersionChangeDetailResponse;
 import com.restaurante.web.dto.recipe.RecipeHistoryResponse;
 import com.restaurante.web.dto.recipe.RecipeRegistrationResponse;
