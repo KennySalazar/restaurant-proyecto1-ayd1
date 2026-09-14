@@ -28,6 +28,16 @@ public interface DishRepository extends JpaRepository<Dish, Long> {
 
     long countByRestaurantId(Long restaurantId);
 
+    @Query(value = """
+        SELECT c.nombre
+        FROM restaurante.combos c
+        JOIN restaurante.combo_detalles cd ON cd.combo_id = c.id
+        WHERE cd.platillo_id = :dishId
+          AND c.activo = true
+        ORDER BY c.nombre ASC
+        """, nativeQuery = true)
+    List<String> findActiveComboNamesByDishId(@Param("dishId") Long dishId);
+
     @EntityGraph(attributePaths = {"category"})
     @Query("""
         SELECT d FROM Dish d

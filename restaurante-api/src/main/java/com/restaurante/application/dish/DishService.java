@@ -14,6 +14,7 @@ import com.restaurante.web.dto.dish.CreateDishRequest;
 import com.restaurante.web.dto.dish.DishCategoryResponse;
 import com.restaurante.web.dto.dish.DishRegistrationResponse;
 import com.restaurante.web.dto.dish.DishResponse;
+import com.restaurante.web.dto.dish.DishRetirementResponse;
 import com.restaurante.web.dto.dish.DishUpdateResponse;
 import com.restaurante.web.dto.dish.UpdateDishRequest;
 import org.springframework.http.HttpStatus;
@@ -240,6 +241,65 @@ public class DishService {
 
         return new DishUpdateResponse(
                 "Platillo actualizado exitosamente",
+                mapToResponse(saved)
+        );
+    }
+
+    /**
+     * Retira un platillo del menú marcándolo como inactivo sin eliminar su información histórica.
+     * No permite el retiro si el platillo está incluido en uno o más combos activos o si ya fue retirado previamente.
+     *
+     * @param id Identificador único del platillo a retirar
+     * @return Confirmación y detalle del platillo retirado
+     */
+    @Transactional
+    public DishRetirementResponse retireDish(Long id) {
+        Long restaurantId = DEFAULT_RESTAURANT_ID;
+
+        if (id == null) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "missing_dish_id",
+                    "Platillo no especificado",
+                    "Debe indicar el identificador del platillo a retirar"
+            );
+        }
+
+        Dish dish = dishRepository.findByIdAndRestaurantId(id, restaurantId)
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "dish_not_found",
+                        "Platillo no encontrado",
+                        "No se encontró un platillo con el identificador " + id
+                ));
+
+        if (!dish.isActive()) {
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "dish_already_retired",
+                    "Platillo ya retirado",
+                    "El platillo seleccionado ya se encuentra retirado"
+            );
+        }
+
+        List<String> activeCombos = dishRepository.findActiveComboNamesByDishId(dish.getId());
+        if (!activeCombos.isEmpty()) {
+            String comboList = String.join(", ", activeCombos);
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "dish_in_active_combos",
+                    "Platillo incluido en combos activos",
+                    "El platillo está incluido en los siguientes combos activos: " + comboList +
+                            ". Debe actualizar o retirar los combos afectados antes de retirar este platillo"
+            );
+        }
+
+        dish.setActive(false);
+        dish.setManualAvailable(false);
+        Dish saved = dishRepository.save(dish);
+
+        return new DishRetirementResponse(
+                "Platillo retirado exitosamente",
                 mapToResponse(saved)
         );
     }
