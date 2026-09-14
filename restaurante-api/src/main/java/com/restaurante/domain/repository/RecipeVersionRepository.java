@@ -22,4 +22,8 @@ public interface RecipeVersionRepository extends JpaRepository<RecipeVersion, Lo
     int findMaxVersionNumberByDishId(@Param("dishId") Long dishId);
 
     List<RecipeVersion> findByDishIdOrderByVersionNumberDesc(Long dishId);
+
+    List<RecipeVersion> findByDishIdOrderByVersionNumberAsc(Long dishId);
+
+    Optional<RecipeVersion> findByDishIdAndVersionNumber(Long dishId, Integer versionNumber);
 }

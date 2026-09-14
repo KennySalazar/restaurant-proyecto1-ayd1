@@ -22,17 +22,25 @@ import com.restaurante.web.dto.recipe.DefineModifierRecipeRequest;
 import com.restaurante.web.dto.recipe.DefineRecipeRequest;
 import com.restaurante.web.dto.recipe.DishCostSummaryResponse;
 import com.restaurante.web.dto.recipe.DishProductionCostResponse;
+import com.restaurante.web.dto.recipe.ModifierIngredientChangeResponse;
 import com.restaurante.web.dto.recipe.ModifierIngredientRequest;
 import com.restaurante.web.dto.recipe.ModifierIngredientResponse;
 import com.restaurante.web.dto.recipe.ModifierProductionCostResponse;
+import com.restaurante.web.dto.recipe.ModifierRecipeHistoryResponse;
 import com.restaurante.web.dto.recipe.ModifierRecipeRegistrationResponse;
 import com.restaurante.web.dto.recipe.ModifierRecipeResponse;
+import com.restaurante.web.dto.recipe.ModifierRecipeVersionChangeDetailResponse;
+import com.restaurante.web.dto.recipe.ModifierRecipeVersionHistoryItemResponse;
 import com.restaurante.web.dto.recipe.ProductionCostIngredientResponse;
+import com.restaurante.web.dto.recipe.RecipeHistoryResponse;
+import com.restaurante.web.dto.recipe.RecipeIngredientChangeResponse;
 import com.restaurante.web.dto.recipe.RecipeIngredientRequest;
 import com.restaurante.web.dto.recipe.RecipeIngredientResponse;
 import com.restaurante.web.dto.recipe.RecipeRegistrationResponse;
 import com.restaurante.web.dto.recipe.RecipeResponse;
 import com.restaurante.web.dto.recipe.RecipeUpdateResponse;
+import com.restaurante.web.dto.recipe.RecipeVersionChangeDetailResponse;
+import com.restaurante.web.dto.recipe.RecipeVersionHistoryItemResponse;
 import com.restaurante.web.dto.recipe.UpdateRecipeRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
@@ -43,10 +51,14 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Servicio de aplicación para la gestión de recetas de platillos y modificadores.
@@ -881,6 +893,554 @@ public class RecipeService {
         }
 
         return result;
+    }
+
+    /**
+     * Consulta el historial completo de versiones de la receta de un platillo en orden cronológico.
+     *
+     * @param dishId Identificador único del platillo
+     * @return Historial consolidado de versiones y cambios registrados
+     */
+    @Transactional(readOnly = true)
+    public RecipeHistoryResponse getDishRecipeHistory(Long dishId) {
+        if (dishId == null) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "missing_dish_id",
+                    "Platillo no especificado",
+                    "Debe indicar el identificador del platillo para consultar su historial"
+            );
+        }
+
+        Dish dish = dishRepository.findById(dishId)
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "dish_not_found",
+                        "Platillo no encontrado",
+                        "No se encontró un platillo con el identificador " + dishId
+                ));
+
+        List<RecipeVersion> versions = recipeVersionRepository.findByDishIdOrderByVersionNumberAsc(dishId);
+        if (versions.isEmpty()) {
+            throw new ApiException(
+                    HttpStatus.NOT_FOUND,
+                    "recipe_not_found",
+                    "Receta no definida",
+                    "El platillo aún no tiene una receta definida"
+            );
+        }
+
+        List<RecipeVersionHistoryItemResponse> historyItems = new ArrayList<>();
+        Integer activeVersionNumber = null;
+        RecipeVersion previousVersion = null;
+
+        for (RecipeVersion version : versions) {
+            if ("VIGENTE".equalsIgnoreCase(version.getStatus())) {
+                activeVersionNumber = version.getVersionNumber();
+            }
+
+            RecipeResponse recipeResponse = buildRecipeResponse(version);
+            List<RecipeIngredientChangeResponse> changes = compareDishRecipeVersions(previousVersion, version);
+
+            historyItems.add(new RecipeVersionHistoryItemResponse(
+                    version.getId(),
+                    version.getVersionNumber(),
+                    version.getStatus(),
+                    version.getChangeReason(),
+                    version.getEffectiveFrom(),
+                    version.getEffectiveTo(),
+                    recipeResponse.totalCost(),
+                    recipeResponse.dishSalePrice(),
+                    recipeResponse.grossMargin(),
+                    recipeResponse.marginPercentage(),
+                    recipeResponse.ingredients().size(),
+                    recipeResponse.ingredients(),
+                    changes,
+                    version.getCreatedById(),
+                    version.getCreatedAt()
+            ));
+
+            previousVersion = version;
+        }
+
+        if (activeVersionNumber == null && !versions.isEmpty()) {
+            activeVersionNumber = versions.get(versions.size() - 1).getVersionNumber();
+        }
+
+        boolean hasSubsequentChanges = versions.size() > 1;
+        String message = hasSubsequentChanges
+                ? "Historial de modificaciones de la receta obtenido exitosamente"
+                : "No existen cambios posteriores; la receta se mantiene con su versión inicial vigente.";
+
+        return new RecipeHistoryResponse(
+                dish.getId(),
+                dish.getCode(),
+                dish.getName(),
+                activeVersionNumber,
+                versions.size(),
+                hasSubsequentChanges,
+                message,
+                historyItems
+        );
+    }
+
+    /**
+     * Consulta el detalle de una versión específica de receta de platillo, comparándola con su versión anterior.
+     *
+     * @param dishId        Identificador único del platillo
+     * @param versionNumber Número de versión consultada
+     * @return Detalle de la versión con composiciones previa y nueva, y cambios identificados
+     */
+    @Transactional(readOnly = true)
+    public RecipeVersionChangeDetailResponse getDishRecipeVersionDetail(Long dishId, Integer versionNumber) {
+        if (dishId == null) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "missing_dish_id",
+                    "Platillo no especificado",
+                    "Debe indicar el identificador del platillo"
+            );
+        }
+
+        if (versionNumber == null || versionNumber < 1) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "invalid_version_number",
+                    "Número de versión inválido",
+                    "El número de versión debe ser un entero positivo mayor que cero"
+            );
+        }
+
+        Dish dish = dishRepository.findById(dishId)
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "dish_not_found",
+                        "Platillo no encontrado",
+                        "No se encontró un platillo con el identificador " + dishId
+                ));
+
+        RecipeVersion version = recipeVersionRepository.findByDishIdAndVersionNumber(dishId, versionNumber)
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "version_not_found",
+                        "Versión no encontrada",
+                        "No se encontró la versión " + versionNumber + " para la receta del platillo"
+                ));
+
+        RecipeResponse currentRecipeResponse = buildRecipeResponse(version);
+        Integer previousVersionNumber = null;
+        BigDecimal previousTotalCost = null;
+        BigDecimal totalCostDifference = null;
+        List<RecipeIngredientResponse> previousComposition = null;
+        List<RecipeIngredientChangeResponse> changes = Collections.emptyList();
+
+        if (versionNumber > 1) {
+            Optional<RecipeVersion> prevOpt = recipeVersionRepository.findByDishIdAndVersionNumber(dishId, versionNumber - 1);
+            if (prevOpt.isPresent()) {
+                RecipeVersion prevVersion = prevOpt.get();
+                RecipeResponse prevRecipeResponse = buildRecipeResponse(prevVersion);
+                previousVersionNumber = prevVersion.getVersionNumber();
+                previousTotalCost = prevRecipeResponse.totalCost();
+                totalCostDifference = currentRecipeResponse.totalCost().subtract(previousTotalCost).setScale(4, RoundingMode.HALF_UP);
+                previousComposition = prevRecipeResponse.ingredients();
+                changes = compareDishRecipeVersions(prevVersion, version);
+            }
+        }
+
+        return new RecipeVersionChangeDetailResponse(
+                dish.getId(),
+                dish.getCode(),
+                dish.getName(),
+                version.getId(),
+                version.getVersionNumber(),
+                version.getStatus(),
+                version.getChangeReason(),
+                version.getEffectiveFrom(),
+                version.getEffectiveTo(),
+                currentRecipeResponse.totalCost(),
+                previousVersionNumber,
+                previousTotalCost,
+                totalCostDifference,
+                previousComposition,
+                currentRecipeResponse.ingredients(),
+                changes,
+                version.getCreatedById(),
+                version.getCreatedAt()
+        );
+    }
+
+    /**
+     * Consulta el historial completo de versiones de la receta de un modificador en orden cronológico.
+     *
+     * @param modifierId Identificador único del modificador
+     * @return Historial consolidado de versiones y cambios registrados
+     */
+    @Transactional(readOnly = true)
+    public ModifierRecipeHistoryResponse getModifierRecipeHistory(Long modifierId) {
+        if (modifierId == null) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "missing_modifier_id",
+                    "Modificador no especificado",
+                    "Debe indicar el identificador del modificador para consultar su historial"
+            );
+        }
+
+        Modifier modifier = modifierRepository.findById(modifierId)
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "modifier_not_found",
+                        "Modificador no encontrado",
+                        "No se encontró un modificador con el identificador " + modifierId
+                ));
+
+        List<ModifierRecipeVersion> versions = modifierRecipeVersionRepository.findByModifierIdOrderByVersionNumberAsc(modifierId);
+        if (versions.isEmpty()) {
+            throw new ApiException(
+                    HttpStatus.NOT_FOUND,
+                    "recipe_not_found",
+                    "Receta no definida",
+                    "El modificador aún no tiene una receta definida"
+            );
+        }
+
+        List<ModifierRecipeVersionHistoryItemResponse> historyItems = new ArrayList<>();
+        Integer activeVersionNumber = null;
+        ModifierRecipeVersion previousVersion = null;
+
+        for (ModifierRecipeVersion version : versions) {
+            if ("VIGENTE".equalsIgnoreCase(version.getStatus())) {
+                activeVersionNumber = version.getVersionNumber();
+            }
+
+            ModifierRecipeResponse recipeResponse = buildModifierRecipeResponse(version);
+            List<ModifierIngredientChangeResponse> changes = compareModifierRecipeVersions(previousVersion, version);
+
+            historyItems.add(new ModifierRecipeVersionHistoryItemResponse(
+                    version.getId(),
+                    version.getVersionNumber(),
+                    version.getStatus(),
+                    version.getChangeReason(),
+                    version.getEffectiveFrom(),
+                    version.getEffectiveTo(),
+                    recipeResponse.totalCost(),
+                    recipeResponse.ingredients().size(),
+                    recipeResponse.ingredients(),
+                    changes,
+                    version.getCreatedById(),
+                    version.getCreatedAt()
+            ));
+
+            previousVersion = version;
+        }
+
+        if (activeVersionNumber == null && !versions.isEmpty()) {
+            activeVersionNumber = versions.get(versions.size() - 1).getVersionNumber();
+        }
+
+        boolean hasSubsequentChanges = versions.size() > 1;
+        String message = hasSubsequentChanges
+                ? "Historial de modificaciones de la receta del modificador obtenido exitosamente"
+                : "No existen cambios posteriores; la receta del modificador se mantiene con su versión inicial vigente.";
+
+        return new ModifierRecipeHistoryResponse(
+                modifier.getId(),
+                modifier.getCode(),
+                modifier.getName(),
+                modifier.getAdditionalPrice(),
+                activeVersionNumber,
+                versions.size(),
+                hasSubsequentChanges,
+                message,
+                historyItems
+        );
+    }
+
+    /**
+     * Consulta el detalle de una versión específica de receta de modificador, comparándola con su versión anterior.
+     *
+     * @param modifierId    Identificador único del modificador
+     * @param versionNumber Número de versión consultada
+     * @return Detalle de la versión con composiciones previa y nueva, y cambios identificados
+     */
+    @Transactional(readOnly = true)
+    public ModifierRecipeVersionChangeDetailResponse getModifierRecipeVersionDetail(Long modifierId, Integer versionNumber) {
+        if (modifierId == null) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "missing_modifier_id",
+                    "Modificador no especificado",
+                    "Debe indicar el identificador del modificador"
+            );
+        }
+
+        if (versionNumber == null || versionNumber < 1) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "invalid_version_number",
+                    "Número de versión inválido",
+                    "El número de versión debe ser un entero positivo mayor que cero"
+            );
+        }
+
+        Modifier modifier = modifierRepository.findById(modifierId)
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "modifier_not_found",
+                        "Modificador no encontrado",
+                        "No se encontró un modificador con el identificador " + modifierId
+                ));
+
+        ModifierRecipeVersion version = modifierRecipeVersionRepository.findByModifierIdAndVersionNumber(modifierId, versionNumber)
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "version_not_found",
+                        "Versión no encontrada",
+                        "No se encontró la versión " + versionNumber + " para la receta del modificador"
+                ));
+
+        ModifierRecipeResponse currentRecipeResponse = buildModifierRecipeResponse(version);
+        Integer previousVersionNumber = null;
+        BigDecimal previousTotalCost = null;
+        BigDecimal totalCostDifference = null;
+        List<ModifierIngredientResponse> previousComposition = null;
+        List<ModifierIngredientChangeResponse> changes = Collections.emptyList();
+
+        if (versionNumber > 1) {
+            Optional<ModifierRecipeVersion> prevOpt = modifierRecipeVersionRepository.findByModifierIdAndVersionNumber(modifierId, versionNumber - 1);
+            if (prevOpt.isPresent()) {
+                ModifierRecipeVersion prevVersion = prevOpt.get();
+                ModifierRecipeResponse prevRecipeResponse = buildModifierRecipeResponse(prevVersion);
+                previousVersionNumber = prevVersion.getVersionNumber();
+                previousTotalCost = prevRecipeResponse.totalCost();
+                totalCostDifference = currentRecipeResponse.totalCost().subtract(previousTotalCost).setScale(4, RoundingMode.HALF_UP);
+                previousComposition = prevRecipeResponse.ingredients();
+                changes = compareModifierRecipeVersions(prevVersion, version);
+            }
+        }
+
+        return new ModifierRecipeVersionChangeDetailResponse(
+                modifier.getId(),
+                modifier.getCode(),
+                modifier.getName(),
+                modifier.getAdditionalPrice(),
+                version.getId(),
+                version.getVersionNumber(),
+                version.getStatus(),
+                version.getChangeReason(),
+                version.getEffectiveFrom(),
+                version.getEffectiveTo(),
+                currentRecipeResponse.totalCost(),
+                previousVersionNumber,
+                previousTotalCost,
+                totalCostDifference,
+                previousComposition,
+                currentRecipeResponse.ingredients(),
+                changes,
+                version.getCreatedById(),
+                version.getCreatedAt()
+        );
+    }
+
+    private List<RecipeIngredientChangeResponse> compareDishRecipeVersions(RecipeVersion oldVersion, RecipeVersion newVersion) {
+        if (oldVersion == null) {
+            return Collections.emptyList();
+        }
+
+        Map<Long, RecipeDetail> oldDetailsBySupply = oldVersion.getDetails().stream()
+                .collect(Collectors.toMap(d -> d.getSupply().getId(), d -> d, (d1, d2) -> d1));
+        Map<Long, RecipeDetail> newDetailsBySupply = newVersion.getDetails().stream()
+                .collect(Collectors.toMap(d -> d.getSupply().getId(), d -> d, (d1, d2) -> d1));
+
+        Set<Long> allSupplyIds = new LinkedHashSet<>();
+        oldVersion.getDetails().forEach(d -> allSupplyIds.add(d.getSupply().getId()));
+        newVersion.getDetails().forEach(d -> allSupplyIds.add(d.getSupply().getId()));
+
+        List<RecipeIngredientChangeResponse> changes = new ArrayList<>();
+
+        for (Long supplyId : allSupplyIds) {
+            RecipeDetail oldDetail = oldDetailsBySupply.get(supplyId);
+            RecipeDetail newDetail = newDetailsBySupply.get(supplyId);
+
+            if (oldDetail == null && newDetail != null) {
+                BigDecimal subtotal = calculateDetailCost(newDetail);
+                changes.add(new RecipeIngredientChangeResponse(
+                        newDetail.getSupply().getId(),
+                        newDetail.getSupply().getCode(),
+                        newDetail.getSupply().getName(),
+                        "AGREGADO",
+                        null,
+                        null,
+                        newDetail.getQuantity(),
+                        newDetail.getMeasurementUnit().getName(),
+                        newDetail.getQuantity(),
+                        subtotal,
+                        newDetail.getNotes()
+                ));
+            } else if (oldDetail != null && newDetail == null) {
+                BigDecimal subtotal = calculateDetailCost(oldDetail);
+                changes.add(new RecipeIngredientChangeResponse(
+                        oldDetail.getSupply().getId(),
+                        oldDetail.getSupply().getCode(),
+                        oldDetail.getSupply().getName(),
+                        "RETIRADO",
+                        oldDetail.getQuantity(),
+                        oldDetail.getMeasurementUnit().getName(),
+                        null,
+                        null,
+                        oldDetail.getQuantity().negate(),
+                        subtotal.negate(),
+                        oldDetail.getNotes()
+                ));
+            } else if (oldDetail != null && newDetail != null) {
+                BigDecimal oldSubtotal = calculateDetailCost(oldDetail);
+                BigDecimal newSubtotal = calculateDetailCost(newDetail);
+                boolean quantityChanged = oldDetail.getQuantity().compareTo(newDetail.getQuantity()) != 0;
+                boolean unitChanged = !oldDetail.getMeasurementUnit().getId().equals(newDetail.getMeasurementUnit().getId());
+
+                String changeType = (quantityChanged || unitChanged) ? "MODIFICADO" : "SIN_CAMBIOS";
+                BigDecimal qtyDiff = newDetail.getQuantity().subtract(oldDetail.getQuantity());
+                BigDecimal costDiff = newSubtotal.subtract(oldSubtotal);
+
+                changes.add(new RecipeIngredientChangeResponse(
+                        newDetail.getSupply().getId(),
+                        newDetail.getSupply().getCode(),
+                        newDetail.getSupply().getName(),
+                        changeType,
+                        oldDetail.getQuantity(),
+                        oldDetail.getMeasurementUnit().getName(),
+                        newDetail.getQuantity(),
+                        newDetail.getMeasurementUnit().getName(),
+                        qtyDiff,
+                        costDiff,
+                        newDetail.getNotes() != null ? newDetail.getNotes() : oldDetail.getNotes()
+                ));
+            }
+        }
+
+        return changes;
+    }
+
+    private List<ModifierIngredientChangeResponse> compareModifierRecipeVersions(ModifierRecipeVersion oldVersion, ModifierRecipeVersion newVersion) {
+        if (oldVersion == null) {
+            return Collections.emptyList();
+        }
+
+        Map<Long, ModifierRecipeDetail> oldDetailsBySupply = oldVersion.getDetails().stream()
+                .collect(Collectors.toMap(d -> d.getSupply().getId(), d -> d, (d1, d2) -> d1));
+        Map<Long, ModifierRecipeDetail> newDetailsBySupply = newVersion.getDetails().stream()
+                .collect(Collectors.toMap(d -> d.getSupply().getId(), d -> d, (d1, d2) -> d1));
+
+        Set<Long> allSupplyIds = new LinkedHashSet<>();
+        oldVersion.getDetails().forEach(d -> allSupplyIds.add(d.getSupply().getId()));
+        newVersion.getDetails().forEach(d -> allSupplyIds.add(d.getSupply().getId()));
+
+        List<ModifierIngredientChangeResponse> changes = new ArrayList<>();
+
+        for (Long supplyId : allSupplyIds) {
+            ModifierRecipeDetail oldDetail = oldDetailsBySupply.get(supplyId);
+            ModifierRecipeDetail newDetail = newDetailsBySupply.get(supplyId);
+
+            if (oldDetail == null && newDetail != null) {
+                BigDecimal subtotal = calculateModifierDetailCost(newDetail);
+                changes.add(new ModifierIngredientChangeResponse(
+                        newDetail.getSupply().getId(),
+                        newDetail.getSupply().getCode(),
+                        newDetail.getSupply().getName(),
+                        "AGREGADO",
+                        null,
+                        null,
+                        null,
+                        newDetail.getAdjustmentType(),
+                        newDetail.getQuantity(),
+                        newDetail.getMeasurementUnit().getName(),
+                        newDetail.getQuantity(),
+                        subtotal,
+                        newDetail.getNotes()
+                ));
+            } else if (oldDetail != null && newDetail == null) {
+                BigDecimal subtotal = calculateModifierDetailCost(oldDetail);
+                changes.add(new ModifierIngredientChangeResponse(
+                        oldDetail.getSupply().getId(),
+                        oldDetail.getSupply().getCode(),
+                        oldDetail.getSupply().getName(),
+                        "RETIRADO",
+                        oldDetail.getAdjustmentType(),
+                        oldDetail.getQuantity(),
+                        oldDetail.getMeasurementUnit().getName(),
+                        null,
+                        null,
+                        null,
+                        oldDetail.getQuantity().negate(),
+                        subtotal.negate(),
+                        oldDetail.getNotes()
+                ));
+            } else if (oldDetail != null && newDetail != null) {
+                BigDecimal oldSubtotal = calculateModifierDetailCost(oldDetail);
+                BigDecimal newSubtotal = calculateModifierDetailCost(newDetail);
+                boolean qtyChanged = oldDetail.getQuantity().compareTo(newDetail.getQuantity()) != 0;
+                boolean unitChanged = !oldDetail.getMeasurementUnit().getId().equals(newDetail.getMeasurementUnit().getId());
+                boolean adjChanged = !oldDetail.getAdjustmentType().equalsIgnoreCase(newDetail.getAdjustmentType());
+
+                String changeType = (qtyChanged || unitChanged || adjChanged) ? "MODIFICADO" : "SIN_CAMBIOS";
+                BigDecimal qtyDiff = newDetail.getQuantity().subtract(oldDetail.getQuantity());
+                BigDecimal costDiff = newSubtotal.subtract(oldSubtotal);
+
+                changes.add(new ModifierIngredientChangeResponse(
+                        newDetail.getSupply().getId(),
+                        newDetail.getSupply().getCode(),
+                        newDetail.getSupply().getName(),
+                        changeType,
+                        oldDetail.getAdjustmentType(),
+                        oldDetail.getQuantity(),
+                        oldDetail.getMeasurementUnit().getName(),
+                        newDetail.getAdjustmentType(),
+                        newDetail.getQuantity(),
+                        newDetail.getMeasurementUnit().getName(),
+                        qtyDiff,
+                        costDiff,
+                        newDetail.getNotes() != null ? newDetail.getNotes() : oldDetail.getNotes()
+                ));
+            }
+        }
+
+        return changes;
+    }
+
+    private BigDecimal calculateDetailCost(RecipeDetail detail) {
+        Supply supply = detail.getSupply();
+        MeasurementUnit recipeUnit = detail.getMeasurementUnit();
+        MeasurementUnit stockUnit = supply.getMeasurementUnit();
+
+        BigDecimal quantity = detail.getQuantity();
+        BigDecimal urBaseFactor = recipeUnit.getBaseFactor();
+        BigDecimal usBaseFactor = stockUnit.getBaseFactor();
+        BigDecimal currentUnitCost = supply.getCurrentUnitCost() != null
+                ? supply.getCurrentUnitCost()
+                : BigDecimal.ZERO;
+
+        BigDecimal proportionalQty = quantity.multiply(urBaseFactor)
+                .divide(usBaseFactor, 6, RoundingMode.HALF_UP);
+        return proportionalQty.multiply(currentUnitCost)
+                .setScale(4, RoundingMode.HALF_UP);
+    }
+
+    private BigDecimal calculateModifierDetailCost(ModifierRecipeDetail detail) {
+        Supply supply = detail.getSupply();
+        MeasurementUnit recipeUnit = detail.getMeasurementUnit();
+        MeasurementUnit stockUnit = supply.getMeasurementUnit();
+
+        BigDecimal quantity = detail.getQuantity();
+        BigDecimal urBaseFactor = recipeUnit.getBaseFactor();
+        BigDecimal usBaseFactor = stockUnit.getBaseFactor();
+        BigDecimal currentUnitCost = supply.getCurrentUnitCost() != null
+                ? supply.getCurrentUnitCost()
+                : BigDecimal.ZERO;
+
+        BigDecimal proportionalQty = quantity.multiply(urBaseFactor)
+                .divide(usBaseFactor, 6, RoundingMode.HALF_UP);
+        return proportionalQty.multiply(currentUnitCost)
+                .setScale(4, RoundingMode.HALF_UP);
     }
 
     /**
