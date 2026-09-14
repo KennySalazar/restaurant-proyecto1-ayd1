@@ -192,7 +192,26 @@
     "successTitle": "Configuración actualizada",
     "successMessage": "La propina sugerida fue actualizada a {{percentage}}%.",
     "disabledSuccess": "La propina sugerida fue desactivada correctamente."
+  },
+  "loyalty": {
+  "eyebrow": "Programa de fidelización",
+  "accumulation": {
+    "title": "Acumulación de puntos",
+    "description": "Define cuántos puntos obtiene un cliente por cada unidad monetaria gastada.",
+    "current": "Regla actual",
+    "status": "Estado",
+    "active": "Vigente",
+    "since": "Vigente desde",
+    "pointsPerCurrency": "Puntos por unidad monetaria",
+    "hint": "Ingresa una cantidad mayor que cero. Puedes utilizar decimales.",
+    "invalid": "La cantidad de puntos debe ser mayor que cero.",
+    "notice": "La nueva regla se aplicará únicamente a las ventas posteriores. Los puntos acreditados anteriormente se conservarán sin cambios.",
+    "save": "Guardar regla de acumulación",
+    "saving": "Guardando...",
+    "successTitle": "Configuración actualizada",
+    "successMessage": "La regla de acumulación fue actualizada a {{points}} puntos por unidad monetaria."
   }
+}
 },
 
 "employees": {

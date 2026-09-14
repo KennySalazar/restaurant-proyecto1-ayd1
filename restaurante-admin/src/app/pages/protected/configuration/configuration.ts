@@ -18,7 +18,10 @@ import {
 import { MessageService } from 'primeng/api';
 import { finalize } from 'rxjs';
 
-import { TipConfiguration } from '../../../core/models/configuration.models';
+import {
+  PointsAccumulationConfiguration,
+  TipConfiguration,
+} from '../../../core/models/configuration.models';
 import { ApiErrorService } from '../../../core/services/api-error.service';
 import { RestaurantConfigurationService } from '../../../core/services/restaurant-configuration.service';
 import { FormFeedbackComponent } from '../../../shared/components/form-feedback/form-feedback';
@@ -63,13 +66,33 @@ export class ConfigurationPageComponent implements OnInit {
     ],
   });
 
+  readonly pointsConfiguration =
+  signal<PointsAccumulationConfiguration | null>(null);
+
+    readonly isPointsLoading = signal(true);
+    readonly isPointsSaving = signal(false);
+    readonly pointsSubmitted = signal(false);
+    readonly pointsErrorMessage = signal<string | null>(null);
+
   readonly isTipEnabled = computed(
     () => (this.configuration()?.porcentaje ?? 0) > 0,
   );
 
+
+  readonly pointsForm = this.formBuilder.nonNullable.group({
+  puntosPorMoneda: [
+    1,
+    [
+      Validators.required,
+      Validators.min(0.0001),
+    ],
+  ],
+});
+
   ngOnInit(): void {
-    this.loadConfiguration();
-  }
+  this.loadConfiguration();
+  this.loadPointsConfiguration();
+}
 
   loadConfiguration(): void {
     this.isLoading.set(true);
@@ -151,4 +174,90 @@ export class ConfigurationPageComponent implements OnInit {
       (control.touched || this.submitted())
     );
   }
+
+  loadPointsConfiguration(): void {
+  this.isPointsLoading.set(true);
+  this.pointsErrorMessage.set(null);
+
+  this.configurationService
+    .getPointsAccumulationConfiguration()
+    .pipe(finalize(() => this.isPointsLoading.set(false)))
+    .subscribe({
+      next: (configuration) => {
+        this.pointsConfiguration.set(configuration);
+
+        this.pointsForm.patchValue({
+          puntosPorMoneda: configuration.puntosPorMoneda,
+        });
+      },
+      error: (error: unknown) => {
+        this.pointsErrorMessage.set(
+          this.errors.getMessage(error),
+        );
+      },
+    });
+}
+
+savePointsConfiguration(): void {
+  this.pointsSubmitted.set(true);
+  this.pointsErrorMessage.set(null);
+
+  if (this.pointsForm.invalid) {
+    this.pointsForm.markAllAsTouched();
+    return;
+  }
+
+  const puntosPorMoneda = Number(
+    this.pointsForm.getRawValue().puntosPorMoneda,
+  );
+
+  this.isPointsSaving.set(true);
+
+  this.configurationService
+    .updatePointsAccumulationConfiguration({
+      puntosPorMoneda,
+    })
+    .pipe(
+      finalize(() => this.isPointsSaving.set(false)),
+    )
+    .subscribe({
+      next: (configuration) => {
+        this.pointsConfiguration.set(configuration);
+
+        this.pointsForm.patchValue({
+          puntosPorMoneda:
+            configuration.puntosPorMoneda,
+        });
+
+        this.pointsSubmitted.set(false);
+
+        this.messages.add({
+          severity: 'success',
+          summary: this.transloco.translate(
+            'configuration.loyalty.accumulation.successTitle',
+          ),
+          detail: this.transloco.translate(
+            'configuration.loyalty.accumulation.successMessage',
+            {
+              points: configuration.puntosPorMoneda,
+            },
+          ),
+          life: 5000,
+        });
+      },
+      error: (error: unknown) => {
+        this.errors.present(error);
+      },
+    });
+}
+
+pointsPerCurrencyInvalid(): boolean {
+  const control =
+    this.pointsForm.controls.puntosPorMoneda;
+
+  return (
+    control.invalid &&
+    (control.touched || this.pointsSubmitted())
+  );
+}
 }
