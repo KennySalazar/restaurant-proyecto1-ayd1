@@ -91,5 +91,17 @@ public class RestaurantTable {
     public TableStatus getStatus() {
         return status;
     }
+
+    public void reserve() {
+        if (this.status == TableStatus.LIBRE) {
+            this.status = TableStatus.RESERVADA;
+        }
+    }
+
+    public void releaseReservation() {
+        if (this.status == TableStatus.RESERVADA) {
+            this.status = TableStatus.LIBRE;
+        }
+    }
 }
 
