@@ -1,0 +1,246 @@
+<app-page-heading
+  eyebrowKey="employees.eyebrow"
+  titleKey="employees.title"
+  descriptionKey="employees.description"
+/>
+
+<section class="employee-summary">
+  <article class="summary-card">
+    <span class="summary-icon">
+      <i class="pi pi-users"></i>
+    </span>
+
+    <div>
+      <span>{{ 'employees.summary.total' | transloco }}</span>
+      <strong>{{ totalEmployees() }}</strong>
+    </div>
+  </article>
+
+  <article class="summary-card">
+    <span class="summary-icon summary-icon--active">
+      <i class="pi pi-check-circle"></i>
+    </span>
+
+    <div>
+      <span>{{ 'employees.summary.active' | transloco }}</span>
+      <strong>{{ activeEmployees() }}</strong>
+    </div>
+  </article>
+
+  <article class="summary-card">
+    <span class="summary-icon summary-icon--disabled">
+      <i class="pi pi-user-minus"></i>
+    </span>
+
+    <div>
+      <span>{{ 'employees.summary.disabled' | transloco }}</span>
+      <strong>{{ disabledEmployees() }}</strong>
+    </div>
+  </article>
+</section>
+
+<section class="employees-panel">
+  <header class="employees-panel__header">
+    <div>
+      <h2>{{ 'employees.list.title' | transloco }}</h2>
+      <p>{{ 'employees.list.description' | transloco }}</p>
+    </div>
+
+    <button
+      class="refresh-button"
+      type="button"
+      [disabled]="isLoading()"
+      (click)="loadEmployees()"
+    >
+      <i
+        class="pi pi-refresh"
+        [class.pi-spin]="isLoading()"
+      ></i>
+
+      {{ 'employees.actions.refresh' | transloco }}
+    </button>
+  </header>
+
+  <app-form-feedback [message]="errorMessage()" />
+
+  @if (isLoading()) {
+    <div class="state-panel">
+      <i class="pi pi-spin pi-spinner"></i>
+      <span>{{ 'common.loading' | transloco }}</span>
+    </div>
+  } @else if (!errorMessage() && employees().length === 0) {
+    <div class="state-panel state-panel--empty">
+      <span class="empty-icon">
+        <i class="pi pi-users"></i>
+      </span>
+
+      <strong>
+        {{ 'employees.list.emptyTitle' | transloco }}
+      </strong>
+
+      <p>
+        {{ 'employees.list.emptyDescription' | transloco }}
+      </p>
+    </div>
+  } @else if (employees().length > 0) {
+    <div class="table-wrapper">
+      <table class="employees-table">
+        <thead>
+          <tr>
+            <th>{{ 'employees.columns.code' | transloco }}</th>
+            <th>{{ 'employees.columns.employee' | transloco }}</th>
+            <th>{{ 'employees.columns.email' | transloco }}</th>
+            <th>{{ 'employees.columns.hireDate' | transloco }}</th>
+            <th>{{ 'employees.columns.role' | transloco }}</th>
+            <th>{{ 'employees.columns.status' | transloco }}</th>
+            <th>
+              <span class="sr-only">
+                {{ 'employees.columns.actions' | transloco }}
+              </span>
+            </th>
+          </tr>
+        </thead>
+
+        <tbody>
+          @for (employee of employees(); track employee.id) {
+            <tr [class.employee-row--disabled]="!employee.habilitado">
+              <td>
+                <strong>{{ employee.codigoEmpleado }}</strong>
+              </td>
+
+              <td>
+                <div class="employee-name">
+                  <span class="employee-avatar">
+                    {{ employee.nombres.charAt(0) }}
+                    {{ employee.apellidos.charAt(0) }}
+                  </span>
+
+                  <span>
+                    {{ employee.nombres }}
+                    {{ employee.apellidos }}
+                  </span>
+                </div>
+              </td>
+
+              <td>{{ employee.email }}</td>
+
+              <td>
+                {{ employee.fechaContratacion | date:'dd/MM/yyyy' }}
+              </td>
+
+              <td>
+                <span
+                  class="role-badge"
+                  [class]="
+                    'role-badge ' + roleClass(employee.rol)
+                  "
+                >
+                  {{ roleKey(employee.rol) | transloco }}
+                </span>
+              </td>
+
+              <td>
+                <span
+                  class="status-badge"
+                  [class.status-badge--disabled]="!employee.habilitado"
+                >
+                  <i
+                    class="pi"
+                    [class.pi-check-circle]="employee.habilitado"
+                    [class.pi-ban]="!employee.habilitado"
+                  ></i>
+
+                  {{
+                    (employee.habilitado
+                      ? 'employees.status.active'
+                      : 'employees.status.disabled'
+                    ) | transloco
+                  }}
+                </span>
+              </td>
+
+              <td class="employees-table__actions">
+                <button
+                  class="detail-button"
+                  type="button"
+                  [disabled]="isDetailLoading()"
+                  (click)="viewEmployee(employee.id)"
+                >
+                  <i class="pi pi-eye"></i>
+                  {{ 'employees.actions.view' | transloco }}
+                </button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</section>
+
+@if (selectedEmployee(); as employee) {
+  <section class="employee-detail">
+    <header class="employee-detail__header">
+      <div>
+        <span>{{ 'employees.detail.eyebrow' | transloco }}</span>
+        <h2>
+          {{ employee.nombres }}
+          {{ employee.apellidos }}
+        </h2>
+      </div>
+
+      <button
+        class="close-button"
+        type="button"
+        [attr.aria-label]="'employees.actions.close' | transloco"
+        (click)="closeDetails()"
+      >
+        <i class="pi pi-times"></i>
+      </button>
+    </header>
+
+    <div class="detail-grid">
+      <div class="detail-item">
+        <span>{{ 'employees.columns.code' | transloco }}</span>
+        <strong>{{ employee.codigoEmpleado }}</strong>
+      </div>
+
+      <div class="detail-item">
+        <span>{{ 'employees.detail.name' | transloco }}</span>
+        <strong>
+          {{ employee.nombres }}
+          {{ employee.apellidos }}
+        </strong>
+      </div>
+
+      <div class="detail-item">
+        <span>{{ 'employees.columns.email' | transloco }}</span>
+        <strong>{{ employee.email }}</strong>
+      </div>
+
+      <div class="detail-item">
+        <span>{{ 'employees.columns.hireDate' | transloco }}</span>
+        <strong>
+          {{ employee.fechaContratacion | date:'dd/MM/yyyy' }}
+        </strong>
+      </div>
+
+      <div class="detail-item">
+        <span>{{ 'employees.columns.role' | transloco }}</span>
+        <strong>{{ roleKey(employee.rol) | transloco }}</strong>
+      </div>
+
+      <div class="detail-item">
+        <span>{{ 'employees.columns.status' | transloco }}</span>
+        <strong>
+          {{
+            (employee.habilitado
+              ? 'employees.status.active'
+              : 'employees.status.disabled'
+            ) | transloco
+          }}
+        </strong>
+      </div>
+    </div>
+  </section>
+}
