@@ -375,9 +375,56 @@ public class DishService {
         } else {
             if (Boolean.TRUE.equals(response.available())) {
                 message = "Restricción manual retirada exitosamente. El platillo se encuentra disponible";
+            } else if ("SIN_RECETA".equals(response.unavailabilityReason())) {
+                message = "Restricción manual retirada exitosamente, pero no es posible evaluar su disponibilidad sin una receta";
             } else {
                 message = "Restricción manual retirada exitosamente, pero el platillo no está disponible por falta de stock suficiente para prepararlo";
             }
+        }
+
+        return new DishAvailabilityResponse(message, response);
+    }
+
+    /**
+     * Consulta y evalúa en tiempo real la disponibilidad automática de un platillo según su receta e inventario actual.
+     *
+     * @param id Identificador único del platillo
+     * @return Respuesta con mensaje descriptivo y datos consolidados de disponibilidad
+     */
+    @Transactional(readOnly = true)
+    public DishAvailabilityResponse getDishAvailability(Long id) {
+        Long restaurantId = DEFAULT_RESTAURANT_ID;
+
+        if (id == null) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "missing_dish_id",
+                    "Platillo no especificado",
+                    "Debe indicar el identificador del platillo a consultar"
+            );
+        }
+
+        Dish dish = dishRepository.findByIdAndRestaurantId(id, restaurantId)
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "dish_not_found",
+                        "Platillo no encontrado",
+                        "No se encontró un platillo con el identificador " + id
+                ));
+
+        DishResponse response = mapToResponse(dish);
+
+        String message;
+        if (!dish.isActive()) {
+            message = "El platillo se encuentra retirado del menú";
+        } else if (!dish.isManualAvailable()) {
+            message = "Existe una restricción manual de disponibilidad configurada por el administrador";
+        } else if ("SIN_RECETA".equals(response.unavailabilityReason())) {
+            message = "No es posible evaluar su disponibilidad sin una receta";
+        } else if (Boolean.TRUE.equals(response.available())) {
+            message = "Platillo disponible con stock suficiente para " + response.availablePortions() + " porción(es)";
+        } else {
+            message = "Platillo no disponible por falta de insumos";
         }
 
         return new DishAvailabilityResponse(message, response);
@@ -531,24 +578,21 @@ public class DishService {
             } else {
                 availablePortions = 0;
             }
+        } else if (activeRecipe == null || activeRecipe.getDetails() == null || activeRecipe.getDetails().isEmpty()) {
+            available = false;
+            availablePortions = 0;
+            unavailabilityReason = "SIN_RECETA";
+            unavailabilityReasonDescription = "No es posible evaluar su disponibilidad sin una receta";
         } else {
-            // Platillo activo y con disponibilidad manual habilitada
-            if (activeRecipe == null || activeRecipe.getDetails() == null || activeRecipe.getDetails().isEmpty()) {
+            availablePortions = calculatePortionsFromRecipe(activeRecipe);
+            if (availablePortions < 1) {
                 available = false;
-                availablePortions = 0;
                 unavailabilityReason = "FALTA_INSUMOS";
                 unavailabilityReasonDescription = "Falta de insumos";
             } else {
-                availablePortions = calculatePortionsFromRecipe(activeRecipe);
-                if (availablePortions < 1) {
-                    available = false;
-                    unavailabilityReason = "FALTA_INSUMOS";
-                    unavailabilityReasonDescription = "Falta de insumos";
-                } else {
-                    available = true;
-                    unavailabilityReason = null;
-                    unavailabilityReasonDescription = null;
-                }
+                available = true;
+                unavailabilityReason = null;
+                unavailabilityReasonDescription = null;
             }
         }
 
