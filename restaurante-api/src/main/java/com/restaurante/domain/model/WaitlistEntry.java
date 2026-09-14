@@ -138,4 +138,14 @@ public class WaitlistEntry {
     public Long getRegisteredById() {
         return registeredById;
     }
+
+    public void markSeated() {
+        this.status = WaitlistStatus.SENTADA;
+    }
+
+    public void returnToWaiting() {
+        this.status = WaitlistStatus.ESPERANDO;
+    }
+
+
 }

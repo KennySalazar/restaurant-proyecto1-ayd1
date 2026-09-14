@@ -57,13 +57,20 @@ public class ReservationTableBlockingService {
 
         for (RestaurantTable table : reservedTables) {
 
-            boolean stillReserved =
+            boolean hasActiveReservation =
                     reservations.hasActiveReservationAt(
                             table.getId(),
                             now
                     );
 
-            if (!stillReserved) {
+            boolean hasActiveWaitlistSuggestion =
+                    tables.hasActiveWaitlistSuggestion(
+                            table.getId()
+                    );
+
+            if (!hasActiveReservation
+                    && !hasActiveWaitlistSuggestion) {
+
                 table.releaseReservation();
                 tables.save(table);
             }

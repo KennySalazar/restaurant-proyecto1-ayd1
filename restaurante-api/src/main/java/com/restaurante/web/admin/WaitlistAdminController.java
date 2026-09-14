@@ -3,6 +3,7 @@ package com.restaurante.web.admin;
 import com.restaurante.application.waitlist.WaitlistService;
 import com.restaurante.web.dto.waitlist.CreateWaitlistEntryRequest;
 import com.restaurante.web.dto.waitlist.WaitlistEntryResponse;
+import com.restaurante.web.dto.waitlist.WaitlistSuggestionResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -19,6 +20,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 
 import java.util.List;
+import org.springframework.web.bind.annotation.PutMapping;
 
 @RestController
 @RequestMapping("/admin/lista-espera")
@@ -65,6 +67,41 @@ public class WaitlistAdminController {
             Authentication authentication) {
 
         return waitlistService.getWaitlistEntry(
+                id,
+                authentication
+        );
+    }
+    @PostMapping("/sugerencias/mesa/{mesaId}")
+    @Operation(summary = "Sugerir el primer cliente compatible para una mesa")
+    public WaitlistSuggestionResponse suggestNextCompatible(
+            @PathVariable Long mesaId,
+            Authentication authentication) {
+
+        return waitlistService.suggestNextCompatible(
+                mesaId,
+                authentication
+        );
+    }
+
+    @PutMapping("/{id}/confirmar-sugerencia")
+    @Operation(summary = "Confirmar la asignación sugerida")
+    public WaitlistSuggestionResponse confirmSuggestion(
+            @PathVariable Long id,
+            Authentication authentication) {
+
+        return waitlistService.confirmSuggestion(
+                id,
+                authentication
+        );
+    }
+
+    @PutMapping("/{id}/rechazar-sugerencia")
+    @Operation(summary = "Rechazar la asignación sugerida")
+    public WaitlistQueueEntryResponse rejectSuggestion(
+            @PathVariable Long id,
+            Authentication authentication) {
+
+        return waitlistService.rejectSuggestion(
                 id,
                 authentication
         );

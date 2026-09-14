@@ -22,6 +22,8 @@ import com.restaurante.domain.model.WaitlistStatus;
 import com.restaurante.web.dto.waitlist.WaitlistQueueEntryResponse;
 
 import java.util.List;
+import com.restaurante.domain.model.RestaurantTable;
+import com.restaurante.web.dto.waitlist.WaitlistSuggestionResponse;
 
 @Service
 public class WaitlistService {
@@ -244,6 +246,185 @@ public class WaitlistService {
                 arrival,
                 entry.getStatus(),
                 entry.getNotes()
+        );
+    }
+
+    @Transactional
+    public WaitlistSuggestionResponse suggestNextCompatible(
+            Long tableId,
+            Authentication authentication) {
+
+        AuthenticatedRestaurant context =
+                getAuthenticatedRestaurant(authentication);
+
+        Long waitlistId;
+
+        try {
+            waitlistId = waitlist.suggestNextCompatible(
+                    context.restaurantId(),
+                    tableId
+            );
+        } catch (Exception ex) {
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "waitlist_suggestion_not_available",
+                    "No fue posible generar la sugerencia",
+                    "La mesa no está disponible para generar una sugerencia"
+            );
+        }
+
+        if (waitlistId == null) {
+            return null;
+        }
+
+        WaitlistEntry entry = waitlist
+                .findByIdAndRestaurantId(
+                        waitlistId,
+                        context.restaurantId()
+                )
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "waitlist_entry_not_found",
+                        "Cliente en espera no encontrado",
+                        "No fue posible recuperar el cliente sugerido"
+                ));
+
+        return toSuggestionResponse(
+                entry,
+                context.restaurantId()
+        );
+    }
+
+    @Transactional
+    public WaitlistSuggestionResponse confirmSuggestion(
+            Long waitlistId,
+            Authentication authentication) {
+
+        AuthenticatedRestaurant context =
+                getAuthenticatedRestaurant(authentication);
+
+        WaitlistEntry entry = waitlist
+                .findByIdAndRestaurantId(
+                        waitlistId,
+                        context.restaurantId()
+                )
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "waitlist_entry_not_found",
+                        "Cliente en espera no encontrado",
+                        "El cliente seleccionado no existe"
+                ));
+
+        if (entry.getStatus() != WaitlistStatus.SUGERIDA
+                && entry.getStatus() != WaitlistStatus.NOTIFICADA) {
+
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "waitlist_entry_not_suggested",
+                    "Cliente no sugerido",
+                    "El cliente debe tener una sugerencia activa para confirmar la asignación"
+            );
+        }
+
+        entry.markSeated();
+
+        WaitlistEntry saved =
+                waitlist.saveAndFlush(entry);
+
+        return toSuggestionResponse(
+                saved,
+                context.restaurantId()
+        );
+    }
+    @Transactional
+    public WaitlistQueueEntryResponse rejectSuggestion(
+            Long waitlistId,
+            Authentication authentication) {
+
+        AuthenticatedRestaurant context =
+                getAuthenticatedRestaurant(authentication);
+
+        WaitlistEntry entry = waitlist
+                .findByIdAndRestaurantId(
+                        waitlistId,
+                        context.restaurantId()
+                )
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "waitlist_entry_not_found",
+                        "Cliente en espera no encontrado",
+                        "El cliente seleccionado no existe"
+                ));
+
+        if (entry.getStatus() != WaitlistStatus.SUGERIDA
+                && entry.getStatus() != WaitlistStatus.NOTIFICADA) {
+
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "waitlist_entry_not_suggested",
+                    "Cliente no sugerido",
+                    "El cliente no tiene una sugerencia activa"
+            );
+        }
+
+        entry.returnToWaiting();
+
+        waitlist.saveAndFlush(entry);
+
+        return getWaitlistEntry(
+                waitlistId,
+                authentication
+        );
+    }
+
+    private WaitlistSuggestionResponse toSuggestionResponse(
+            WaitlistEntry entry,
+            Long restaurantId) {
+
+        RestaurantTable table =
+                entry.getSuggestedTable();
+
+        if (table == null) {
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "waitlist_suggestion_without_table",
+                    "Sugerencia sin mesa",
+                    "La sugerencia no tiene una mesa asociada"
+            );
+        }
+
+        List<WaitlistEntry> queue =
+                waitlist
+                        .findAllByRestaurantIdAndStatusInOrderByArrivalTimeAscIdAsc(
+                                restaurantId,
+                                ACTIVE_QUEUE_STATUSES
+                        );
+
+        int position = 0;
+
+        for (int i = 0; i < queue.size(); i++) {
+            if (queue.get(i).getId().equals(entry.getId())) {
+                position = i + 1;
+                break;
+            }
+        }
+
+        OffsetDateTime arrival =
+                entry.getArrivalTime()
+                        .atZoneSameInstant(GUATEMALA)
+                        .toOffsetDateTime();
+
+        return new WaitlistSuggestionResponse(
+                entry.getId(),
+                position,
+                entry.getCustomerName(),
+                entry.getCustomerPhone(),
+                entry.getPeopleCount(),
+                arrival,
+                entry.getStatus(),
+                table.getId(),
+                table.getNumber(),
+                table.getCapacity()
         );
     }
 }

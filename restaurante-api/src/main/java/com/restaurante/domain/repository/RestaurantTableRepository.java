@@ -75,5 +75,17 @@ public interface RestaurantTableRepository extends JpaRepository<RestaurantTable
             TableStatus status,
             Short capacity
     );
+
+    @Query(value = """
+    SELECT EXISTS (
+        SELECT 1
+        FROM restaurante.lista_espera le
+        WHERE le.mesa_sugerida_id = :tableId
+          AND le.estado IN ('SUGERIDA', 'NOTIFICADA')
+    )
+    """, nativeQuery = true)
+    boolean hasActiveWaitlistSuggestion(
+            @Param("tableId") Long tableId
+    );
 }
 
