@@ -27,6 +27,13 @@ const NAVIGATION: readonly NavigationItem[] = [
     icon: 'pi-users',
     roles: ['ADMIN'],
   },
+
+  {
+  path: '/app/configuration',
+  labelKey: 'nav.configuration',
+  icon: 'pi-sliders-h',
+  roles: ['ADMIN'],
+},
   { path: '/app/security', labelKey: 'nav.security', icon: 'pi-shield' },
   {
     path: '/app/admin',

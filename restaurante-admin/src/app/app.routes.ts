@@ -85,6 +85,14 @@ export const routes: Routes = [
       },
 
       {
+        path: 'configuration',
+        loadComponent: () =>
+          import('./pages/protected/configuration/configuration').then(
+            (module) => module.ConfigurationPageComponent,
+          ),
+      },
+
+      {
         path: 'employees',
         loadComponent: () =>
           import('./pages/protected/employees/employees').then(
