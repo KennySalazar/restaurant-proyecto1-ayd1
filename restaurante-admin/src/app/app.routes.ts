@@ -83,6 +83,14 @@ export const routes: Routes = [
             (module) => module.TablesPageComponent,
           ),
       },
+
+      {
+        path: 'employees',
+        loadComponent: () =>
+          import('./pages/protected/employees/employees').then(
+            (module) => module.EmployeesPageComponent,
+          ),
+      },
       {
         path: 'security',
         loadComponent: () =>

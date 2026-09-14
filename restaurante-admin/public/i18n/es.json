@@ -21,6 +21,7 @@
     "workspace": "Administración",
     "dashboard": "Resumen",
     "tables": "Mesas",
+    "employees": "Empleados",
     "security": "Seguridad",
     "admin": "Administración",
     "logout": "Cerrar sesión",
@@ -51,6 +52,8 @@
       "description": "Ingresa tus credenciales para acceder al panel administrativo del restaurante.",
       "submit": "Iniciar sesión"
     },
+
+
     "loginVerify": {
       "kicker": "Verificación de seguridad",
       "title": "Confirma tu acceso",
@@ -77,6 +80,8 @@
       "confirmPlaceholder": "Repite la nueva contraseña",
       "submit": "Restablecer contraseña"
     }
+
+
   },
   "validation": {
     "required": "Este campo es obligatorio.",
@@ -162,7 +167,50 @@
   "alreadyRetiredMessage": "La mesa seleccionada ya se encuentra retirada."
 }
 
+},
 
+"employees": {
+  "eyebrow": "Configuración del restaurante",
+  "title": "Empleados registrados",
+  "description": "Consulta la información, rol operativo y estado de los empleados del restaurante.",
+  "summary": {
+    "total": "Empleados registrados",
+    "active": "Empleados activos",
+    "disabled": "Empleados desactivados"
+  },
+  "list": {
+    "title": "Listado de empleados",
+    "description": "Información actualizada de los empleados registrados.",
+    "emptyTitle": "Todavía no existen empleados registrados",
+    "emptyDescription": "Cuando se registren empleados aparecerán en este listado."
+  },
+  "columns": {
+    "code": "Código",
+    "employee": "Empleado",
+    "email": "Correo",
+    "hireDate": "Contratación",
+    "role": "Rol",
+    "status": "Estado",
+    "actions": "Acciones"
+  },
+  "roles": {
+    "WAITER": "Mesero",
+    "KITCHEN": "Cocina",
+    "CASHIER": "Cajero"
+  },
+  "status": {
+    "active": "Activo",
+    "disabled": "Desactivado"
+  },
+  "actions": {
+    "view": "Ver detalle",
+    "close": "Cerrar detalle",
+    "refresh": "Actualizar"
+  },
+  "detail": {
+    "eyebrow": "Detalle de empleado",
+    "name": "Nombre completo"
+  }
 },
   "security": {
     "eyebrow": "Cuenta y seguridad",
@@ -190,4 +238,5 @@
     "description": "Tu sesión es válida, pero no tienes permisos suficientes para acceder a esta sección.",
     "action": "Volver al resumen"
   }
+
 }

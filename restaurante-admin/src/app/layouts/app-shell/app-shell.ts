@@ -20,6 +20,13 @@ const NAVIGATION: readonly NavigationItem[] = [
     icon: 'pi-list',
     roles: ['ADMIN'],
   },
+
+  {
+    path: '/app/employees',
+    labelKey: 'nav.employees',
+    icon: 'pi-users',
+    roles: ['ADMIN'],
+  },
   { path: '/app/security', labelKey: 'nav.security', icon: 'pi-shield' },
   {
     path: '/app/admin',
