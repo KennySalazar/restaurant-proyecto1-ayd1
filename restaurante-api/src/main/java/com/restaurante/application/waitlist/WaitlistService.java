@@ -427,4 +427,18 @@ public class WaitlistService {
                 table.getCapacity()
         );
     }
+
+    @Transactional
+    public void evaluateFreeTable(
+            Long restaurantId,
+            Long tableId) {
+
+        try {
+            waitlist.suggestNextCompatible(
+                    restaurantId,
+                    tableId
+            );
+        } catch (Exception ignored) {
+        }
+    }
 }
