@@ -4,6 +4,7 @@ import com.restaurante.application.supply.SupplyService;
 import com.restaurante.web.dto.supply.ConfigureStockLimitsRequest;
 import com.restaurante.web.dto.supply.CreateSupplyEntryRequest;
 import com.restaurante.web.dto.supply.CreateSupplyRequest;
+import com.restaurante.web.dto.supply.CreateSupplyWasteRequest;
 import com.restaurante.web.dto.supply.MeasurementUnitResponse;
 import com.restaurante.web.dto.supply.SingleSupplyAlertStatusResponse;
 import com.restaurante.web.dto.supply.SupplyAlertResponse;
@@ -15,6 +16,9 @@ import com.restaurante.web.dto.supply.SupplyRegistrationResponse;
 import com.restaurante.web.dto.supply.SupplyResponse;
 import com.restaurante.web.dto.supply.SupplyStockLimitsResponse;
 import com.restaurante.web.dto.supply.SupplyUpdateResponse;
+import com.restaurante.web.dto.supply.SupplyWasteRegistrationResponse;
+import com.restaurante.web.dto.supply.SupplyWasteReportItemResponse;
+import com.restaurante.web.dto.supply.SupplyWasteResponse;
 import com.restaurante.web.dto.supply.UpdateSupplyRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -25,6 +29,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.security.core.Authentication;
@@ -38,6 +43,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.time.LocalDate;
 import java.util.List;
 
 /**
@@ -202,5 +208,59 @@ public class AdminSupplyController {
         public ResponseEntity<List<SupplyEntryResponse>> listSupplyEntries(
                         @Parameter(description = "Identificador único del insumo", required = true) @PathVariable Long id) {
                 return ResponseEntity.ok(supplyService.listSupplyEntries(id));
+        }
+
+        @PostMapping({ "/{id}/wastes", "/{id}/mermas" })
+        @Operation(summary = "Registrar merma de inventario para un insumo", description = "Registra la baja de un insumo por concepto de merma (vencimiento, daño, error de manejo, etc.), reduciendo sus existencias y alimentando el reporte de pérdidas por merma.")
+        @ApiResponses({
+                        @ApiResponse(responseCode = "201", description = "Merma de inventario registrada exitosamente", content = @Content(schema = @Schema(implementation = SupplyWasteRegistrationResponse.class))),
+                        @ApiResponse(responseCode = "400", description = "Campos obligatorios vacíos, cantidad menor o igual a cero, o cantidad excede existencias disponibles", content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+                        @ApiResponse(responseCode = "401", description = "No autenticado o token JWT no provisto", content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+                        @ApiResponse(responseCode = "403", description = "Acceso denegado (requiere rol ADMIN)", content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+                        @ApiResponse(responseCode = "404", description = "Insumo no encontrado o inactivo", content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+        })
+        public ResponseEntity<SupplyWasteRegistrationResponse> registerSupplyWaste(
+                        @Parameter(description = "Identificador único del insumo", required = true) @PathVariable Long id,
+                        @Valid @RequestBody CreateSupplyWasteRequest request,
+                        @Parameter(hidden = true) Authentication authentication) {
+                return ResponseEntity.status(HttpStatus.CREATED)
+                                .body(supplyService.registerSupplyWaste(id, request, authentication));
+        }
+
+        @PostMapping({ "/wastes", "/mermas" })
+        @Operation(summary = "Registrar merma de inventario general", description = "Registra una merma especificando el insumo en el cuerpo de la solicitud.")
+        @ApiResponses({
+                        @ApiResponse(responseCode = "201", description = "Merma de inventario registrada exitosamente", content = @Content(schema = @Schema(implementation = SupplyWasteRegistrationResponse.class))),
+                        @ApiResponse(responseCode = "400", description = "Campos obligatorios vacíos o cantidad inválida", content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+                        @ApiResponse(responseCode = "401", description = "No autenticado o token JWT no provisto", content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+                        @ApiResponse(responseCode = "403", description = "Acceso denegado (requiere rol ADMIN)", content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+                        @ApiResponse(responseCode = "404", description = "Insumo no encontrado o inactivo", content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+        })
+        public ResponseEntity<SupplyWasteRegistrationResponse> registerGeneralSupplyWaste(
+                        @Valid @RequestBody CreateSupplyWasteRequest request,
+                        @Parameter(hidden = true) Authentication authentication) {
+                return ResponseEntity.status(HttpStatus.CREATED)
+                                .body(supplyService.registerSupplyWaste(request.supplyId(), request, authentication));
+        }
+
+        @GetMapping({ "/{id}/wastes", "/{id}/mermas" })
+        @Operation(summary = "Consultar historial de mermas de un insumo", description = "Retorna el listado de bajas por merma registradas para un insumo específico.")
+        @ApiResponses({
+                        @ApiResponse(responseCode = "200", description = "Historial de mermas obtenido exitosamente"),
+                        @ApiResponse(responseCode = "404", description = "Insumo no encontrado o inactivo", content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+        })
+        public ResponseEntity<List<SupplyWasteResponse>> listSupplyWastes(
+                        @Parameter(description = "Identificador único del insumo", required = true) @PathVariable Long id) {
+                return ResponseEntity.ok(supplyService.listSupplyWastes(id));
+        }
+
+        @GetMapping({ "/wastes", "/mermas", "/wastes/report", "/mermas/reporte" })
+        @Operation(summary = "Reporte de mermas de inventario", description = "Retorna la información consolidada del reporte de mermas para el restaurante.")
+        @ApiResponse(responseCode = "200", description = "Reporte de mermas obtenido exitosamente")
+        public ResponseEntity<List<SupplyWasteReportItemResponse>> listWasteReport(
+                        @Parameter(description = "Filtro opcional por identificador de insumo") @RequestParam(required = false) Long supplyId,
+                        @Parameter(description = "Filtro opcional por fecha inicial (ISO: YYYY-MM-DD)") @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+                        @Parameter(description = "Filtro opcional por fecha final (ISO: YYYY-MM-DD)") @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+                return ResponseEntity.ok(supplyService.listWasteReport(supplyId, startDate, endDate));
         }
 }
