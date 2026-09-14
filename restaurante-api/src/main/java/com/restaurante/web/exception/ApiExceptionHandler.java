@@ -35,9 +35,7 @@ public class ApiExceptionHandler {
     ResponseEntity<ProblemDetail> handleValidation(MethodArgumentNotValidException exception,
                                                     HttpServletRequest request) {
         String fields = exception.getBindingResult().getFieldErrors().stream()
-            .map(error -> (error.getDefaultMessage() != null && !error.getDefaultMessage().isBlank())
-                ? error.getDefaultMessage()
-                : "El campo '" + error.getField() + "' no es válido")
+            .map(error -> "El campo '" + error.getField() + "' no es válido")
             .distinct()
             .sorted()
             .collect(Collectors.joining(". "));

@@ -65,14 +65,4 @@ public class RestaurantUserProfile {
     public LocalDate getHireDate() {
         return hireDate;
     }
-
-    public void updateInformation(String employeeCode,
-                                  String firstName,
-                                  String lastName,
-                                  LocalDate hireDate) {
-        this.employeeCode = employeeCode;
-        this.firstName = firstName;
-        this.lastName = lastName;
-        this.hireDate = hireDate;
-    }
 }
