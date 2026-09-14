@@ -145,16 +145,35 @@
               </td>
 
               <td class="restaurant-table__actions">
-                <button
-                  class="detail-button"
-                  type="button"
-                  [disabled]="isDetailLoading()"
-                  (click)="viewTable(table.id)"
-                >
-                  <i class="pi pi-eye"></i>
-                  {{ 'tables.actions.view' | transloco }}
-                </button>
-              </td>
+                <div class="table-actions">
+                    <button
+                    class="detail-button"
+                    type="button"
+                    [disabled]="isDetailLoading()"
+                    (click)="viewTable(table.id)"
+                    >
+                    <i class="pi pi-eye"></i>
+                    {{ 'tables.actions.view' | transloco }}
+                    </button>
+
+                    <button
+                    class="retire-button"
+                    [class.retire-button--retired]="!table.activo"
+                    type="button"
+                    [disabled]="isRetiring()"
+                    (click)="requestRetirement(table)"
+                    >
+                    <i class="pi pi-ban"></i>
+
+                    {{
+                        (table.activo
+                        ? 'tables.actions.retire'
+                        : 'tables.actions.alreadyRetired'
+                        ) | transloco
+                    }}
+                    </button>
+                </div>
+                </td>
             </tr>
           }
         </tbody>
@@ -223,4 +242,70 @@
       </div>
     </div>
   </section>
+}
+
+@if (retirementCandidate(); as table) {
+  <div
+    class="confirmation-backdrop"
+    role="presentation"
+  >
+    <section
+      class="confirmation-dialog"
+      role="dialog"
+      aria-modal="true"
+      [attr.aria-labelledby]="'retirement-dialog-title'"
+    >
+      <span class="confirmation-dialog__icon">
+        <i class="pi pi-exclamation-triangle"></i>
+      </span>
+
+      <div class="confirmation-dialog__content">
+        <span class="confirmation-dialog__eyebrow">
+          {{ 'tables.retirement.eyebrow' | transloco }}
+        </span>
+
+        <h2 id="retirement-dialog-title">
+          {{ 'tables.retirement.title' | transloco:{ number: table.numero } }}
+        </h2>
+
+        <p>
+          {{ 'tables.retirement.description' | transloco }}
+        </p>
+
+        <div class="confirmation-dialog__notice">
+          <i class="pi pi-info-circle"></i>
+
+          <span>
+            {{ 'tables.retirement.historyNotice' | transloco }}
+          </span>
+        </div>
+      </div>
+
+      <footer class="confirmation-dialog__actions">
+        <button
+          class="cancel-retirement-button"
+          type="button"
+          [disabled]="isRetiring()"
+          (click)="cancelRetirement()"
+        >
+          {{ 'tables.retirement.cancel' | transloco }}
+        </button>
+
+        <button
+          class="confirm-retirement-button"
+          type="button"
+          [disabled]="isRetiring()"
+          (click)="confirmRetirement()"
+        >
+          @if (isRetiring()) {
+            <i class="pi pi-spin pi-spinner"></i>
+            {{ 'tables.retirement.processing' | transloco }}
+          } @else {
+            <i class="pi pi-ban"></i>
+            {{ 'tables.retirement.confirm' | transloco }}
+          }
+        </button>
+      </footer>
+    </section>
+  </div>
 }
