@@ -22,6 +22,7 @@
     "dashboard": "Resumen",
     "tables": "Mesas",
     "employees": "Empleados",
+    "configuration": "Configuración",
     "security": "Seguridad",
     "admin": "Administración",
     "logout": "Cerrar sesión",
@@ -167,6 +168,31 @@
   "alreadyRetiredMessage": "La mesa seleccionada ya se encuentra retirada."
 }
 
+},
+
+"configuration": {
+  "eyebrow": "Configuración del restaurante",
+  "title": "Configuración",
+  "description": "Administra los parámetros utilizados por la operación del restaurante.",
+  "tip": {
+    "eyebrow": "Cobros",
+    "title": "Propina sugerida",
+    "description": "Define el porcentaje que se recomendará al cliente durante los nuevos cobros.",
+    "current": "Porcentaje actual",
+    "status": "Estado",
+    "since": "Vigente desde",
+    "enabled": "Activa",
+    "disabled": "Desactivada",
+    "percentage": "Porcentaje de propina sugerida",
+    "hint": "Ingresa un valor entre 0 y 100. Puedes utilizar decimales.",
+    "invalidPercentage": "El porcentaje debe estar entre 0 y 100.",
+    "notice": "La propina es únicamente una sugerencia. Establecer el porcentaje en 0 desactiva la sugerencia para los nuevos cobros.",
+    "save": "Guardar configuración",
+    "saving": "Guardando...",
+    "successTitle": "Configuración actualizada",
+    "successMessage": "La propina sugerida fue actualizada a {{percentage}}%.",
+    "disabledSuccess": "La propina sugerida fue desactivada correctamente."
+  }
 },
 
 "employees": {
