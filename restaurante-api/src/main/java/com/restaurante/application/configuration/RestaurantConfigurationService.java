@@ -15,6 +15,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.time.ZoneId;
 import java.time.OffsetDateTime;
+import com.restaurante.web.dto.configuration.TipConfigurationRequest;
+import com.restaurante.web.dto.configuration.TipConfigurationResponse;
 
 @Service
 public class RestaurantConfigurationService {
@@ -95,6 +97,86 @@ public class RestaurantConfigurationService {
                 configurations.save(next);
 
         return toTaxResponse(saved);
+    }
+
+    @Transactional(readOnly = true)
+    public TipConfigurationResponse getCurrentTipConfiguration(
+            Authentication authentication) {
+
+        Long restaurantId = getRestaurantId(authentication);
+
+        RestaurantConfiguration current = configurations
+                .findByRestaurantIdAndStatus(
+                        restaurantId,
+                        RestaurantConfigurationStatus.VIGENTE
+                )
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "restaurant_configuration_not_found",
+                        "Configuración no encontrada",
+                        "El restaurante no tiene una configuración vigente"
+                ));
+
+        return toTipResponse(current);
+    }
+
+    @Transactional
+    public TipConfigurationResponse updateTipConfiguration(
+            TipConfigurationRequest request,
+            Authentication authentication) {
+
+        Long restaurantId = getRestaurantId(authentication);
+        Long userId = getUserId(authentication);
+
+        RestaurantConfiguration current = configurations
+                .findByRestaurantIdAndStatus(
+                        restaurantId,
+                        RestaurantConfigurationStatus.VIGENTE
+                )
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "restaurant_configuration_not_found",
+                        "Configuración no encontrada",
+                        "El restaurante no tiene una configuración vigente"
+                ));
+
+        OffsetDateTime changeTime = OffsetDateTime.now(
+                ZoneId.of("America/Guatemala")
+        );
+
+        current.markHistorical(changeTime);
+        configurations.saveAndFlush(current);
+
+        RestaurantConfiguration next =
+                new RestaurantConfiguration(
+                        restaurantId,
+                        current.getTaxName(),
+                        current.getTaxPercentage(),
+                        request.porcentaje(),
+                        current.isEditableTip(),
+                        current.getPointsPerCurrency(),
+                        current.getPointMonetaryValue(),
+                        current.getReservationDurationMinutes(),
+                        current.getReservationToleranceMinutes(),
+                        userId
+                );
+
+        RestaurantConfiguration saved =
+                configurations.save(next);
+
+        return toTipResponse(saved);
+    }
+
+    private TipConfigurationResponse toTipResponse(
+            RestaurantConfiguration configuration) {
+
+        return new TipConfigurationResponse(
+                configuration.getId(),
+                configuration.getTipPercentage(),
+                configuration.getStatus(),
+                configuration.getValidFrom(),
+                configuration.getValidUntil()
+        );
     }
 
     private TaxConfigurationResponse toTaxResponse(
