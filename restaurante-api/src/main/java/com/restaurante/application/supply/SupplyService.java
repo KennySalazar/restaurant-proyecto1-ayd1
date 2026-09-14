@@ -2,12 +2,16 @@ package com.restaurante.application.supply;
 
 import com.restaurante.domain.model.InventoryEntry;
 import com.restaurante.domain.model.InventoryEntryDetail;
+import com.restaurante.domain.model.InventoryWaste;
+import com.restaurante.domain.model.InventoryWasteDetail;
 import com.restaurante.domain.model.MeasurementUnit;
 import com.restaurante.domain.model.Notification;
 import com.restaurante.domain.model.Supply;
 import com.restaurante.domain.model.SupplyCategory;
 import com.restaurante.domain.repository.InventoryEntryDetailRepository;
 import com.restaurante.domain.repository.InventoryEntryRepository;
+import com.restaurante.domain.repository.InventoryWasteDetailRepository;
+import com.restaurante.domain.repository.InventoryWasteRepository;
 import com.restaurante.domain.repository.MeasurementUnitRepository;
 import com.restaurante.domain.repository.NotificationRepository;
 import com.restaurante.domain.repository.SupplyCategoryRepository;
@@ -17,6 +21,7 @@ import com.restaurante.security.JwtData;
 import com.restaurante.web.dto.supply.ConfigureStockLimitsRequest;
 import com.restaurante.web.dto.supply.CreateSupplyEntryRequest;
 import com.restaurante.web.dto.supply.CreateSupplyRequest;
+import com.restaurante.web.dto.supply.CreateSupplyWasteRequest;
 import com.restaurante.web.dto.supply.MeasurementUnitResponse;
 import com.restaurante.web.dto.supply.SingleSupplyAlertStatusResponse;
 import com.restaurante.web.dto.supply.SupplyAlertResponse;
@@ -28,6 +33,9 @@ import com.restaurante.web.dto.supply.SupplyRegistrationResponse;
 import com.restaurante.web.dto.supply.SupplyResponse;
 import com.restaurante.web.dto.supply.SupplyStockLimitsResponse;
 import com.restaurante.web.dto.supply.SupplyUpdateResponse;
+import com.restaurante.web.dto.supply.SupplyWasteRegistrationResponse;
+import com.restaurante.web.dto.supply.SupplyWasteReportItemResponse;
+import com.restaurante.web.dto.supply.SupplyWasteResponse;
 import com.restaurante.web.dto.supply.UpdateSupplyRequest;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -42,6 +50,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Service para la gestion del catalogo de insumos y materia prima
@@ -57,6 +66,8 @@ public class SupplyService {
         private final NotificationRepository notificationRepository;
         private final InventoryEntryRepository inventoryEntryRepository;
         private final InventoryEntryDetailRepository inventoryEntryDetailRepository;
+        private final InventoryWasteRepository inventoryWasteRepository;
+        private final InventoryWasteDetailRepository inventoryWasteDetailRepository;
 
         @PersistenceContext
         private EntityManager entityManager;
@@ -66,13 +77,17 @@ public class SupplyService {
                         MeasurementUnitRepository unitRepository,
                         NotificationRepository notificationRepository,
                         InventoryEntryRepository inventoryEntryRepository,
-                        InventoryEntryDetailRepository inventoryEntryDetailRepository) {
+                        InventoryEntryDetailRepository inventoryEntryDetailRepository,
+                        InventoryWasteRepository inventoryWasteRepository,
+                        InventoryWasteDetailRepository inventoryWasteDetailRepository) {
                 this.supplyRepository = supplyRepository;
                 this.categoryRepository = categoryRepository;
                 this.unitRepository = unitRepository;
                 this.notificationRepository = notificationRepository;
                 this.inventoryEntryRepository = inventoryEntryRepository;
                 this.inventoryEntryDetailRepository = inventoryEntryDetailRepository;
+                this.inventoryWasteRepository = inventoryWasteRepository;
+                this.inventoryWasteDetailRepository = inventoryWasteDetailRepository;
         }
 
         /**
@@ -879,5 +894,357 @@ public class SupplyService {
                                 supply.getMaximumStock(),
                                 supply.isActive(),
                                 supply.getCreatedAt());
+        }
+
+        /**
+         * Registra la baja de insumos por merma (vencimiento, daño, error de manejo,
+         * etc)
+         *
+         * @param supplyId       Identificador del insumo (puede venir de la ruta URL o
+         *                       del request)
+         * @param request        Datos de la merma (cantidad, motivo, observaciones,
+         *                       etc)
+         * @param authentication Información de autenticación del usuario administrador
+         * @return Confirmación y detalle de la merma registrada
+         */
+        @Transactional
+        public SupplyWasteRegistrationResponse registerSupplyWaste(Long supplyId, CreateSupplyWasteRequest request,
+                        Authentication authentication) {
+                Long restaurantId = DEFAULT_RESTAURANT_ID;
+
+                Long targetSupplyId = supplyId != null ? supplyId : request.supplyId();
+                if (targetSupplyId == null) {
+                        throw new ApiException(
+                                        HttpStatus.BAD_REQUEST,
+                                        "missing_supply_id",
+                                        "Insumo no especificado",
+                                        "Debe seleccionar o indicar el insumo para registrar la merma");
+                }
+
+                if (supplyId != null && request.supplyId() != null && !supplyId.equals(request.supplyId())) {
+                        throw new ApiException(
+                                        HttpStatus.BAD_REQUEST,
+                                        "supply_id_mismatch",
+                                        "Insumo no coincide",
+                                        "El insumo de la ruta no coincide con el insumo del cuerpo de la solicitud");
+                }
+
+                // Validación de cantidad obligatoria
+                if (request.quantity() == null) {
+                        throw new ApiException(
+                                        HttpStatus.BAD_REQUEST,
+                                        "missing_quantity",
+                                        "Cantidad obligatoria",
+                                        "La cantidad es obligatoria y debe ser mayor que cero");
+                }
+
+                // Validación de cantidad mayor que cero
+                if (request.quantity().compareTo(BigDecimal.ZERO) <= 0) {
+                        throw new ApiException(
+                                        HttpStatus.BAD_REQUEST,
+                                        "invalid_quantity",
+                                        "Cantidad no válida",
+                                        "La cantidad debe ser mayor que cero");
+                }
+
+                // Validación de motivo obligatorio
+                WasteReason wasteReason = resolveWasteReason(request.reasonType(), request.reason());
+
+                // Verificando existencia del insumo activo
+                Supply supply = supplyRepository
+                                .findByIdAndRestaurantIdAndActiveTrue(targetSupplyId, restaurantId)
+                                .orElseThrow(() -> new ApiException(
+                                                HttpStatus.NOT_FOUND,
+                                                "supply_not_found",
+                                                "Insumo no encontrado",
+                                                "No se encontró un insumo activo con el identificador "
+                                                                + targetSupplyId));
+
+                // Validación de existencias disponibles: la merma no puede exceder las
+                // existencias disponibles
+                BigDecimal currentStock = supply.getCurrentStock() != null ? supply.getCurrentStock() : BigDecimal.ZERO;
+                if (request.quantity().compareTo(currentStock) > 0) {
+                        throw new ApiException(
+                                        HttpStatus.BAD_REQUEST,
+                                        "quantity_exceeds_stock",
+                                        "Cantidad excede existencias",
+                                        "La cantidad excede las existencias disponibles (disponible: " + currentStock
+                                                        + ")");
+                }
+
+                BigDecimal previousStock = currentStock;
+                Long registeredById = resolveAdminUserId(authentication);
+                String documentNumber = generateWasteDocumentNumber(restaurantId);
+
+                Instant registeredInstant = request.date() != null
+                                ? request.date().atStartOfDay(ZoneOffset.UTC).toInstant()
+                                : Instant.now();
+
+                // Creando cabecera de merma
+                InventoryWaste waste = new InventoryWaste(
+                                restaurantId,
+                                documentNumber,
+                                wasteReason.type(),
+                                wasteReason.description(),
+                                registeredById,
+                                registeredInstant);
+                InventoryWaste savedWaste = inventoryWasteRepository.save(waste);
+
+                BigDecimal unitCostSnapshot = supply.getCurrentUnitCost() != null ? supply.getCurrentUnitCost()
+                                : BigDecimal.ZERO;
+
+                // Creando detalle de merma
+                InventoryWasteDetail detail = new InventoryWasteDetail(
+                                savedWaste,
+                                supply,
+                                request.quantity(),
+                                unitCostSnapshot,
+                                request.batchNumber() != null ? request.batchNumber().trim() : null,
+                                request.notes() != null ? request.notes().trim() : null);
+                InventoryWasteDetail savedDetail = inventoryWasteDetailRepository.save(detail);
+
+                // Forzar flush para ejecutar los triggers de base de datos que reducen
+                // existencias y registran kardex
+                entityManager.flush();
+                entityManager.refresh(supply);
+                entityManager.refresh(savedDetail);
+
+                // Sincronizar alertas de inventario bajo por si el stock disponible cayó al
+                // nivel mínimo o por debajo
+                syncSupplyLowStockAlert(supply);
+
+                BigDecimal totalCost = savedDetail.getTotalCost() != null
+                                ? savedDetail.getTotalCost()
+                                : request.quantity().multiply(unitCostSnapshot).setScale(4, RoundingMode.HALF_UP);
+
+                SupplyWasteResponse wasteResponse = new SupplyWasteResponse(
+                                savedWaste.getId(),
+                                savedDetail.getId(),
+                                savedWaste.getDocumentNumber(),
+                                supply.getId(),
+                                supply.getCode(),
+                                supply.getName(),
+                                supply.getMeasurementUnit().getName(),
+                                supply.getMeasurementUnit().getAbbreviation(),
+                                savedDetail.getQuantity(),
+                                savedDetail.getUnitCostSnapshot(),
+                                totalCost,
+                                previousStock,
+                                supply.getCurrentStock(),
+                                savedWaste.getReasonType(),
+                                savedWaste.getGeneralReason(),
+                                savedDetail.getBatchNumber(),
+                                savedDetail.getNotes(),
+                                savedWaste.getRegisteredAt());
+
+                return new SupplyWasteRegistrationResponse(
+                                "Merma de inventario registrada exitosamente",
+                                wasteResponse);
+        }
+
+        /**
+         * Consulta el historial de mermas registradas para un insumo específico
+         *
+         * @param supplyId Identificador único del insumo
+         * @return Lista de mermas registradas para dicho insumo
+         */
+        @Transactional(readOnly = true)
+        public List<SupplyWasteResponse> listSupplyWastes(Long supplyId) {
+                Long restaurantId = DEFAULT_RESTAURANT_ID;
+
+                Supply supply = supplyRepository
+                                .findByIdAndRestaurantIdAndActiveTrue(supplyId, restaurantId)
+                                .orElseThrow(() -> new ApiException(
+                                                HttpStatus.NOT_FOUND,
+                                                "supply_not_found",
+                                                "Insumo no encontrado",
+                                                "No se encontró un insumo activo con el identificador " + supplyId));
+
+                return inventoryWasteDetailRepository
+                                .findBySupplyIdOrderByDateDesc(supplyId)
+                                .stream()
+                                .map(detail -> mapToWasteResponse(detail, supply))
+                                .toList();
+        }
+
+        /**
+         * Consulta la información consolidada del reporte de mermas para el restaurante
+         * desde la vista vw_reporte_mermas
+         *
+         * @param supplyId  Filtro opcional por insumo
+         * @param startDate Filtro opcional de fecha inicial
+         * @param endDate   Filtro opcional de fecha final
+         * @return Listado de filas consolidadas del reporte de mermas
+         */
+        @Transactional(readOnly = true)
+        @SuppressWarnings("unchecked")
+        public List<SupplyWasteReportItemResponse> listWasteReport(Long supplyId, LocalDate startDate,
+                        LocalDate endDate) {
+                Long restaurantId = DEFAULT_RESTAURANT_ID;
+
+                StringBuilder sql = new StringBuilder("""
+                                SELECT
+                                    fuente,
+                                    merma_id,
+                                    numero_documento,
+                                    tipo_motivo,
+                                    motivo_general,
+                                    registrada_en,
+                                    insumo_id,
+                                    insumo,
+                                    categoria,
+                                    cantidad,
+                                    unidad,
+                                    costo_unitario_snapshot,
+                                    costo_total,
+                                    registrada_por_id
+                                FROM restaurante.vw_reporte_mermas
+                                WHERE restaurante_id = :restaurantId
+                                """);
+
+                if (supplyId != null) {
+                        sql.append(" AND insumo_id = :supplyId ");
+                }
+                if (startDate != null) {
+                        sql.append(" AND registrada_en >= :startDate ");
+                }
+                if (endDate != null) {
+                        sql.append(" AND registrada_en <= :endDate ");
+                }
+                sql.append(" ORDER BY registrada_en DESC ");
+
+                var query = entityManager.createNativeQuery(sql.toString());
+                query.setParameter("restaurantId", restaurantId);
+                if (supplyId != null) {
+                        query.setParameter("supplyId", supplyId);
+                }
+                if (startDate != null) {
+                        query.setParameter("startDate", startDate.atStartOfDay(ZoneOffset.UTC).toInstant());
+                }
+                if (endDate != null) {
+                        query.setParameter("endDate", endDate.plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant());
+                }
+
+                List<Object[]> rows = query.getResultList();
+                return rows.stream().map(row -> new SupplyWasteReportItemResponse(
+                                (String) row[0],
+                                row[1] != null ? ((Number) row[1]).longValue() : null,
+                                (String) row[2],
+                                (String) row[3],
+                                (String) row[4],
+                                toInstant(row[5]),
+                                ((Number) row[6]).longValue(),
+                                (String) row[7],
+                                (String) row[8],
+                                row[9] != null ? new BigDecimal(row[9].toString()) : BigDecimal.ZERO,
+                                (String) row[10],
+                                row[11] != null ? new BigDecimal(row[11].toString()) : BigDecimal.ZERO,
+                                row[12] != null ? new BigDecimal(row[12].toString()) : BigDecimal.ZERO,
+                                row[13] != null ? ((Number) row[13]).longValue() : null)).toList();
+        }
+
+        private String generateWasteDocumentNumber(Long restaurantId) {
+                long count = inventoryWasteRepository.countByRestaurantId(restaurantId) + 1;
+                String docNumber = String.format("MER-%05d", count);
+                while (inventoryWasteRepository.existsByRestaurantIdAndDocumentNumber(restaurantId, docNumber)) {
+                        count++;
+                        docNumber = String.format("MER-%05d", count);
+                }
+                return docNumber;
+        }
+
+        private record WasteReason(String type, String description) {
+        }
+
+        private WasteReason resolveWasteReason(String providedType, String providedReason) {
+                boolean noReason = (providedReason == null || providedReason.isBlank());
+                boolean noType = (providedType == null || providedType.isBlank());
+
+                if (noReason && noType) {
+                        throw new ApiException(
+                                        HttpStatus.BAD_REQUEST,
+                                        "missing_reason",
+                                        "Motivo obligatorio",
+                                        "El motivo de la merma es obligatorio");
+                }
+
+                String reasonText = !noReason ? providedReason.trim() : providedType.trim();
+
+                String type = "OTRO";
+                if (!noType) {
+                        String normalized = providedType.trim().toUpperCase();
+                        if (Set.of("VENCIMIENTO", "DANO", "ERROR_MANEJO", "OTRO").contains(normalized)) {
+                                type = normalized;
+                        } else if (normalized.contains("VENC")) {
+                                type = "VENCIMIENTO";
+                        } else if (normalized.contains("DAN") || normalized.contains("DAÑ")) {
+                                type = "DANO";
+                        } else if (normalized.contains("ERROR") || normalized.contains("MANEJO")) {
+                                type = "ERROR_MANEJO";
+                        } else {
+                                type = "OTRO";
+                        }
+                } else {
+                        String upper = reasonText.toUpperCase();
+                        if (upper.contains("VENC")) {
+                                type = "VENCIMIENTO";
+                        } else if (upper.contains("DAN") || upper.contains("DAÑ")) {
+                                type = "DANO";
+                        } else if (upper.contains("ERROR") || upper.contains("MANEJO") || upper.contains("ACCIDENTE")
+                                        || upper.contains("CAIDA")) {
+                                type = "ERROR_MANEJO";
+                        } else {
+                                type = "OTRO";
+                        }
+                }
+
+                return new WasteReason(type, reasonText);
+        }
+
+        private Instant toInstant(Object obj) {
+                if (obj == null) {
+                        return null;
+                }
+                if (obj instanceof Instant inst) {
+                        return inst;
+                }
+                if (obj instanceof java.sql.Timestamp ts) {
+                        return ts.toInstant();
+                }
+                if (obj instanceof java.time.OffsetDateTime odt) {
+                        return odt.toInstant();
+                }
+                if (obj instanceof java.time.ZonedDateTime zdt) {
+                        return zdt.toInstant();
+                }
+                return Instant.parse(obj.toString());
+        }
+
+        private SupplyWasteResponse mapToWasteResponse(InventoryWasteDetail detail, Supply supply) {
+                InventoryWaste waste = detail.getWaste();
+                BigDecimal totalCost = detail.getTotalCost() != null
+                                ? detail.getTotalCost()
+                                : detail.getQuantity().multiply(detail.getUnitCostSnapshot()).setScale(4,
+                                                RoundingMode.HALF_UP);
+
+                return new SupplyWasteResponse(
+                                waste.getId(),
+                                detail.getId(),
+                                waste.getDocumentNumber(),
+                                supply.getId(),
+                                supply.getCode(),
+                                supply.getName(),
+                                supply.getMeasurementUnit().getName(),
+                                supply.getMeasurementUnit().getAbbreviation(),
+                                detail.getQuantity(),
+                                detail.getUnitCostSnapshot(),
+                                totalCost,
+                                null,
+                                supply.getCurrentStock(),
+                                waste.getReasonType(),
+                                waste.getGeneralReason(),
+                                detail.getBatchNumber(),
+                                detail.getNotes(),
+                                waste.getRegisteredAt());
         }
 }
