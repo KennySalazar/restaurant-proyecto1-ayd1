@@ -19,8 +19,6 @@ import org.springframework.transaction.annotation.Transactional;
 import com.restaurante.web.dto.table.UpdateTableRequest;
 import java.util.List;
 
-import java.util.List;
-
 @Service
 public class TableService {
 
