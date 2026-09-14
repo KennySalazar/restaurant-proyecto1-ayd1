@@ -6,8 +6,9 @@ import {
   signal,
 } from '@angular/core';
 import { DatePipe } from '@angular/common';
-import { TranslocoPipe } from '@jsverse/transloco';
+import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { finalize } from 'rxjs';
+import { MessageService } from 'primeng/api';
 
 import {
   Employee,
@@ -32,12 +33,17 @@ import { PageHeadingComponent } from '../../../shared/components/page-heading/pa
 export class EmployeesPageComponent implements OnInit {
   private readonly employeeService = inject(EmployeeService);
   private readonly errors = inject(ApiErrorService);
+  private readonly messages = inject(MessageService);
+  private readonly transloco = inject(TranslocoService);
 
   readonly employees = signal<Employee[]>([]);
   readonly selectedEmployee = signal<Employee | null>(null);
   readonly isLoading = signal(true);
   readonly isDetailLoading = signal(false);
   readonly errorMessage = signal<string | null>(null);
+
+  readonly deactivationCandidate = signal<Employee | null>(null);
+  readonly isDeactivating = signal(false);
 
   readonly totalEmployees = computed(() => this.employees().length);
 
@@ -91,4 +97,79 @@ export class EmployeesPageComponent implements OnInit {
   roleClass(role: OperationalRole): string {
     return `role-badge--${role.toLowerCase()}`;
   }
+
+  requestDeactivation(employee: Employee): void {
+  if (!employee.habilitado) {
+    this.messages.add({
+      severity: 'warn',
+      summary: this.transloco.translate(
+        'employees.deactivation.alreadyDisabledTitle',
+      ),
+      detail: this.transloco.translate(
+        'employees.deactivation.alreadyDisabledMessage',
+      ),
+      life: 5000,
+    });
+    return;
+  }
+
+  this.deactivationCandidate.set(employee);
+}
+
+cancelDeactivation(): void {
+  if (this.isDeactivating()) {
+    return;
+  }
+
+  this.deactivationCandidate.set(null);
+}
+
+confirmDeactivation(): void {
+  const employee = this.deactivationCandidate();
+
+  if (!employee || this.isDeactivating()) {
+    return;
+  }
+
+  this.isDeactivating.set(true);
+
+  this.employeeService
+    .deactivateEmployee(employee.id)
+    .pipe(finalize(() => this.isDeactivating.set(false)))
+    .subscribe({
+      next: (disabledEmployee) => {
+        this.employees.update((employees) =>
+          employees.map((current) =>
+            current.id === disabledEmployee.id
+              ? disabledEmployee
+              : current,
+          ),
+        );
+
+        if (this.selectedEmployee()?.id === disabledEmployee.id) {
+          this.selectedEmployee.set(disabledEmployee);
+        }
+
+        this.deactivationCandidate.set(null);
+
+        this.messages.add({
+          severity: 'success',
+          summary: this.transloco.translate(
+            'employees.deactivation.successTitle',
+          ),
+          detail: this.transloco.translate(
+            'employees.deactivation.successMessage',
+            {
+              name: `${disabledEmployee.nombres} ${disabledEmployee.apellidos}`,
+            },
+          ),
+          life: 5000,
+        });
+      },
+      error: (error: unknown) => {
+        this.deactivationCandidate.set(null);
+        this.errors.present(error);
+      },
+    });
+}
 }

@@ -203,14 +203,29 @@
     "disabled": "Desactivado"
   },
   "actions": {
-    "view": "Ver detalle",
-    "close": "Cerrar detalle",
-    "refresh": "Actualizar"
-  },
+  "view": "Ver detalle",
+  "close": "Cerrar detalle",
+  "refresh": "Actualizar",
+  "deactivate": "Desactivar",
+  "alreadyDisabled": "Desactivado"
+},
   "detail": {
     "eyebrow": "Detalle de empleado",
     "name": "Nombre completo"
-  }
+  },
+  "deactivation": {
+  "eyebrow": "Desactivación de empleado",
+  "title": "¿Desactivar a {{name}}?",
+  "description": "El empleado dejará de poder acceder a la Aplicación de Operación.",
+  "historyNotice": "Las operaciones realizadas anteriormente por este empleado se conservarán y continuarán identificándolo como responsable.",
+  "cancel": "Cancelar",
+  "confirm": "Confirmar desactivación",
+  "processing": "Desactivando...",
+  "successTitle": "Empleado desactivado",
+  "successMessage": "{{name}} fue desactivado correctamente.",
+  "alreadyDisabledTitle": "Empleado ya desactivado",
+  "alreadyDisabledMessage": "El empleado seleccionado ya se encuentra desactivado."
+}
 },
   "security": {
     "eyebrow": "Cuenta y seguridad",
