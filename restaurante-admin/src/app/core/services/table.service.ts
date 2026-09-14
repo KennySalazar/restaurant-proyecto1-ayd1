@@ -19,4 +19,8 @@ export class TableService {
   getTable(id: number): Observable<RestaurantTable> {
     return this.http.get<RestaurantTable>(`${this.tablesUrl}/${id}`);
   }
+
+  retireTable(id: number): Observable<RestaurantTable> {
+  return this.http.delete<RestaurantTable>(`${this.tablesUrl}/${id}`);
+}
 }

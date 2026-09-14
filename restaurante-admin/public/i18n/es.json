@@ -138,13 +138,31 @@
     "retired": "Retirada"
   },
   "actions": {
-    "view": "Ver detalle",
-    "close": "Cerrar detalle"
-  },
+  "view": "Ver detalle",
+  "close": "Cerrar detalle",
+  "retire": "Retirar",
+  "alreadyRetired": "Retirada"
+},
   "detail": {
     "eyebrow": "Detalle de mesa",
     "title": "Mesa"
-  }
+  },
+
+  "retirement": {
+  "eyebrow": "Retiro de mesa",
+  "title": "¿Retirar la mesa {{number}}?",
+  "description": "La mesa dejará de estar disponible para nuevas operaciones.",
+  "historyNotice": "La información histórica y las operaciones anteriores asociadas a esta mesa se conservarán.",
+  "cancel": "Cancelar",
+  "confirm": "Confirmar retiro",
+  "processing": "Retirando...",
+  "successTitle": "Mesa retirada",
+  "successMessage": "La mesa {{number}} fue retirada correctamente.",
+  "alreadyRetiredTitle": "Mesa ya retirada",
+  "alreadyRetiredMessage": "La mesa seleccionada ya se encuentra retirada."
+}
+
+
 },
   "security": {
     "eyebrow": "Cuenta y seguridad",
