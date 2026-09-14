@@ -70,5 +70,11 @@ public interface RestaurantTableRepository extends JpaRepository<RestaurantTable
     List<RestaurantTable> findAllByActiveTrueAndStatus(
             TableStatus status
     );
+
+    boolean existsByRestaurantIdAndActiveTrueAndStatusAndCapacityGreaterThanEqual(
+            Long restaurantId,
+            TableStatus status,
+            Short capacity
+    );
 }
 
