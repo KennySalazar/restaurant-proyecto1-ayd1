@@ -11,11 +11,13 @@ import com.restaurante.domain.repository.DishRepository;
 import com.restaurante.domain.repository.RecipeVersionRepository;
 import com.restaurante.exception.ApiException;
 import com.restaurante.web.dto.dish.CreateDishRequest;
+import com.restaurante.web.dto.dish.DishAvailabilityResponse;
 import com.restaurante.web.dto.dish.DishCategoryResponse;
 import com.restaurante.web.dto.dish.DishRegistrationResponse;
 import com.restaurante.web.dto.dish.DishResponse;
 import com.restaurante.web.dto.dish.DishRetirementResponse;
 import com.restaurante.web.dto.dish.DishUpdateResponse;
+import com.restaurante.web.dto.dish.UpdateDishAvailabilityRequest;
 import com.restaurante.web.dto.dish.UpdateDishRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -160,6 +162,15 @@ public class DishService {
                         "No se encontró un platillo con el identificador " + id
                 ));
 
+        if (!dish.isActive()) {
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "dish_retired",
+                    "Platillo retirado",
+                    "El platillo se encuentra retirado del menú y no se puede modificar"
+            );
+        }
+
         if (request.name() == null || request.name().isBlank()) {
             throw new ApiException(
                     HttpStatus.BAD_REQUEST,
@@ -302,6 +313,74 @@ public class DishService {
                 "Platillo retirado exitosamente",
                 mapToResponse(saved)
         );
+    }
+
+    /**
+     * Modifica manualmente la disponibilidad de un platillo en el menú.
+     * Permite impedir o permitir temporalmente su oferta según condiciones operativas.
+     * Si el platillo ha sido retirado del menú, no permite el cambio.
+     * Si se retira la restricción manual pero no existe stock suficiente para prepararlo,
+     * el platillo se mantiene no disponible indicando la falta de insumos.
+     *
+     * @param id Identificador único del platillo
+     * @param request Solicitud con el estado de disponibilidad manual
+     * @return Confirmación y datos actualizados del platillo
+     */
+    @Transactional
+    public DishAvailabilityResponse updateDishAvailability(Long id, UpdateDishAvailabilityRequest request) {
+        Long restaurantId = DEFAULT_RESTAURANT_ID;
+
+        if (id == null) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "missing_dish_id",
+                    "Platillo no especificado",
+                    "Debe indicar el identificador del platillo a modificar"
+            );
+        }
+
+        if (request == null || request.manualAvailable() == null) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "missing_availability_status",
+                    "Disponibilidad no especificada",
+                    "Debe especificar el estado de disponibilidad manual"
+            );
+        }
+
+        Dish dish = dishRepository.findByIdAndRestaurantId(id, restaurantId)
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "dish_not_found",
+                        "Platillo no encontrado",
+                        "No se encontró un platillo con el identificador " + id
+                ));
+
+        if (!dish.isActive()) {
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "dish_retired",
+                    "Platillo retirado",
+                    "El platillo se encuentra retirado del menú y no se puede modificar su disponibilidad"
+            );
+        }
+
+        dish.setManualAvailable(request.manualAvailable());
+        Dish saved = dishRepository.save(dish);
+        DishResponse response = mapToResponse(saved);
+
+        String message;
+        if (!saved.isManualAvailable()) {
+            message = "Platillo marcado como no disponible exitosamente";
+        } else {
+            if (Boolean.TRUE.equals(response.available())) {
+                message = "Restricción manual retirada exitosamente. El platillo se encuentra disponible";
+            } else {
+                message = "Restricción manual retirada exitosamente, pero el platillo no está disponible por falta de stock suficiente para prepararlo";
+            }
+        }
+
+        return new DishAvailabilityResponse(message, response);
     }
 
     /**

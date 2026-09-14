@@ -2,11 +2,13 @@ package com.restaurante.web.admin;
 
 import com.restaurante.application.dish.DishService;
 import com.restaurante.web.dto.dish.CreateDishRequest;
+import com.restaurante.web.dto.dish.DishAvailabilityResponse;
 import com.restaurante.web.dto.dish.DishCategoryResponse;
 import com.restaurante.web.dto.dish.DishRegistrationResponse;
 import com.restaurante.web.dto.dish.DishResponse;
 import com.restaurante.web.dto.dish.DishRetirementResponse;
 import com.restaurante.web.dto.dish.DishUpdateResponse;
+import com.restaurante.web.dto.dish.UpdateDishAvailabilityRequest;
 import com.restaurante.web.dto.dish.UpdateDishRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -235,6 +237,51 @@ public class AdminDishController {
             @PathVariable Long id
     ) {
         return ResponseEntity.ok(dishService.retireDish(id));
+    }
+
+    @PutMapping("/{id}/availability")
+    @Operation(
+            summary = "Cambiar manualmente la disponibilidad de un platillo",
+            description = "Modifica manualmente la disponibilidad de un platillo en el menú para permitir o impedir temporalmente su oferta. Si se retira la restricción manual pero no existe stock suficiente, el platillo se mantiene no disponible por falta de insumos. No se puede modificar la disponibilidad de platillos retirados del menú."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Disponibilidad manual del platillo actualizada exitosamente",
+                    content = @Content(schema = @Schema(implementation = DishAvailabilityResponse.class))
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Estado de disponibilidad manual no especificado o inválido",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "No autenticado o token no provisto",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Acceso denegado (requiere rol ADMIN)",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Platillo no encontrado",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "409",
+                    description = "El platillo se encuentra retirado del menú",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            )
+    })
+    public ResponseEntity<DishAvailabilityResponse> updateDishAvailability(
+            @Parameter(description = "Identificador único del platillo", required = true)
+            @PathVariable Long id,
+            @Valid @RequestBody UpdateDishAvailabilityRequest request
+    ) {
+        return ResponseEntity.ok(dishService.updateDishAvailability(id, request));
     }
 
     @GetMapping("/categories")
