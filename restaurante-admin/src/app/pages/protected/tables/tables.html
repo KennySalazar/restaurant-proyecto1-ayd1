@@ -1,0 +1,226 @@
+<app-page-heading
+  eyebrowKey="tables.eyebrow"
+  titleKey="tables.title"
+  descriptionKey="tables.description"
+/>
+
+<section class="summary-grid">
+  <article class="summary-card">
+    <span class="summary-card__icon">
+      <i class="pi pi-table"></i>
+    </span>
+
+    <div>
+      <span>{{ 'tables.summary.total' | transloco }}</span>
+      <strong>{{ totalTables() }}</strong>
+    </div>
+  </article>
+
+  <article class="summary-card">
+    <span class="summary-card__icon summary-card__icon--active">
+      <i class="pi pi-check-circle"></i>
+    </span>
+
+    <div>
+      <span>{{ 'tables.summary.active' | transloco }}</span>
+      <strong>{{ activeTables() }}</strong>
+    </div>
+  </article>
+
+  <article class="summary-card">
+    <span class="summary-card__icon summary-card__icon--retired">
+      <i class="pi pi-ban"></i>
+    </span>
+
+    <div>
+      <span>{{ 'tables.summary.retired' | transloco }}</span>
+      <strong>{{ retiredTables() }}</strong>
+    </div>
+  </article>
+</section>
+
+<section class="tables-panel">
+  <header class="tables-panel__header">
+    <div>
+      <h2>{{ 'tables.list.title' | transloco }}</h2>
+      <p>{{ 'tables.list.description' | transloco }}</p>
+    </div>
+
+    <button
+      class="refresh-button"
+      type="button"
+      [disabled]="isLoading()"
+      (click)="loadTables()"
+    >
+      <i
+        class="pi pi-refresh"
+        [class.pi-spin]="isLoading()"
+      ></i>
+      {{ 'tables.list.refresh' | transloco }}
+    </button>
+  </header>
+
+  <app-form-feedback [message]="errorMessage()" />
+
+  @if (isLoading()) {
+    <div class="state-panel">
+      <i class="pi pi-spin pi-spinner"></i>
+      <span>{{ 'common.loading' | transloco }}</span>
+    </div>
+  } @else if (!errorMessage() && tables().length === 0) {
+    <div class="state-panel state-panel--empty">
+      <span class="state-panel__icon">
+        <i class="pi pi-table"></i>
+      </span>
+
+      <strong>{{ 'tables.list.emptyTitle' | transloco }}</strong>
+
+      <p>
+        {{ 'tables.list.emptyDescription' | transloco }}
+      </p>
+    </div>
+  } @else if (tables().length > 0) {
+    <div class="table-wrapper">
+      <table class="restaurant-table">
+        <thead>
+          <tr>
+            <th>{{ 'tables.columns.number' | transloco }}</th>
+            <th>{{ 'tables.columns.capacity' | transloco }}</th>
+            <th>{{ 'tables.columns.zone' | transloco }}</th>
+            <th>{{ 'tables.columns.status' | transloco }}</th>
+            <th>{{ 'tables.columns.activity' | transloco }}</th>
+            <th>
+              <span class="sr-only">
+                {{ 'tables.columns.actions' | transloco }}
+              </span>
+            </th>
+          </tr>
+        </thead>
+
+        <tbody>
+          @for (table of tables(); track table.id) {
+            <tr>
+              <td>
+                <strong class="table-number">
+                  {{ table.numero }}
+                </strong>
+              </td>
+
+              <td>
+                {{ table.capacidad }}
+                {{ 'tables.people' | transloco }}
+              </td>
+
+              <td>{{ table.zona.nombre }}</td>
+
+              <td>
+                <span
+                  class="status-badge"
+                  [class]="
+                    'status-badge ' + statusClass(table.estado)
+                  "
+                >
+                  {{ statusKey(table.estado) | transloco }}
+                </span>
+              </td>
+
+              <td>
+                <span
+                  class="activity-badge"
+                  [class.activity-badge--retired]="!table.activo"
+                >
+                  <i
+                    class="pi"
+                    [class.pi-check-circle]="table.activo"
+                    [class.pi-ban]="!table.activo"
+                  ></i>
+
+                  {{
+                    (table.activo
+                      ? 'tables.activity.active'
+                      : 'tables.activity.retired'
+                    ) | transloco
+                  }}
+                </span>
+              </td>
+
+              <td class="restaurant-table__actions">
+                <button
+                  class="detail-button"
+                  type="button"
+                  [disabled]="isDetailLoading()"
+                  (click)="viewTable(table.id)"
+                >
+                  <i class="pi pi-eye"></i>
+                  {{ 'tables.actions.view' | transloco }}
+                </button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</section>
+
+@if (selectedTable(); as table) {
+  <section class="table-detail">
+    <header class="table-detail__header">
+      <div>
+        <span>{{ 'tables.detail.eyebrow' | transloco }}</span>
+        <h2>
+          {{ 'tables.detail.title' | transloco }}
+          {{ table.numero }}
+        </h2>
+      </div>
+
+      <button
+        class="close-button"
+        type="button"
+        [attr.aria-label]="'tables.actions.close' | transloco"
+        (click)="closeDetails()"
+      >
+        <i class="pi pi-times"></i>
+      </button>
+    </header>
+
+    <div class="detail-grid">
+      <div class="detail-item">
+        <span>{{ 'tables.columns.number' | transloco }}</span>
+        <strong>{{ table.numero }}</strong>
+      </div>
+
+      <div class="detail-item">
+        <span>{{ 'tables.columns.capacity' | transloco }}</span>
+        <strong>
+          {{ table.capacidad }}
+          {{ 'tables.people' | transloco }}
+        </strong>
+      </div>
+
+      <div class="detail-item">
+        <span>{{ 'tables.columns.zone' | transloco }}</span>
+        <strong>{{ table.zona.nombre }}</strong>
+      </div>
+
+      <div class="detail-item">
+        <span>{{ 'tables.columns.status' | transloco }}</span>
+        <strong>
+          {{ statusKey(table.estado) | transloco }}
+        </strong>
+      </div>
+
+      <div class="detail-item">
+        <span>{{ 'tables.columns.activity' | transloco }}</span>
+        <strong>
+          {{
+            (table.activo
+              ? 'tables.activity.active'
+              : 'tables.activity.retired'
+            ) | transloco
+          }}
+        </strong>
+      </div>
+    </div>
+  </section>
+}

@@ -20,6 +20,7 @@
   "nav": {
     "workspace": "Administración",
     "dashboard": "Resumen",
+    "tables": "Mesas",
     "security": "Seguridad",
     "admin": "Administración",
     "logout": "Cerrar sesión",
@@ -100,6 +101,51 @@
     "adminAction": "Verificar administración",
     "adminDescription": "Comprueba que tu sesión tiene permisos de administrador."
   },
+
+  "tables": {
+  "eyebrow": "Configuración del restaurante",
+  "title": "Mesas registradas",
+  "description": "Consulta la configuración, ubicación y estado actual de las mesas del restaurante.",
+  "people": "personas",
+  "summary": {
+    "total": "Mesas registradas",
+    "active": "Mesas activas",
+    "retired": "Mesas retiradas"
+  },
+  "list": {
+    "title": "Listado de mesas",
+    "description": "Información actualizada de las mesas registradas.",
+    "refresh": "Actualizar",
+    "emptyTitle": "Todavía no existen mesas registradas",
+    "emptyDescription": "Cuando se registren mesas en el restaurante aparecerán en este listado."
+  },
+  "columns": {
+    "number": "Número",
+    "capacity": "Capacidad",
+    "zone": "Zona",
+    "status": "Estado actual",
+    "activity": "Situación",
+    "actions": "Acciones"
+  },
+  "states": {
+    "LIBRE": "Libre",
+    "RESERVADA": "Reservada",
+    "OCUPADA": "Ocupada",
+    "CUENTA_SOLICITADA": "Cuenta solicitada"
+  },
+  "activity": {
+    "active": "Activa",
+    "retired": "Retirada"
+  },
+  "actions": {
+    "view": "Ver detalle",
+    "close": "Cerrar detalle"
+  },
+  "detail": {
+    "eyebrow": "Detalle de mesa",
+    "title": "Mesa"
+  }
+},
   "security": {
     "eyebrow": "Cuenta y seguridad",
     "title": "Seguridad de la cuenta",
