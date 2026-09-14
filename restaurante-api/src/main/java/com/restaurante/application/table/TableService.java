@@ -18,6 +18,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.restaurante.web.dto.table.UpdateTableRequest;
 import java.util.List;
+import com.restaurante.domain.projection.OccupancyPanelProjection;
+import com.restaurante.web.dto.table.OccupancyPanelTableResponse;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
 
 @Service
 public class TableService {
@@ -25,6 +29,8 @@ public class TableService {
     private final RestaurantTableRepository tables;
     private final TableZoneRepository zones;
     private final RestaurantUserProfileRepository profiles;
+    private static final ZoneId GUATEMALA =
+            ZoneId.of("America/Guatemala");
 
     public TableService(RestaurantTableRepository tables,
                         TableZoneRepository zones,
@@ -258,5 +264,44 @@ public class TableService {
         RestaurantTable saved = tables.save(table);
 
         return toResponse(saved);
+    }
+
+    @Transactional(readOnly = true)
+    public List<OccupancyPanelTableResponse> getOccupancyPanel(
+            Authentication authentication) {
+
+        Long restaurantId = getRestaurantId(authentication);
+
+        return tables.findOccupancyPanel(restaurantId)
+                .stream()
+                .map(this::toOccupancyPanelResponse)
+                .toList();
+    }
+
+    private OccupancyPanelTableResponse toOccupancyPanelResponse(
+            OccupancyPanelProjection row) {
+
+        OffsetDateTime reservationUntil =
+                row.getReservaHasta() == null
+                        ? null
+                        : row.getReservaHasta()
+                        .atZone(GUATEMALA)
+                        .toOffsetDateTime();
+
+        return new OccupancyPanelTableResponse(
+                row.getMesaId(),
+                row.getNumero(),
+                row.getCapacidad(),
+                row.getZona(),
+                row.getEstadoVisual(),
+                row.getCuentaActualId(),
+                row.getNumeroCuenta(),
+                row.getEsPrincipal(),
+                row.getReservaActualId(),
+                row.getClienteReserva(),
+                reservationUntil,
+                row.getListaEsperaActualId(),
+                row.getClienteListaEspera()
+        );
     }
 }
