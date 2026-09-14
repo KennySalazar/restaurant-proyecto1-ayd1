@@ -14,6 +14,8 @@ import com.restaurante.web.dto.dish.CreateDishRequest;
 import com.restaurante.web.dto.dish.DishCategoryResponse;
 import com.restaurante.web.dto.dish.DishRegistrationResponse;
 import com.restaurante.web.dto.dish.DishResponse;
+import com.restaurante.web.dto.dish.DishUpdateResponse;
+import com.restaurante.web.dto.dish.UpdateDishRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -125,6 +127,119 @@ public class DishService {
 
         return new DishRegistrationResponse(
                 "Platillo registrado exitosamente",
+                mapToResponse(saved)
+        );
+    }
+
+    /**
+     * Actualiza la información comercial y operativa de un platillo registrado en el menú.
+     *
+     * @param id      Identificador único del platillo a modificar
+     * @param request Datos actualizados del platillo
+     * @return Confirmación y detalle actualizado del platillo
+     */
+    @Transactional
+    public DishUpdateResponse updateDish(Long id, UpdateDishRequest request) {
+        Long restaurantId = DEFAULT_RESTAURANT_ID;
+
+        if (id == null) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "missing_dish_id",
+                    "Platillo no especificado",
+                    "Debe indicar el identificador del platillo a modificar"
+            );
+        }
+
+        Dish dish = dishRepository.findByIdAndRestaurantId(id, restaurantId)
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "dish_not_found",
+                        "Platillo no encontrado",
+                        "No se encontró un platillo con el identificador " + id
+                ));
+
+        if (request.name() == null || request.name().isBlank()) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "missing_dish_name",
+                    "Nombre obligatorio",
+                    "El nombre del platillo es obligatorio"
+            );
+        }
+
+        String trimmedName = request.name().trim();
+        if (dishRepository.existsByRestaurantIdAndNameIgnoreCaseAndIdNot(restaurantId, trimmedName, id)) {
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "duplicate_dish_name",
+                    "Nombre duplicado",
+                    "Ya existe otro platillo registrado con el nombre '" + trimmedName + "'"
+            );
+        }
+
+        if (request.categoryId() == null) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "missing_category_id",
+                    "Categoría obligatoria",
+                    "Debe seleccionar una categoría para el platillo"
+            );
+        }
+
+        DishCategory category = dishCategoryRepository.findByIdAndRestaurantId(request.categoryId(), restaurantId)
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.BAD_REQUEST,
+                        "category_not_found",
+                        "Categoría no válida",
+                        "La categoría seleccionada no existe"
+                ));
+
+        if (request.salePrice() == null || request.salePrice().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "invalid_sale_price",
+                    "Precio inválido",
+                    "El precio de venta debe ser mayor que cero"
+            );
+        }
+
+        if (request.preparationTimeMinutes() == null || request.preparationTimeMinutes() <= 0) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "invalid_preparation_time",
+                    "Tiempo de preparación inválido",
+                    "El tiempo estimado de preparación debe ser mayor que cero"
+            );
+        }
+
+        if (request.code() != null && !request.code().isBlank()) {
+            String sanitizedCode = request.code().trim().toUpperCase();
+            if (dishRepository.existsByRestaurantIdAndCodeIgnoreCaseAndIdNot(restaurantId, sanitizedCode, id)) {
+                throw new ApiException(
+                        HttpStatus.CONFLICT,
+                        "duplicate_dish_code",
+                        "Código duplicado",
+                        "Ya existe otro platillo registrado con el código '" + sanitizedCode + "'"
+                );
+            }
+            dish.setCode(sanitizedCode);
+        }
+
+        dish.setName(trimmedName);
+        dish.setCategory(category);
+        dish.setSalePrice(request.salePrice());
+        dish.setPreparationTimeMinutes(request.preparationTimeMinutes());
+        dish.setDescription(request.description() != null ? request.description().trim() : null);
+        dish.setImageUrl(request.imageUrl() != null ? request.imageUrl().trim() : null);
+        if (request.manualAvailable() != null) {
+            dish.setManualAvailable(request.manualAvailable());
+        }
+
+        Dish saved = dishRepository.save(dish);
+
+        return new DishUpdateResponse(
+                "Platillo actualizado exitosamente",
                 mapToResponse(saved)
         );
     }

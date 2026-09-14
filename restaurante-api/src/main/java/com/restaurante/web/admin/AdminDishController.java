@@ -5,6 +5,8 @@ import com.restaurante.web.dto.dish.CreateDishRequest;
 import com.restaurante.web.dto.dish.DishCategoryResponse;
 import com.restaurante.web.dto.dish.DishRegistrationResponse;
 import com.restaurante.web.dto.dish.DishResponse;
+import com.restaurante.web.dto.dish.DishUpdateResponse;
+import com.restaurante.web.dto.dish.UpdateDishRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -20,6 +22,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -146,6 +149,51 @@ public class AdminDishController {
             @PathVariable Long id
     ) {
         return ResponseEntity.ok(dishService.getDishById(id));
+    }
+
+    @PutMapping("/{id}")
+    @Operation(
+            summary = "Actualizar la información de un platillo",
+            description = "Actualiza la información comercial y operativa de un platillo registrado en el menú (nombre, descripción, categoría, precio de venta, imagen, tiempo estimado de preparación y disponibilidad manual)."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Platillo actualizado exitosamente",
+                    content = @Content(schema = @Schema(implementation = DishUpdateResponse.class))
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Campos obligatorios vacíos, precio menor o igual a cero, tiempo de preparación menor o igual a cero, o categoría no válida",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "No autenticado o token no provisto",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Acceso denegado (requiere rol ADMIN)",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Platillo no encontrado",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "409",
+                    description = "Nombre o código de platillo duplicado en otro platillo",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            )
+    })
+    public ResponseEntity<DishUpdateResponse> updateDish(
+            @Parameter(description = "Identificador único del platillo a modificar", required = true)
+            @PathVariable Long id,
+            @Valid @RequestBody UpdateDishRequest request
+    ) {
+        return ResponseEntity.ok(dishService.updateDish(id, request));
     }
 
     @GetMapping("/categories")

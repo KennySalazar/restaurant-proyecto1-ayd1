@@ -20,7 +20,11 @@ public interface DishRepository extends JpaRepository<Dish, Long> {
 
     boolean existsByRestaurantIdAndCodeIgnoreCase(Long restaurantId, String code);
 
+    boolean existsByRestaurantIdAndCodeIgnoreCaseAndIdNot(Long restaurantId, String code, Long id);
+
     boolean existsByRestaurantIdAndNameIgnoreCase(Long restaurantId, String name);
+
+    boolean existsByRestaurantIdAndNameIgnoreCaseAndIdNot(Long restaurantId, String name, Long id);
 
     long countByRestaurantId(Long restaurantId);
 
