@@ -14,8 +14,19 @@ interface NavigationItem {
 
 const NAVIGATION: readonly NavigationItem[] = [
   { path: '/app/dashboard', labelKey: 'nav.dashboard', icon: 'pi-home' },
+  {
+    path: '/app/tables',
+    labelKey: 'nav.tables',
+    icon: 'pi-list',
+    roles: ['ADMIN'],
+  },
   { path: '/app/security', labelKey: 'nav.security', icon: 'pi-shield' },
-  { path: '/app/admin', labelKey: 'nav.admin', icon: 'pi-sliders-h', roles: ['ADMIN'] },
+  {
+    path: '/app/admin',
+    labelKey: 'nav.admin',
+    icon: 'pi-sliders-h',
+    roles: ['ADMIN'],
+  },
 ];
 
 @Component({

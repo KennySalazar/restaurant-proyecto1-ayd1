@@ -75,6 +75,14 @@ export const routes: Routes = [
             (module) => module.DashboardPageComponent,
           ),
       },
+
+      {
+        path: 'tables',
+        loadComponent: () =>
+          import('./pages/protected/tables/tables').then(
+            (module) => module.TablesPageComponent,
+          ),
+      },
       {
         path: 'security',
         loadComponent: () =>
