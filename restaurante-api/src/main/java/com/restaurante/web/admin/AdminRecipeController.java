@@ -1,7 +1,9 @@
 package com.restaurante.web.admin;
 
 import com.restaurante.application.recipe.RecipeService;
+import com.restaurante.web.dto.recipe.DefineModifierRecipeRequest;
 import com.restaurante.web.dto.recipe.DefineRecipeRequest;
+import com.restaurante.web.dto.recipe.ModifierRecipeRegistrationResponse;
 import com.restaurante.web.dto.recipe.RecipeRegistrationResponse;
 import com.restaurante.web.dto.recipe.RecipeResponse;
 import com.restaurante.web.dto.recipe.RecipeUpdateResponse;
@@ -27,10 +29,10 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * Controlador administrativo para la gestión y consulta de recetas de platillos.
+ * Controlador administrativo para la gestión y consulta de recetas de platillos y modificadores.
  */
 @RestController
-@Tag(name = "Recetas (Administración)", description = "Operaciones administrativas para definición, actualización y consulta de recetas de platillos")
+@Tag(name = "Recetas (Administración)", description = "Operaciones administrativas para definición, actualización y consulta de recetas de platillos y modificadores")
 @SecurityRequirement(name = "bearerAuth")
 public class AdminRecipeController {
 
@@ -197,5 +199,46 @@ public class AdminRecipeController {
             @Parameter(hidden = true) Authentication authentication) {
         RecipeUpdateResponse response = recipeService.updateRecipe(dishId, request, authentication);
         return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/admin/modifiers/{modifierId}/recipe")
+    @Operation(
+            summary = "Definir receta de un modificador",
+            description = "Asocia insumos y cantidades a los modificadores de un platillo. Si el modificador ya cuenta con una receta definida, guarda la nueva composición y conserva la anterior en el historial."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "201",
+                    description = "Receta del modificador guardada exitosamente",
+                    content = @Content(schema = @Schema(implementation = ModifierRecipeRegistrationResponse.class))
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Campos obligatorios vacíos, receta sin insumos, cantidad menor o igual a cero, o insumo duplicado",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "No autenticado o token no provisto",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Acceso denegado (requiere rol ADMIN)",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Modificador o insumo no encontrado",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            )
+    })
+    public ResponseEntity<ModifierRecipeRegistrationResponse> defineModifierRecipe(
+            @Parameter(description = "Identificador único del modificador", required = true)
+            @PathVariable Long modifierId,
+            @Valid @RequestBody DefineModifierRecipeRequest request,
+            @Parameter(hidden = true) Authentication authentication) {
+        ModifierRecipeRegistrationResponse response = recipeService.defineModifierRecipe(modifierId, request, authentication);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 }
