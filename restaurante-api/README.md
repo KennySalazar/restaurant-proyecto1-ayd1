@@ -4,8 +4,8 @@ Backend REST del **Sistema de Gestión de Restaurante**. Centraliza autenticaci�
 
 La API utiliza el contexto `/api/v1`, el perfil de desarrollo `dev` y localmente se ejecuta en el puerto `8090`.
 
-La preparación de Docker, variables y pasos pendientes para Render/Neon está en
-[Despliegue del backend](../docs/despliegue-backend.md). El perfil `dev` continúa
+La configuración de Docker, variables y Render/Neon está en
+[Configuración de despliegue y CI/CD](../docs/CONFIGURACION-DESPLIEGUE.md). El perfil `dev` continúa
 siendo el predeterminado para ejecución local; la imagen Docker selecciona `prod`.
 
 ## Requisitos
