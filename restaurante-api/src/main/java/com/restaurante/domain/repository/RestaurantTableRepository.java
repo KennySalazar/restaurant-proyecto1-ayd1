@@ -7,6 +7,8 @@ import java.util.Optional;
 import java.util.List;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import com.restaurante.domain.model.TableStatus;
+import java.util.List;
 
 public interface RestaurantTableRepository extends JpaRepository<RestaurantTable, Long> {
 
@@ -64,4 +66,9 @@ public interface RestaurantTableRepository extends JpaRepository<RestaurantTable
     )
     """, nativeQuery = true)
     boolean hasActiveOrder(@Param("tableId") Long tableId);
+
+    List<RestaurantTable> findAllByActiveTrueAndStatus(
+            TableStatus status
+    );
 }
+

@@ -51,4 +51,36 @@ public interface ReservationRepository
             OffsetDateTime start,
             OffsetDateTime end
     );
+
+    @Query("""
+    SELECT r
+    FROM Reservation r
+    WHERE r.status IN (
+        com.restaurante.domain.model.ReservationStatus.PENDIENTE,
+        com.restaurante.domain.model.ReservationStatus.CONFIRMADA,
+        com.restaurante.domain.model.ReservationStatus.CLIENTE_PRESENTE
+    )
+      AND r.startDateTime <= :now
+      AND r.endDateTime > :now
+    """)
+    List<Reservation> findActiveReservationsAt(
+            @Param("now") OffsetDateTime now
+    );
+
+    @Query("""
+    SELECT COUNT(r) > 0
+    FROM Reservation r
+    WHERE r.table.id = :tableId
+      AND r.status IN (
+        com.restaurante.domain.model.ReservationStatus.PENDIENTE,
+        com.restaurante.domain.model.ReservationStatus.CONFIRMADA,
+        com.restaurante.domain.model.ReservationStatus.CLIENTE_PRESENTE
+      )
+      AND r.startDateTime <= :now
+      AND r.endDateTime > :now
+    """)
+    boolean hasActiveReservationAt(
+            @Param("tableId") Long tableId,
+            @Param("now") OffsetDateTime now
+    );
 }
