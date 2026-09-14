@@ -14,6 +14,11 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import com.restaurante.web.dto.waitlist.WaitlistQueueEntryResponse;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/admin/lista-espera")
@@ -40,6 +45,27 @@ public class WaitlistAdminController {
 
         return waitlistService.createWaitlistEntry(
                 request,
+                authentication
+        );
+    }
+    @GetMapping
+    @Operation(summary = "Consultar la lista de espera")
+    public List<WaitlistQueueEntryResponse> getWaitlist(
+            Authentication authentication) {
+
+        return waitlistService.getWaitlist(
+                authentication
+        );
+    }
+
+    @GetMapping("/{id}")
+    @Operation(summary = "Consultar un cliente de la lista de espera")
+    public WaitlistQueueEntryResponse getWaitlistEntry(
+            @PathVariable Long id,
+            Authentication authentication) {
+
+        return waitlistService.getWaitlistEntry(
+                id,
                 authentication
         );
     }

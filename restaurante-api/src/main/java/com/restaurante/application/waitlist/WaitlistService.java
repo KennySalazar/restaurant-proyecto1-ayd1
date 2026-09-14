@@ -18,6 +18,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
+import com.restaurante.domain.model.WaitlistStatus;
+import com.restaurante.web.dto.waitlist.WaitlistQueueEntryResponse;
+
+import java.util.List;
 
 @Service
 public class WaitlistService {
@@ -150,5 +154,96 @@ public class WaitlistService {
             Long userId,
             Long restaurantId
     ) {
+    }
+    private static final List<WaitlistStatus> ACTIVE_QUEUE_STATUSES =
+            List.of(
+                    WaitlistStatus.ESPERANDO,
+                    WaitlistStatus.SUGERIDA,
+                    WaitlistStatus.NOTIFICADA
+            );
+    @Transactional(readOnly = true)
+    public List<WaitlistQueueEntryResponse> getWaitlist(
+            Authentication authentication) {
+
+        AuthenticatedRestaurant context =
+                getAuthenticatedRestaurant(authentication);
+
+        List<WaitlistEntry> entries =
+                waitlist
+                        .findAllByRestaurantIdAndStatusInOrderByArrivalTimeAscIdAsc(
+                                context.restaurantId(),
+                                ACTIVE_QUEUE_STATUSES
+                        );
+
+        return toQueueResponses(entries);
+    }
+
+    @Transactional(readOnly = true)
+    public WaitlistQueueEntryResponse getWaitlistEntry(
+            Long waitlistId,
+            Authentication authentication) {
+
+        AuthenticatedRestaurant context =
+                getAuthenticatedRestaurant(authentication);
+
+        List<WaitlistEntry> entries =
+                waitlist
+                        .findAllByRestaurantIdAndStatusInOrderByArrivalTimeAscIdAsc(
+                                context.restaurantId(),
+                                ACTIVE_QUEUE_STATUSES
+                        );
+
+        for (int i = 0; i < entries.size(); i++) {
+
+            WaitlistEntry entry = entries.get(i);
+
+            if (entry.getId().equals(waitlistId)) {
+                return toQueueResponse(
+                        entry,
+                        i + 1
+                );
+            }
+        }
+
+        throw new ApiException(
+                HttpStatus.NOT_FOUND,
+                "waitlist_entry_not_found",
+                "Cliente en espera no encontrado",
+                "El cliente seleccionado no se encuentra actualmente en la lista de espera"
+        );
+    }
+
+    private List<WaitlistQueueEntryResponse> toQueueResponses(
+            List<WaitlistEntry> entries) {
+
+        return java.util.stream.IntStream
+                .range(0, entries.size())
+                .mapToObj(index ->
+                        toQueueResponse(
+                                entries.get(index),
+                                index + 1
+                        ))
+                .toList();
+    }
+
+    private WaitlistQueueEntryResponse toQueueResponse(
+            WaitlistEntry entry,
+            int position) {
+
+        OffsetDateTime arrival =
+                entry.getArrivalTime()
+                        .atZoneSameInstant(GUATEMALA)
+                        .toOffsetDateTime();
+
+        return new WaitlistQueueEntryResponse(
+                entry.getId(),
+                position,
+                entry.getCustomerName(),
+                entry.getCustomerPhone(),
+                entry.getPeopleCount(),
+                arrival,
+                entry.getStatus(),
+                entry.getNotes()
+        );
     }
 }
