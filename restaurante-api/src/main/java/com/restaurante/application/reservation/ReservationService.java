@@ -23,6 +23,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.UUID;
+import java.time.LocalDate;
+import java.util.List;
 
 @Service
 public class ReservationService {
@@ -275,5 +277,71 @@ public class ReservationService {
             Long userId,
             Long restaurantId
     ) {
+    }
+    @Transactional(readOnly = true)
+    public List<ReservationResponse> getReservations(
+            Authentication authentication) {
+
+        AuthenticatedRestaurant context =
+                getAuthenticatedRestaurant(authentication);
+
+        return reservations
+                .findAllByRestaurantIdOrderByStartDateTimeAsc(
+                        context.restaurantId()
+                )
+                .stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public ReservationResponse getReservation(
+            Long reservationId,
+            Authentication authentication) {
+
+        AuthenticatedRestaurant context =
+                getAuthenticatedRestaurant(authentication);
+
+        Reservation reservation = reservations
+                .findByIdAndRestaurantId(
+                        reservationId,
+                        context.restaurantId()
+                )
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "reservation_not_found",
+                        "Reserva no encontrada",
+                        "La reserva seleccionada no existe"
+                ));
+
+        return toResponse(reservation);
+    }
+
+    @Transactional(readOnly = true)
+    public List<ReservationResponse> getReservationsByDate(
+            LocalDate date,
+            Authentication authentication) {
+
+        AuthenticatedRestaurant context =
+                getAuthenticatedRestaurant(authentication);
+
+        OffsetDateTime start =
+                date.atStartOfDay(GUATEMALA)
+                        .toOffsetDateTime();
+
+        OffsetDateTime end =
+                date.plusDays(1)
+                        .atStartOfDay(GUATEMALA)
+                        .toOffsetDateTime();
+
+        return reservations
+                .findAllByRestaurantIdAndStartDateTimeGreaterThanEqualAndStartDateTimeLessThanOrderByStartDateTimeAsc(
+                        context.restaurantId(),
+                        start,
+                        end
+                )
+                .stream()
+                .map(this::toResponse)
+                .toList();
     }
 }

@@ -6,6 +6,8 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.OffsetDateTime;
+import java.util.List;
+import java.util.Optional;
 
 public interface ReservationRepository
         extends JpaRepository<Reservation, Long> {
@@ -33,5 +35,20 @@ public interface ReservationRepository
             @Param("tableId") Long tableId,
             @Param("startDateTime") OffsetDateTime startDateTime,
             @Param("endDateTime") OffsetDateTime endDateTime
+    );
+
+    Optional<Reservation> findByIdAndRestaurantId(
+            Long id,
+            Long restaurantId
+    );
+
+    List<Reservation> findAllByRestaurantIdOrderByStartDateTimeAsc(
+            Long restaurantId
+    );
+
+    List<Reservation> findAllByRestaurantIdAndStartDateTimeGreaterThanEqualAndStartDateTimeLessThanOrderByStartDateTimeAsc(
+            Long restaurantId,
+            OffsetDateTime start,
+            OffsetDateTime end
     );
 }
