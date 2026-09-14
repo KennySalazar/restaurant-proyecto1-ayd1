@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -19,4 +20,8 @@ public interface ModifierRecipeVersionRepository extends JpaRepository<ModifierR
 
     @Query("SELECT COALESCE(MAX(mrv.versionNumber), 0) FROM ModifierRecipeVersion mrv WHERE mrv.modifier.id = :modifierId")
     int findMaxVersionNumberByModifierId(@Param("modifierId") Long modifierId);
+
+    List<ModifierRecipeVersion> findByModifierIdOrderByVersionNumberAsc(Long modifierId);
+
+    Optional<ModifierRecipeVersion> findByModifierIdAndVersionNumber(Long modifierId, Integer versionNumber);
 }

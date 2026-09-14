@@ -6,10 +6,15 @@ import com.restaurante.web.dto.recipe.DefineRecipeRequest;
 import com.restaurante.web.dto.recipe.DishCostSummaryResponse;
 import com.restaurante.web.dto.recipe.DishProductionCostResponse;
 import com.restaurante.web.dto.recipe.ModifierProductionCostResponse;
+import com.restaurante.web.dto.recipe.ModifierRecipeHistoryResponse;
 import com.restaurante.web.dto.recipe.ModifierRecipeRegistrationResponse;
+import com.restaurante.web.dto.recipe.ModifierRecipeResponse;
+import com.restaurante.web.dto.recipe.ModifierRecipeVersionChangeDetailResponse;
+import com.restaurante.web.dto.recipe.RecipeHistoryResponse;
 import com.restaurante.web.dto.recipe.RecipeRegistrationResponse;
 import com.restaurante.web.dto.recipe.RecipeResponse;
 import com.restaurante.web.dto.recipe.RecipeUpdateResponse;
+import com.restaurante.web.dto.recipe.RecipeVersionChangeDetailResponse;
 import com.restaurante.web.dto.recipe.UpdateRecipeRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -346,5 +351,161 @@ public class AdminRecipeController {
             @Parameter(description = "Identificador único del modificador", required = true)
             @PathVariable Long modifierId) {
         return ResponseEntity.ok(recipeService.calculateModifierProductionCost(modifierId));
+    }
+
+    @GetMapping("/admin/dishes/{dishId}/recipe/history")
+    @Operation(
+            summary = "Consultar historial de cambios de la receta de un platillo",
+            description = "Retorna el historial cronológico de versiones y cambios registrados en la receta de un platillo, con fecha de cada modificación, insumos y costos calculados."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Historial de la receta consultado exitosamente",
+                    content = @Content(schema = @Schema(implementation = RecipeHistoryResponse.class))
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Identificador de platillo inválido",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "No autenticado o token no provisto",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Acceso denegado (requiere rol ADMIN)",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Platillo no encontrado o sin receta definida",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            )
+    })
+    public ResponseEntity<RecipeHistoryResponse> getDishRecipeHistory(
+            @Parameter(description = "Identificador único del platillo", required = true)
+            @PathVariable Long dishId) {
+        return ResponseEntity.ok(recipeService.getDishRecipeHistory(dishId));
+    }
+
+    @GetMapping("/admin/dishes/{dishId}/recipe/versions/{versionNumber}")
+    @Operation(
+            summary = "Consultar detalle de un cambio o versión de receta de platillo",
+            description = "Retorna la composición anterior, la nueva composición y el desglose de insumos agregados, retirados o modificados para una versión específica de la receta."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Detalle de la versión y cambios obtenido exitosamente",
+                    content = @Content(schema = @Schema(implementation = RecipeVersionChangeDetailResponse.class))
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Identificador de platillo o número de versión inválido",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "No autenticado o token no provisto",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Acceso denegado (requiere rol ADMIN)",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Platillo o versión no encontrada",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            )
+    })
+    public ResponseEntity<RecipeVersionChangeDetailResponse> getDishRecipeVersionDetail(
+            @Parameter(description = "Identificador único del platillo", required = true)
+            @PathVariable Long dishId,
+            @Parameter(description = "Número de versión a consultar", required = true)
+            @PathVariable Integer versionNumber) {
+        return ResponseEntity.ok(recipeService.getDishRecipeVersionDetail(dishId, versionNumber));
+    }
+
+    @GetMapping("/admin/modifiers/{modifierId}/recipe/history")
+    @Operation(
+            summary = "Consultar historial de cambios de la receta de un modificador",
+            description = "Retorna las versiones registradas y detalla cronológicamente los cambios realizados en los insumos y cantidades de la receta del modificador."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Historial de la receta del modificador consultado exitosamente",
+                    content = @Content(schema = @Schema(implementation = ModifierRecipeHistoryResponse.class))
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Identificador de modificador inválido",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "No autenticado o token no provisto",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Acceso denegado (requiere rol ADMIN)",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Modificador no encontrado o sin receta definida",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            )
+    })
+    public ResponseEntity<ModifierRecipeHistoryResponse> getModifierRecipeHistory(
+            @Parameter(description = "Identificador único del modificador", required = true)
+            @PathVariable Long modifierId) {
+        return ResponseEntity.ok(recipeService.getModifierRecipeHistory(modifierId));
+    }
+
+    @GetMapping("/admin/modifiers/{modifierId}/recipe/versions/{versionNumber}")
+    @Operation(
+            summary = "Consultar detalle de un cambio o versión de receta de modificador",
+            description = "Retorna la composición anterior, la nueva composición y el desglose de insumos agregados, retirados o modificados para una versión específica de la receta del modificador."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Detalle de la versión y cambios obtenido exitosamente",
+                    content = @Content(schema = @Schema(implementation = ModifierRecipeVersionChangeDetailResponse.class))
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Identificador de modificador o número de versión inválido",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "No autenticado o token no provisto",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Acceso denegado (requiere rol ADMIN)",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Modificador o versión no encontrada",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            )
+    })
+    public ResponseEntity<ModifierRecipeVersionChangeDetailResponse> getModifierRecipeVersionDetail(
+            @Parameter(description = "Identificador único del modificador", required = true)
+            @PathVariable Long modifierId,
+            @Parameter(description = "Número de versión a consultar", required = true)
+            @PathVariable Integer versionNumber) {
+        return ResponseEntity.ok(recipeService.getModifierRecipeVersionDetail(modifierId, versionNumber));
     }
 }
