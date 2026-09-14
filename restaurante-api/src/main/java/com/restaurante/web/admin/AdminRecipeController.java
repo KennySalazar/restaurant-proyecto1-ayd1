@@ -3,6 +3,9 @@ package com.restaurante.web.admin;
 import com.restaurante.application.recipe.RecipeService;
 import com.restaurante.web.dto.recipe.DefineModifierRecipeRequest;
 import com.restaurante.web.dto.recipe.DefineRecipeRequest;
+import com.restaurante.web.dto.recipe.DishCostSummaryResponse;
+import com.restaurante.web.dto.recipe.DishProductionCostResponse;
+import com.restaurante.web.dto.recipe.ModifierProductionCostResponse;
 import com.restaurante.web.dto.recipe.ModifierRecipeRegistrationResponse;
 import com.restaurante.web.dto.recipe.RecipeRegistrationResponse;
 import com.restaurante.web.dto.recipe.RecipeResponse;
@@ -27,6 +30,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
 
 /**
  * Controlador administrativo para la gestión y consulta de recetas de platillos y modificadores.
@@ -240,5 +245,106 @@ public class AdminRecipeController {
             @Parameter(hidden = true) Authentication authentication) {
         ModifierRecipeRegistrationResponse response = recipeService.defineModifierRecipe(modifierId, request, authentication);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @GetMapping("/admin/dishes/{dishId}/cost")
+    @Operation(
+            summary = "Calcular costo de producción de un platillo",
+            description = "Calcula automáticamente el costo de producción actual del platillo a partir de los insumos de su receta vigente, realizando conversión de unidades y calculando el margen de ganancia."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Costo de producción calculado exitosamente",
+                    content = @Content(schema = @Schema(implementation = DishProductionCostResponse.class))
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Identificador de platillo inválido",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "No autenticado o token no provisto",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Acceso denegado (requiere rol ADMIN)",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Platillo no encontrado o sin receta definida",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            )
+    })
+    public ResponseEntity<DishProductionCostResponse> getDishProductionCost(
+            @Parameter(description = "Identificador único del platillo", required = true)
+            @PathVariable Long dishId) {
+        return ResponseEntity.ok(recipeService.calculateDishProductionCost(dishId));
+    }
+
+    @GetMapping("/admin/dishes/costs")
+    @Operation(
+            summary = "Listar costos de producción de platillos",
+            description = "Retorna el resumen de costos de producción calculados y márgenes comerciales de todos los platillos activos con receta vigente."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Listado de costos de platillos obtenido exitosamente"
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "No autenticado o token no provisto",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Acceso denegado (requiere rol ADMIN)",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            )
+    })
+    public ResponseEntity<List<DishCostSummaryResponse>> listDishProductionCosts() {
+        return ResponseEntity.ok(recipeService.listDishProductionCosts());
+    }
+
+    @GetMapping("/admin/modifiers/{modifierId}/cost")
+    @Operation(
+            summary = "Calcular costo de producción de un modificador",
+            description = "Calcula automáticamente el costo de producción adicional del modificador a partir de su receta vigente con conversión de unidades."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Costo de producción del modificador calculado exitosamente",
+                    content = @Content(schema = @Schema(implementation = ModifierProductionCostResponse.class))
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Identificador de modificador inválido",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "No autenticado o token no provisto",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Acceso denegado (requiere rol ADMIN)",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Modificador no encontrado o sin receta definida",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            )
+    })
+    public ResponseEntity<ModifierProductionCostResponse> getModifierProductionCost(
+            @Parameter(description = "Identificador único del modificador", required = true)
+            @PathVariable Long modifierId) {
+        return ResponseEntity.ok(recipeService.calculateModifierProductionCost(modifierId));
     }
 }

@@ -20,10 +20,14 @@ import com.restaurante.exception.ApiException;
 import com.restaurante.security.JwtData;
 import com.restaurante.web.dto.recipe.DefineModifierRecipeRequest;
 import com.restaurante.web.dto.recipe.DefineRecipeRequest;
+import com.restaurante.web.dto.recipe.DishCostSummaryResponse;
+import com.restaurante.web.dto.recipe.DishProductionCostResponse;
 import com.restaurante.web.dto.recipe.ModifierIngredientRequest;
 import com.restaurante.web.dto.recipe.ModifierIngredientResponse;
+import com.restaurante.web.dto.recipe.ModifierProductionCostResponse;
 import com.restaurante.web.dto.recipe.ModifierRecipeRegistrationResponse;
 import com.restaurante.web.dto.recipe.ModifierRecipeResponse;
+import com.restaurante.web.dto.recipe.ProductionCostIngredientResponse;
 import com.restaurante.web.dto.recipe.RecipeIngredientRequest;
 import com.restaurante.web.dto.recipe.RecipeIngredientResponse;
 import com.restaurante.web.dto.recipe.RecipeRegistrationResponse;
@@ -611,6 +615,272 @@ public class RecipeService {
                 "Receta del modificador guardada exitosamente",
                 response
         );
+    }
+
+    /**
+     * Calcula automáticamente el costo de producción actual de un platillo con conversión de unidades y desglose de insumos.
+     *
+     * @param dishId Identificador único del platillo
+     * @return Costo de producción detallado del platillo y márgenes comerciales
+     */
+    @Transactional(readOnly = true)
+    public DishProductionCostResponse calculateDishProductionCost(Long dishId) {
+        if (dishId == null) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "missing_dish_id",
+                    "Platillo no especificado",
+                    "Debe indicar el identificador del platillo para calcular su costo"
+            );
+        }
+
+        Dish dish = dishRepository.findById(dishId)
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "dish_not_found",
+                        "Platillo no encontrado",
+                        "No se encontró un platillo con el identificador " + dishId
+                ));
+
+        RecipeVersion activeVersion = recipeVersionRepository.findActiveByDishId(dish.getId())
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "recipe_not_found",
+                        "Receta no definida",
+                        "El platillo aún no tiene una receta definida"
+                ));
+
+        BigDecimal totalProductionCost = BigDecimal.ZERO;
+        List<ProductionCostIngredientResponse> ingredientBreakdown = new ArrayList<>();
+
+        for (RecipeDetail detail : activeVersion.getDetails()) {
+            Supply supply = detail.getSupply();
+            MeasurementUnit recipeUnit = detail.getMeasurementUnit();
+            MeasurementUnit stockUnit = supply.getMeasurementUnit();
+
+            BigDecimal quantity = detail.getQuantity();
+            BigDecimal urBaseFactor = recipeUnit.getBaseFactor();
+            BigDecimal usBaseFactor = stockUnit.getBaseFactor();
+            BigDecimal currentUnitCost = supply.getCurrentUnitCost() != null
+                    ? supply.getCurrentUnitCost()
+                    : BigDecimal.ZERO;
+
+            BigDecimal proportionalQty = quantity.multiply(urBaseFactor)
+                    .divide(usBaseFactor, 6, RoundingMode.HALF_UP);
+            BigDecimal subtotalCost = proportionalQty.multiply(currentUnitCost)
+                    .setScale(4, RoundingMode.HALF_UP);
+
+            totalProductionCost = totalProductionCost.add(subtotalCost);
+
+            ingredientBreakdown.add(new ProductionCostIngredientResponse(
+                    supply.getId(),
+                    supply.getCode(),
+                    supply.getName(),
+                    quantity,
+                    recipeUnit.getId(),
+                    recipeUnit.getName(),
+                    recipeUnit.getAbbreviation(),
+                    stockUnit.getName(),
+                    currentUnitCost,
+                    proportionalQty,
+                    subtotalCost,
+                    detail.getNotes()
+            ));
+        }
+
+        totalProductionCost = totalProductionCost.setScale(4, RoundingMode.HALF_UP);
+        BigDecimal salePrice = dish.getSalePrice() != null ? dish.getSalePrice() : BigDecimal.ZERO;
+        BigDecimal grossMargin = salePrice.subtract(totalProductionCost).setScale(4, RoundingMode.HALF_UP);
+
+        BigDecimal marginPercentage = null;
+        if (salePrice.compareTo(BigDecimal.ZERO) > 0) {
+            marginPercentage = grossMargin.divide(salePrice, 6, RoundingMode.HALF_UP)
+                    .multiply(BigDecimal.valueOf(100))
+                    .setScale(4, RoundingMode.HALF_UP);
+        }
+
+        String categoryName = dish.getCategory() != null ? dish.getCategory().getName() : null;
+
+        return new DishProductionCostResponse(
+                dish.getId(),
+                dish.getCode(),
+                dish.getName(),
+                categoryName,
+                salePrice,
+                activeVersion.getId(),
+                activeVersion.getVersionNumber(),
+                totalProductionCost,
+                grossMargin,
+                marginPercentage,
+                ingredientBreakdown,
+                Instant.now()
+        );
+    }
+
+    /**
+     * Calcula automáticamente el costo de producción adicional de un modificador con conversión de unidades.
+     *
+     * @param modifierId Identificador único del modificador
+     * @return Costo de producción calculado del modificador
+     */
+    @Transactional(readOnly = true)
+    public ModifierProductionCostResponse calculateModifierProductionCost(Long modifierId) {
+        if (modifierId == null) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "missing_modifier_id",
+                    "Modificador no especificado",
+                    "Debe indicar el identificador del modificador para calcular su costo"
+            );
+        }
+
+        Modifier modifier = modifierRepository.findById(modifierId)
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "modifier_not_found",
+                        "Modificador no encontrado",
+                        "No se encontró un modificador con el identificador " + modifierId
+                ));
+
+        ModifierRecipeVersion activeVersion = modifierRecipeVersionRepository.findActiveByModifierId(modifier.getId())
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "recipe_not_found",
+                        "Receta no definida",
+                        "El modificador aún no tiene una receta definida"
+                ));
+
+        BigDecimal totalProductionCost = BigDecimal.ZERO;
+        List<ProductionCostIngredientResponse> ingredientBreakdown = new ArrayList<>();
+
+        for (ModifierRecipeDetail detail : activeVersion.getDetails()) {
+            Supply supply = detail.getSupply();
+            MeasurementUnit recipeUnit = detail.getMeasurementUnit();
+            MeasurementUnit stockUnit = supply.getMeasurementUnit();
+
+            BigDecimal quantity = detail.getQuantity();
+            BigDecimal urBaseFactor = recipeUnit.getBaseFactor();
+            BigDecimal usBaseFactor = stockUnit.getBaseFactor();
+            BigDecimal currentUnitCost = supply.getCurrentUnitCost() != null
+                    ? supply.getCurrentUnitCost()
+                    : BigDecimal.ZERO;
+
+            BigDecimal proportionalQty = quantity.multiply(urBaseFactor)
+                    .divide(usBaseFactor, 6, RoundingMode.HALF_UP);
+            BigDecimal subtotalCost = proportionalQty.multiply(currentUnitCost)
+                    .setScale(4, RoundingMode.HALF_UP);
+
+            totalProductionCost = totalProductionCost.add(subtotalCost);
+
+            ingredientBreakdown.add(new ProductionCostIngredientResponse(
+                    supply.getId(),
+                    supply.getCode(),
+                    supply.getName(),
+                    quantity,
+                    recipeUnit.getId(),
+                    recipeUnit.getName(),
+                    recipeUnit.getAbbreviation(),
+                    stockUnit.getName(),
+                    currentUnitCost,
+                    proportionalQty,
+                    subtotalCost,
+                    detail.getNotes()
+            ));
+        }
+
+        totalProductionCost = totalProductionCost.setScale(4, RoundingMode.HALF_UP);
+        BigDecimal additionalPrice = modifier.getAdditionalPrice() != null ? modifier.getAdditionalPrice() : BigDecimal.ZERO;
+        BigDecimal grossMargin = additionalPrice.subtract(totalProductionCost).setScale(4, RoundingMode.HALF_UP);
+
+        BigDecimal marginPercentage = null;
+        if (additionalPrice.compareTo(BigDecimal.ZERO) > 0) {
+            marginPercentage = grossMargin.divide(additionalPrice, 6, RoundingMode.HALF_UP)
+                    .multiply(BigDecimal.valueOf(100))
+                    .setScale(4, RoundingMode.HALF_UP);
+        }
+
+        return new ModifierProductionCostResponse(
+                modifier.getId(),
+                modifier.getCode(),
+                modifier.getName(),
+                additionalPrice,
+                activeVersion.getId(),
+                activeVersion.getVersionNumber(),
+                totalProductionCost,
+                grossMargin,
+                marginPercentage,
+                ingredientBreakdown,
+                Instant.now()
+        );
+    }
+
+    /**
+     * Lista los costos de producción y márgenes de los platillos que cuentan con receta vigente.
+     *
+     * @return Listado de resumen de costos de producción
+     */
+    @Transactional(readOnly = true)
+    public List<DishCostSummaryResponse> listDishProductionCosts() {
+        Long restaurantId = 1L;
+        List<Dish> dishes = dishRepository.findByRestaurantIdAndActiveTrueOrderByNameAsc(restaurantId);
+        List<DishCostSummaryResponse> result = new ArrayList<>();
+
+        for (Dish dish : dishes) {
+            Optional<RecipeVersion> activeOpt = recipeVersionRepository.findActiveByDishId(dish.getId());
+            if (activeOpt.isEmpty()) {
+                continue;
+            }
+            RecipeVersion activeVersion = activeOpt.get();
+            BigDecimal totalProductionCost = BigDecimal.ZERO;
+
+            for (RecipeDetail detail : activeVersion.getDetails()) {
+                Supply supply = detail.getSupply();
+                MeasurementUnit recipeUnit = detail.getMeasurementUnit();
+                MeasurementUnit stockUnit = supply.getMeasurementUnit();
+
+                BigDecimal quantity = detail.getQuantity();
+                BigDecimal urBaseFactor = recipeUnit.getBaseFactor();
+                BigDecimal usBaseFactor = stockUnit.getBaseFactor();
+                BigDecimal currentUnitCost = supply.getCurrentUnitCost() != null
+                        ? supply.getCurrentUnitCost()
+                        : BigDecimal.ZERO;
+
+                BigDecimal proportionalQty = quantity.multiply(urBaseFactor)
+                        .divide(usBaseFactor, 6, RoundingMode.HALF_UP);
+                BigDecimal subtotalCost = proportionalQty.multiply(currentUnitCost)
+                        .setScale(4, RoundingMode.HALF_UP);
+
+                totalProductionCost = totalProductionCost.add(subtotalCost);
+            }
+
+            totalProductionCost = totalProductionCost.setScale(4, RoundingMode.HALF_UP);
+            BigDecimal salePrice = dish.getSalePrice() != null ? dish.getSalePrice() : BigDecimal.ZERO;
+            BigDecimal grossMargin = salePrice.subtract(totalProductionCost).setScale(4, RoundingMode.HALF_UP);
+
+            BigDecimal marginPercentage = null;
+            if (salePrice.compareTo(BigDecimal.ZERO) > 0) {
+                marginPercentage = grossMargin.divide(salePrice, 6, RoundingMode.HALF_UP)
+                        .multiply(BigDecimal.valueOf(100))
+                        .setScale(4, RoundingMode.HALF_UP);
+            }
+
+            String categoryName = dish.getCategory() != null ? dish.getCategory().getName() : null;
+
+            result.add(new DishCostSummaryResponse(
+                    dish.getId(),
+                    dish.getCode(),
+                    dish.getName(),
+                    categoryName,
+                    salePrice,
+                    activeVersion.getId(),
+                    activeVersion.getVersionNumber(),
+                    totalProductionCost,
+                    grossMargin,
+                    marginPercentage
+            ));
+        }
+
+        return result;
     }
 
     /**
