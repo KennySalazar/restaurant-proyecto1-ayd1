@@ -45,7 +45,7 @@ public record DishResponse(
         @Schema(description = "Cantidad máxima de porciones disponibles para preparar según inventario actual", example = "12")
         Integer availablePortions,
 
-        @Schema(description = "Código del motivo de falta de disponibilidad (MANUAL, FALTA_INSUMOS, INACTIVO) o null si está disponible", example = "FALTA_INSUMOS")
+        @Schema(description = "Código del motivo de falta de disponibilidad (MANUAL, FALTA_INSUMOS, SIN_RECETA, INACTIVO) o null si está disponible", example = "FALTA_INSUMOS")
         String unavailabilityReason,
 
         @Schema(description = "Descripción legible del motivo de falta de disponibilidad o null si está disponible", example = "Falta de insumos")

@@ -284,6 +284,40 @@ public class AdminDishController {
         return ResponseEntity.ok(dishService.updateDishAvailability(id, request));
     }
 
+    @GetMapping("/{id}/availability")
+    @Operation(
+            summary = "Consultar y evaluar la disponibilidad automática de un platillo",
+            description = "Evalúa en tiempo real la disponibilidad de un platillo según el inventario actual de sus insumos y receta vigente, respetando restricciones manuales y verificando si cuenta con receta definida."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Evaluación de disponibilidad obtenida exitosamente",
+                    content = @Content(schema = @Schema(implementation = DishAvailabilityResponse.class))
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "No autenticado o token no provisto",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Acceso denegado (requiere rol ADMIN)",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Platillo no encontrado",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            )
+    })
+    public ResponseEntity<DishAvailabilityResponse> getDishAvailability(
+            @Parameter(description = "Identificador único del platillo", required = true)
+            @PathVariable Long id
+    ) {
+        return ResponseEntity.ok(dishService.getDishAvailability(id));
+    }
+
     @GetMapping("/categories")
     @Operation(
             summary = "Consultar categorías disponibles para platillos",
