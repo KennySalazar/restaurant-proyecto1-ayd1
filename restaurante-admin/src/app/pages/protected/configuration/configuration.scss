@@ -203,3 +203,45 @@
     width: 100%;
   }
 }
+
+.configuration-card--spaced {
+  margin-top: 1.25rem;
+}
+
+.points-input {
+  align-items: center;
+  border: 1px solid #dccfc5;
+  border-radius: 0.75rem;
+  display: flex;
+  max-width: 16rem;
+  overflow: hidden;
+}
+
+.points-input:focus-within {
+  border-color: #b85c38;
+}
+
+.points-input input {
+  border: 0;
+  color: #2f2926;
+  flex: 1;
+  font: inherit;
+  outline: 0;
+  padding: 0.75rem;
+  width: 100%;
+}
+
+.points-input span {
+  background: #f7eee7;
+  color: #9d4d30;
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 0.75rem;
+}
+
+@media (max-width: 700px) {
+  .points-input {
+    max-width: none;
+    width: 100%;
+  }
+}
