@@ -20,4 +20,8 @@ export class EmployeeService {
   getEmployee(id: number): Observable<Employee> {
     return this.http.get<Employee>(`${this.employeesUrl}/${id}`);
   }
+
+  deactivateEmployee(id: number): Observable<Employee> {
+  return this.http.delete<Employee>(`${this.employeesUrl}/${id}`);
+}
 }

@@ -159,17 +159,36 @@
                 </span>
               </td>
 
-              <td class="employees-table__actions">
-                <button
-                  class="detail-button"
-                  type="button"
-                  [disabled]="isDetailLoading()"
-                  (click)="viewEmployee(employee.id)"
-                >
-                  <i class="pi pi-eye"></i>
-                  {{ 'employees.actions.view' | transloco }}
-                </button>
-              </td>
+             <td class="employees-table__actions">
+                    <div class="employee-actions">
+                        <button
+                        class="detail-button"
+                        type="button"
+                        [disabled]="isDetailLoading()"
+                        (click)="viewEmployee(employee.id)"
+                        >
+                        <i class="pi pi-eye"></i>
+                        {{ 'employees.actions.view' | transloco }}
+                        </button>
+
+                        <button
+                        class="deactivate-button"
+                        [class.deactivate-button--disabled]="!employee.habilitado"
+                        type="button"
+                        [disabled]="isDeactivating()"
+                        (click)="requestDeactivation(employee)"
+                        >
+                        <i class="pi pi-user-minus"></i>
+
+                        {{
+                            (employee.habilitado
+                            ? 'employees.actions.deactivate'
+                            : 'employees.actions.alreadyDisabled'
+                            ) | transloco
+                        }}
+                        </button>
+                    </div>
+                    </td>
             </tr>
           }
         </tbody>
@@ -243,4 +262,75 @@
       </div>
     </div>
   </section>
+}
+
+@if (deactivationCandidate(); as employee) {
+  <div
+    class="confirmation-backdrop"
+    role="presentation"
+  >
+    <section
+      class="confirmation-dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="deactivation-dialog-title"
+    >
+      <span class="confirmation-dialog__icon">
+        <i class="pi pi-user-minus"></i>
+      </span>
+
+      <div>
+        <span class="confirmation-dialog__eyebrow">
+          {{ 'employees.deactivation.eyebrow' | transloco }}
+        </span>
+
+        <h2 id="deactivation-dialog-title">
+          {{
+            'employees.deactivation.title'
+              | transloco:{
+                  name: employee.nombres + ' ' + employee.apellidos
+                }
+          }}
+        </h2>
+
+        <p>
+          {{ 'employees.deactivation.description' | transloco }}
+        </p>
+
+        <div class="confirmation-dialog__notice">
+          <i class="pi pi-info-circle"></i>
+
+          <span>
+            {{ 'employees.deactivation.historyNotice' | transloco }}
+          </span>
+        </div>
+      </div>
+
+      <footer class="confirmation-dialog__actions">
+        <button
+          class="cancel-deactivation-button"
+          type="button"
+          [disabled]="isDeactivating()"
+          (click)="cancelDeactivation()"
+        >
+          {{ 'employees.deactivation.cancel' | transloco }}
+        </button>
+
+        <button
+          class="confirm-deactivation-button"
+          type="button"
+          [disabled]="isDeactivating()"
+          (click)="confirmDeactivation()"
+        >
+          @if (isDeactivating()) {
+            <i class="pi pi-spin pi-spinner"></i>
+            {{ 'employees.deactivation.processing' | transloco }}
+          } @else {
+            <i class="pi pi-user-minus"></i>
+            {{ 'employees.deactivation.confirm' | transloco }}
+          }
+        </button>
+      </footer>
+    </section>
+  </div>
 }
