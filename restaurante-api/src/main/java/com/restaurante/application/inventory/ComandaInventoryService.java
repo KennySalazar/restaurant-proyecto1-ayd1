@@ -310,13 +310,15 @@ public class ComandaInventoryService {
             );
         }
 
-        Comanda comanda = comandaRepository.findByIdWithDetailsAndRestaurantId(comandaId, restaurantId)
+        Comanda comanda = comandaRepository
+                .findByIdWithDetailsAndRestaurantId(comandaId, restaurantId)
                 .orElseThrow(() -> new ApiException(
                         HttpStatus.NOT_FOUND,
                         "comanda_not_found",
                         "Comanda no encontrada",
                         "No se encontró una comanda con el identificador " + comandaId
                 ));
+        comandaDetailRepository.findByComandaIdWithModifiers(comandaId);
 
         if (comanda.getStatus() != ComandaStatus.BORRADOR
                 || inventoryMovementRepository.existsByComandaIdAndType(comandaId, "SALIDA_VENTA")) {
@@ -458,6 +460,8 @@ public class ComandaInventoryService {
                         "Comanda no encontrada",
                         "No se encontró una comanda con el identificador " + comandaId
                 ));
+
+        comandaDetailRepository.findByComandaIdWithModifiers(comandaId);
 
         return mapToComandaResponse(comanda);
     }
