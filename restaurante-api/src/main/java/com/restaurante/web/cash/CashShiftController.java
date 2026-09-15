@@ -2,6 +2,8 @@ package com.restaurante.web.cash;
 
 import com.restaurante.application.cash.CashShiftService;
 import com.restaurante.web.dto.cash.CashShiftResponse;
+import com.restaurante.web.dto.cash.CloseCashShiftRequest;
+import com.restaurante.web.dto.cash.CloseCashShiftResponse;
 import com.restaurante.web.dto.cash.OpenCashShiftRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -36,6 +38,20 @@ public class CashShiftController {
             Authentication authentication) {
 
         return cashShiftService.openShift(
+                request,
+                authentication
+        );
+    }
+
+    @PutMapping("/{shiftId}/cerrar")
+    @Operation(summary = "Cerrar turno de caja con cuadre")
+    public CloseCashShiftResponse closeShift(
+            @PathVariable Long shiftId,
+            @Valid @RequestBody CloseCashShiftRequest request,
+            Authentication authentication) {
+
+        return cashShiftService.closeShift(
+                shiftId,
                 request,
                 authentication
         );
