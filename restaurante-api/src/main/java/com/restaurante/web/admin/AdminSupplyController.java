@@ -1,6 +1,8 @@
 package com.restaurante.web.admin;
 
+import com.restaurante.application.inventory.KardexService;
 import com.restaurante.application.supply.SupplyService;
+import com.restaurante.web.dto.kardex.KardexRecordResponse;
 import com.restaurante.web.dto.supply.ConfigureStockLimitsRequest;
 import com.restaurante.web.dto.supply.CreateSupplyEntryRequest;
 import com.restaurante.web.dto.supply.CreateSupplyRequest;
@@ -56,9 +58,11 @@ import java.util.List;
 public class AdminSupplyController {
 
         private final SupplyService supplyService;
+        private final KardexService kardexService;
 
-        public AdminSupplyController(SupplyService supplyService) {
+        public AdminSupplyController(SupplyService supplyService, KardexService kardexService) {
                 this.supplyService = supplyService;
+                this.kardexService = kardexService;
         }
 
         @PostMapping
@@ -262,5 +266,24 @@ public class AdminSupplyController {
                         @Parameter(description = "Filtro opcional por fecha inicial (ISO: YYYY-MM-DD)") @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
                         @Parameter(description = "Filtro opcional por fecha final (ISO: YYYY-MM-DD)") @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
                 return ResponseEntity.ok(supplyService.listWasteReport(supplyId, startDate, endDate));
+        }
+
+        @GetMapping("/{id}/kardex")
+        @Operation(summary = "Consultar el kardex de un insumo", description = "Retorna el historial completo de movimientos de kardex (entradas por compra, salidas por venta, salidas por merma y ajustes manuales) correspondientes a un insumo específico.")
+        @ApiResponses({
+                        @ApiResponse(responseCode = "200", description = "Movimientos de kardex del insumo obtenidos exitosamente"),
+                        @ApiResponse(responseCode = "401", description = "No autenticado o token JWT no provisto", content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+                        @ApiResponse(responseCode = "403", description = "Acceso denegado (requiere rol ADMIN)", content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+                        @ApiResponse(responseCode = "404", description = "Insumo no encontrado o inactivo", content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+        })
+        public ResponseEntity<List<KardexRecordResponse>> getSupplyKardex(
+                        @Parameter(description = "Identificador único del insumo", required = true) @PathVariable Long id) {
+                List<KardexRecordResponse> movements = kardexService.getSupplyKardex(id);
+                if (movements.isEmpty()) {
+                        return ResponseEntity.ok()
+                                        .header("X-Message", "Todavía no existen movimientos registrados para este insumo")
+                                        .body(movements);
+                }
+                return ResponseEntity.ok(movements);
         }
 }

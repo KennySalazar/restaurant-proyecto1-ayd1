@@ -22,4 +22,34 @@ public interface InventoryMovementRepository extends JpaRepository<InventoryMove
 
     @Query("SELECT mi FROM InventoryMovement mi WHERE mi.supply.id = :supplyId ORDER BY mi.createdAt DESC")
     List<InventoryMovement> findBySupplyIdOrderByCreatedAtDesc(@Param("supplyId") Long supplyId);
+
+    @Query("SELECT mi FROM InventoryMovement mi " +
+            "JOIN FETCH mi.supply s " +
+            "LEFT JOIN FETCH s.measurementUnit " +
+            "LEFT JOIN FETCH mi.responsibleUser ru " +
+            "LEFT JOIN FETCH mi.comandaDetail cd " +
+            "LEFT JOIN FETCH cd.comanda c " +
+            "LEFT JOIN FETCH c.waiterUser wu " +
+            "LEFT JOIN FETCH mi.entryDetail ed " +
+            "LEFT JOIN FETCH ed.entry " +
+            "LEFT JOIN FETCH mi.wasteDetail wd " +
+            "LEFT JOIN FETCH wd.waste " +
+            "WHERE mi.restaurantId = :restaurantId " +
+            "ORDER BY mi.createdAt DESC, mi.id DESC")
+    List<InventoryMovement> findAllWithDetailsByRestaurantId(@Param("restaurantId") Long restaurantId);
+
+    @Query("SELECT mi FROM InventoryMovement mi " +
+            "JOIN FETCH mi.supply s " +
+            "LEFT JOIN FETCH s.measurementUnit " +
+            "LEFT JOIN FETCH mi.responsibleUser ru " +
+            "LEFT JOIN FETCH mi.comandaDetail cd " +
+            "LEFT JOIN FETCH cd.comanda c " +
+            "LEFT JOIN FETCH c.waiterUser wu " +
+            "LEFT JOIN FETCH mi.entryDetail ed " +
+            "LEFT JOIN FETCH ed.entry " +
+            "LEFT JOIN FETCH mi.wasteDetail wd " +
+            "LEFT JOIN FETCH wd.waste " +
+            "WHERE mi.restaurantId = :restaurantId AND mi.supply.id = :supplyId " +
+            "ORDER BY mi.createdAt DESC, mi.id DESC")
+    List<InventoryMovement> findBySupplyIdWithDetails(@Param("restaurantId") Long restaurantId, @Param("supplyId") Long supplyId);
 }
