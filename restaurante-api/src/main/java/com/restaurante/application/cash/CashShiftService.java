@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import jakarta.persistence.EntityManager;
 import com.restaurante.web.dto.cash.CloseCashShiftRequest;
 import com.restaurante.web.dto.cash.CloseCashShiftResponse;
+import com.restaurante.domain.model.Role;
 
 @Service
 public class CashShiftService {
@@ -233,5 +234,48 @@ public class CashShiftService {
                 shift.getClosedAt(),
                 shift.getClosingNotes()
         );
+    }
+
+    @Transactional(readOnly = true)
+    public CashShift requireOpenShift(Authentication authentication) {
+
+        UserAccount account = users
+                .findByEmail(authentication.getName())
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.UNAUTHORIZED,
+                        "authenticated_user_not_found",
+                        "Usuario no encontrado",
+                        "No se encontro la cuenta autenticada"
+                ));
+
+        if (!account.isEnabled()) {
+            throw new ApiException(
+                    HttpStatus.FORBIDDEN,
+                    "account_disabled",
+                    "Cuenta deshabilitada",
+                    "La cuenta se encuentra deshabilitada"
+            );
+        }
+
+        if (account.getRole().getName() != RoleName.CASHIER) {
+            throw new ApiException(
+                    HttpStatus.FORBIDDEN,
+                    "cashier_role_required",
+                    "Operacion no permitida",
+                    "Solamente un cajero puede procesar cobros"
+            );
+        }
+
+        return cashShifts
+                .findByCashierIdAndStatus(
+                        account.getId(),
+                        CashShiftStatus.ABIERTA
+                )
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.CONFLICT,
+                        "open_cash_shift_required",
+                        "Turno de caja requerido",
+                        "Debe abrir un turno de caja antes de procesar un cobro"
+                ));
     }
 }
