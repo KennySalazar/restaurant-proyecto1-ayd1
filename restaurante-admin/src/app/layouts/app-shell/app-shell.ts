@@ -29,11 +29,18 @@ const NAVIGATION: readonly NavigationItem[] = [
   },
 
   {
-  path: '/app/configuration',
-  labelKey: 'nav.configuration',
-  icon: 'pi-sliders-h',
-  roles: ['ADMIN'],
-},
+    path: '/app/configuration',
+    labelKey: 'nav.configuration',
+    icon: 'pi-sliders-h',
+    roles: ['ADMIN'],
+  },
+
+  {
+    path: '/app/reservations',
+    labelKey: 'nav.reservations',
+    icon: 'pi-calendar',
+    roles: ['ADMIN'],
+  },
   { path: '/app/security', labelKey: 'nav.security', icon: 'pi-shield' },
   {
     path: '/app/admin',

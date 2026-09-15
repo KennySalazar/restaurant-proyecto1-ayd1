@@ -23,6 +23,7 @@
     "tables": "Mesas",
     "employees": "Empleados",
     "configuration": "Configuración",
+    "reservations": "Reservas",
     "security": "Seguridad",
     "admin": "Administración",
     "logout": "Cerrar sesión",
@@ -168,6 +169,58 @@
   "alreadyRetiredMessage": "La mesa seleccionada ya se encuentra retirada."
 }
 
+},
+
+"reservations": {
+  "eyebrow": "Reservas y disponibilidad",
+  "title": "Registrar una reserva",
+  "description": "Registra una reserva y asigna una mesa adecuada al cliente.",
+  "form": {
+    "eyebrow": "Nueva reserva",
+    "title": "Datos de la reserva",
+    "description": "Completa la información del cliente, horario y mesa solicitada."
+  },
+  "fields": {
+    "name": "Nombre del cliente",
+    "phone": "Teléfono",
+    "people": "Número de personas",
+    "dateTime": "Fecha y hora",
+    "table": "Mesa",
+    "notes": "Notas",
+    "notesHint": "Información adicional opcional para la reserva."
+  },
+  "tables": {
+    "loading": "Cargando mesas disponibles...",
+    "placeholder": "Selecciona una mesa",
+    "empty": "No existen mesas activas disponibles para seleccionar."
+  },
+  "tableSummary": {
+    "number": "Mesa",
+    "zone": "Zona",
+    "capacity": "Capacidad",
+    "people": "personas",
+    "status": "Situación",
+    "active": "Activa"
+  },
+  "validation": {
+    "name": "El nombre del cliente es obligatorio.",
+    "phoneRequired": "El teléfono del cliente es obligatorio.",
+    "phoneFormat": "El teléfono debe contener exactamente 8 dígitos.",
+    "people": "El número de personas debe ser mayor que cero.",
+    "dateRequired": "La fecha y hora son obligatorias.",
+    "future": "La reserva debe programarse para un horario futuro.",
+    "tableRequired": "Debes seleccionar una mesa.",
+    "capacity": "La capacidad de la mesa es insuficiente para la reserva."
+  },
+  "notice": "Solamente se muestran mesas activas. El sistema verificará también que la mesa no tenga otra reserva en el horario solicitado.",
+  "actions": {
+    "save": "Registrar reserva",
+    "saving": "Registrando..."
+  },
+  "success": {
+    "title": "Reserva registrada",
+    "message": "La reserva {{code}} fue registrada correctamente para la mesa {{table}}."
+  }
 },
 
 "configuration": {

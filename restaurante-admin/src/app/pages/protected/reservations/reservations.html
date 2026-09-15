@@ -1,0 +1,264 @@
+<app-page-heading
+  eyebrowKey="reservations.eyebrow"
+  titleKey="reservations.title"
+  descriptionKey="reservations.description"
+/>
+
+<section class="reservation-card">
+  <header class="reservation-card__header">
+    <span class="reservation-card__icon">
+      <i class="pi pi-calendar-plus"></i>
+    </span>
+
+    <div>
+      <span class="reservation-card__eyebrow">
+        {{ 'reservations.form.eyebrow' | transloco }}
+      </span>
+
+      <h2>
+        {{ 'reservations.form.title' | transloco }}
+      </h2>
+
+      <p>
+        {{ 'reservations.form.description' | transloco }}
+      </p>
+    </div>
+  </header>
+
+  <app-form-feedback [message]="serverMessage()" />
+
+  <form
+    class="reservation-form"
+    [formGroup]="reservationForm"
+    (ngSubmit)="submit()"
+    novalidate
+  >
+    <div class="form-grid">
+      <div class="form-field">
+        <label for="customer-name">
+          {{ 'reservations.fields.name' | transloco }}
+        </label>
+
+        <input
+          id="customer-name"
+          type="text"
+          formControlName="nombreCliente"
+          maxlength="150"
+          autocomplete="name"
+        />
+
+        @if (invalid('nombreCliente')) {
+          <small class="field-error">
+            {{ 'reservations.validation.name' | transloco }}
+          </small>
+        }
+      </div>
+
+      <div class="form-field">
+        <label for="customer-phone">
+          {{ 'reservations.fields.phone' | transloco }}
+        </label>
+
+        <input
+            id="customer-phone"
+            type="tel"
+            formControlName="telefonoCliente"
+            maxlength="8"
+            inputmode="numeric"
+            pattern="[0-9]{8}"
+            autocomplete="tel"
+            (input)="onPhoneInput($event)"
+            />
+
+        @if (
+            reservationForm.controls.telefonoCliente.hasError('required') &&
+            (reservationForm.controls.telefonoCliente.touched || submitted())
+            ) {
+            <small class="field-error">
+                {{ 'reservations.validation.phoneRequired' | transloco }}
+            </small>
+            } @else if (
+            reservationForm.controls.telefonoCliente.hasError('pattern') &&
+            (reservationForm.controls.telefonoCliente.touched || submitted())
+            ) {
+            <small class="field-error">
+                {{ 'reservations.validation.phoneFormat' | transloco }}
+            </small>
+            }
+      </div>
+
+      <div class="form-field">
+        <label for="people-count">
+          {{ 'reservations.fields.people' | transloco }}
+        </label>
+
+        <input
+          id="people-count"
+          type="number"
+          formControlName="cantidadPersonas"
+          min="1"
+          step="1"
+        />
+
+        @if (invalid('cantidadPersonas')) {
+          <small class="field-error">
+            {{ 'reservations.validation.people' | transloco }}
+          </small>
+        }
+      </div>
+
+      <div class="form-field">
+        <label for="reservation-date">
+          {{ 'reservations.fields.dateTime' | transloco }}
+        </label>
+
+        <input
+          id="reservation-date"
+          type="datetime-local"
+          formControlName="fechaHoraInicio"
+        />
+
+        @if (
+            reservationForm.controls.fechaHoraInicio.hasError('required') &&
+            (reservationForm.controls.fechaHoraInicio.touched || submitted())
+            ) {
+            <small class="field-error">
+                {{ 'reservations.validation.dateRequired' | transloco }}
+            </small>
+            } @else if (
+            reservationForm.controls.fechaHoraInicio.hasError('reservationMustBeFuture') &&
+            (reservationForm.controls.fechaHoraInicio.touched || submitted())
+            ) {
+            <small class="field-error">
+                {{ 'reservations.validation.future' | transloco }}
+            </small>
+            }
+      </div>
+    </div>
+
+    <div class="form-field">
+      <label for="reservation-table">
+        {{ 'reservations.fields.table' | transloco }}
+      </label>
+
+      @if (isLoadingTables()) {
+        <div class="loading-tables">
+          <i class="pi pi-spin pi-spinner"></i>
+          {{ 'reservations.tables.loading' | transloco }}
+        </div>
+      } @else {
+        <select
+          id="reservation-table"
+          formControlName="mesaId"
+        >
+          <option [ngValue]="0">
+            {{ 'reservations.tables.placeholder' | transloco }}
+          </option>
+
+          @for (table of activeTables(); track table.id) {
+            <option [ngValue]="table.id">
+              Mesa {{ table.numero }} ·
+              {{ table.zona.nombre }} ·
+              {{ table.capacidad }} personas
+            </option>
+          }
+        </select>
+
+        @if (activeTables().length === 0) {
+          <small class="field-error">
+            {{ 'reservations.tables.empty' | transloco }}
+          </small>
+        }
+
+        @if (invalid('mesaId')) {
+          <small class="field-error">
+            {{ 'reservations.validation.tableRequired' | transloco }}
+          </small>
+        }
+
+        @if (capacityInvalid()) {
+          <small class="field-error">
+            {{ 'reservations.validation.capacity' | transloco }}
+          </small>
+        }
+      }
+    </div>
+
+    @if (selectedTable(); as table) {
+      <div class="table-summary">
+        <div>
+          <span>
+            {{ 'reservations.tableSummary.number' | transloco }}
+          </span>
+          <strong>Mesa {{ table.numero }}</strong>
+        </div>
+
+        <div>
+          <span>
+            {{ 'reservations.tableSummary.zone' | transloco }}
+          </span>
+          <strong>{{ table.zona.nombre }}</strong>
+        </div>
+
+        <div>
+          <span>
+            {{ 'reservations.tableSummary.capacity' | transloco }}
+          </span>
+          <strong>
+            {{ table.capacidad }}
+            {{ 'reservations.tableSummary.people' | transloco }}
+          </strong>
+        </div>
+
+        <div>
+          <span>
+            {{ 'reservations.tableSummary.status' | transloco }}
+          </span>
+          <strong class="available-badge">
+            <i class="pi pi-check-circle"></i>
+            {{ 'reservations.tableSummary.active' | transloco }}
+          </strong>
+        </div>
+      </div>
+    }
+
+    <div class="form-field">
+      <label for="reservation-notes">
+        {{ 'reservations.fields.notes' | transloco }}
+      </label>
+
+      <textarea
+        id="reservation-notes"
+        formControlName="notas"
+        maxlength="500"
+        rows="4"
+      ></textarea>
+
+      <small class="field-hint">
+        {{ 'reservations.fields.notesHint' | transloco }}
+      </small>
+    </div>
+
+    <div class="reservation-notice">
+      <i class="pi pi-info-circle"></i>
+
+      <span>
+        {{ 'reservations.notice' | transloco }}
+      </span>
+    </div>
+
+    <button
+      class="save-button"
+      type="submit"
+      [disabled]="isSaving() || activeTables().length === 0"
+    >
+      @if (isSaving()) {
+        <i class="pi pi-spin pi-spinner"></i>
+        {{ 'reservations.actions.saving' | transloco }}
+      } @else {
+        <i class="pi pi-calendar-plus"></i>
+        {{ 'reservations.actions.save' | transloco }}
+      }
+    </button>
+  </form>
+</section>
