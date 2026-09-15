@@ -12,8 +12,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import jakarta.persistence.EntityManager;
 import com.restaurante.web.dto.cash.CloseCashShiftRequest;
-import com.restaurante.web.dto.cash.CloseCashShiftResponse;
-import com.restaurante.domain.model.Role;
 
 @Service
 public class CashShiftService {
