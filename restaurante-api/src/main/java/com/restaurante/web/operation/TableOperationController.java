@@ -5,7 +5,10 @@ import com.restaurante.application.table.TableService;
 import com.restaurante.domain.model.TableStatus;
 import com.restaurante.web.dto.table.SeatReservationRequest;
 import com.restaurante.web.dto.table.SeatReservationResponse;
+import com.restaurante.web.dto.table.SeatWaitlistRequest;
+import com.restaurante.web.dto.table.SeatWaitlistResponse;
 import com.restaurante.web.dto.table.TableResponse;
+import com.restaurante.web.dto.waitlist.WaitlistSuggestionResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
@@ -164,5 +167,92 @@ public class TableOperationController {
             Authentication authentication) {
 
         return ResponseEntity.ok(tableSeatingService.seatReservation(id, request, authentication));
+    }
+
+    @PostMapping({ "/{id}/sentar-espera", "/{id}/confirmar-espera" })
+    @PreAuthorize("hasAnyRole('WAITER', 'ADMIN')")
+    @Operation(
+            summary = "Sentar cliente sugerido de lista de espera en la mesa",
+            description = "Confirma sentar al cliente sugerido de la lista de espera cuando la mesa compatible se libera, cambiando el estado de la mesa a 'OCUPADA', retirando al cliente de la lista de espera (estado SENTADA) y abriendo la cuenta respectiva."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Cliente de la lista de espera sentado exitosamente y mesa cambiada a ocupada",
+                    content = @Content(schema = @Schema(implementation = SeatWaitlistResponse.class))
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Datos inválidos",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "No autenticado o token JWT no provisto",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Acceso denegado (requiere rol de mesero o administrador)",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Mesa o entrada de lista de espera no encontrada",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "409",
+                    description = "Mesa ocupada, reservada por horario/cliente, capacidad insuficiente o sin cliente sugerido",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            )
+    })
+    public ResponseEntity<SeatWaitlistResponse> seatWaitlistCustomer(
+            @Parameter(description = "Identificador único de la mesa", required = true)
+            @PathVariable Long id,
+            @Valid @RequestBody(required = false) SeatWaitlistRequest request,
+            Authentication authentication) {
+
+        return ResponseEntity.ok(tableSeatingService.seatWaitlistEntry(id, request, authentication));
+    }
+
+    @GetMapping("/{id}/sugerencia-espera")
+    @PreAuthorize("hasAnyRole('WAITER', 'ADMIN')")
+    @Operation(
+            summary = "Consultar cliente sugerido de lista de espera para la mesa",
+            description = "Obtiene la sugerencia activa de lista de espera para la mesa liberada o genera una sugerencia si existen clientes compatibles esperando."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Sugerencia de cliente de lista de espera para la mesa",
+                    content = @Content(schema = @Schema(implementation = WaitlistSuggestionResponse.class))
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "No autenticado o token JWT no provisto",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Acceso denegado (requiere rol de mesero o administrador)",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Mesa no encontrada",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            )
+    })
+    public ResponseEntity<WaitlistSuggestionResponse> getTableWaitlistSuggestion(
+            @Parameter(description = "Identificador único de la mesa", required = true)
+            @PathVariable Long id,
+            Authentication authentication) {
+
+        WaitlistSuggestionResponse suggestion = tableSeatingService.getWaitlistSuggestionForTable(id, authentication);
+        if (suggestion == null) {
+            return ResponseEntity.noContent().build();
+        }
+        return ResponseEntity.ok(suggestion);
     }
 }
