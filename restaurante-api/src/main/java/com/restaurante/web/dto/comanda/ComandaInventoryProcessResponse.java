@@ -16,6 +16,12 @@ public record ComandaInventoryProcessResponse(
         ComandaResponse comanda,
 
         @Schema(description = "Movimientos de salida registrados en el kardex de inventario")
-        List<KardexMovementResponse> movements
+        List<KardexMovementResponse> movements,
+
+        @Schema(description = "Platillos rechazados por falta de stock de insumos")
+        List<RejectedDishDetailResponse> rejectedDishes
 ) {
+    public ComandaInventoryProcessResponse(String message, ComandaResponse comanda, List<KardexMovementResponse> movements) {
+        this(message, comanda, movements, List.of());
+    }
 }
