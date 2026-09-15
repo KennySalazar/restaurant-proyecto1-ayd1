@@ -19,4 +19,12 @@ public interface ComandaDetailRepository extends JpaRepository<ComandaDetail, Lo
     List<ComandaDetail> findByComandaIdWithModifiers(
             @Param("comandaId") Long comandaId
     );
+
+    @Query("""
+           SELECT COUNT(d)
+           FROM ComandaDetail d
+           WHERE d.comanda.account.id = :accountId
+             AND d.status NOT IN (com.restaurante.domain.model.ComandaDetailStatus.CANCELADO, com.restaurante.domain.model.ComandaDetailStatus.NO_DISPONIBLE)
+           """)
+    long countActiveByAccountId(@Param("accountId") Long accountId);
 }

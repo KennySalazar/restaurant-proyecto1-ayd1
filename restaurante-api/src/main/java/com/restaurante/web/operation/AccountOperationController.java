@@ -6,6 +6,7 @@ import com.restaurante.web.dto.account.AccountResponse;
 import com.restaurante.web.dto.account.MergeAccountsRequest;
 import com.restaurante.web.dto.account.MergeAccountsResponse;
 import com.restaurante.web.dto.account.OpenAccountRequest;
+import com.restaurante.web.dto.account.RequestBillResponse;
 import com.restaurante.web.dto.account.TransferAccountRequest;
 import com.restaurante.web.dto.account.TransferAccountResponse;
 import com.restaurante.web.dto.subaccount.AssignItemRequest;
@@ -313,7 +314,7 @@ public class AccountOperationController {
         return ResponseEntity.ok(accountService.mergeAccountsById(id, request, authentication));
     }
 
-    @PostMapping({ "/{id}/dividir/personas", "/{id}/dividir-personas" })
+    @PostMapping("/{id}/dividir/personas")
     @PreAuthorize("hasAnyRole('WAITER', 'ADMIN')")
     @Operation(
             summary = "Dividir cuenta por número de personas",
@@ -360,7 +361,7 @@ public class AccountOperationController {
         return ResponseEntity.ok(subaccountService.splitByPeople(id, request, authentication));
     }
 
-    @PostMapping({ "/{id}/dividir/items", "/{id}/dividir-items" })
+    @PostMapping("/{id}/dividir/items")
     @PreAuthorize("hasAnyRole('WAITER', 'ADMIN')")
     @Operation(
             summary = "Dividir cuenta por ítems específicos",
@@ -480,5 +481,41 @@ public class AccountOperationController {
             Authentication authentication) {
 
         return ResponseEntity.ok(subaccountService.getSubaccountsByAccountId(id, authentication));
+    }
+
+    @PostMapping("/{id}/solicitar-cobro")
+    @PreAuthorize("hasAnyRole('WAITER', 'ADMIN')")
+    @Operation(
+            summary = "Marcar cuenta como lista para cobro",
+            description = "Marca la cuenta como lista para cobro, cambia el estado de la mesa a 'CUENTA_SOLICITADA' y genera notificación para el cajero. Requiere que la cuenta tenga al menos un platillo registrado."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Cuenta marcada exitosamente como lista para cobro",
+                    content = @Content(schema = @Schema(implementation = RequestBillResponse.class))
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "La cuenta no tiene platillos registrados",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Cuenta o mesa no encontrada",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "409",
+                    description = "La cuenta ya se encuentra marcada como lista para cobro o no está en estado ABIERTA",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            )
+    })
+    public ResponseEntity<RequestBillResponse> requestBill(
+            @Parameter(description = "Identificador único de la cuenta", required = true)
+            @PathVariable Long id,
+            Authentication authentication) {
+
+        return ResponseEntity.ok(accountService.requestBillById(id, authentication));
     }
 }
