@@ -3,6 +3,8 @@ package com.restaurante.web.operation;
 import com.restaurante.application.account.AccountService;
 import com.restaurante.web.dto.account.AccountResponse;
 import com.restaurante.web.dto.account.OpenAccountRequest;
+import com.restaurante.web.dto.account.TransferAccountRequest;
+import com.restaurante.web.dto.account.TransferAccountResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
@@ -160,5 +162,52 @@ public class AccountOperationController {
     })
     public ResponseEntity<List<AccountResponse>> getActiveAccounts(Authentication authentication) {
         return ResponseEntity.ok(accountService.getActiveAccounts(authentication));
+    }
+
+    @PostMapping("/{id}/transferir")
+    @PreAuthorize("hasAnyRole('WAITER', 'ADMIN')")
+    @Operation(
+            summary = "Transferir cuenta a otra mesa libre",
+            description = "Transfiere una cuenta abierta a una mesa libre destino, conservando todas las comandas ya registradas, liberando la mesa origen y ocupando la mesa destino. Si la mesa destino no está en estado 'libre' o disponible, la acción es bloqueada."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Cuenta transferida exitosamente a la mesa libre",
+                    content = @Content(schema = @Schema(implementation = TransferAccountResponse.class))
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Mesa destino requerida o idéntica a mesa origen",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "No autenticado o token JWT no provisto",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Acceso denegado (requiere rol de mesero o administrador)",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Cuenta o mesa no encontrada",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "409",
+                    description = "La mesa destino no está disponible",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            )
+    })
+    public ResponseEntity<TransferAccountResponse> transferAccount(
+            @Parameter(description = "Identificador de la cuenta a transferir", required = true)
+            @PathVariable Long id,
+            @Valid @RequestBody TransferAccountRequest request,
+            Authentication authentication) {
+
+        return ResponseEntity.ok(accountService.transferAccountById(id, request, authentication));
     }
 }

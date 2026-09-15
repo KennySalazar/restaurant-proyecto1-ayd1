@@ -1,11 +1,14 @@
 package com.restaurante.application.account;
 
 import com.restaurante.domain.model.Account;
+import com.restaurante.domain.model.AccountTransfer;
 import com.restaurante.domain.model.Reservation;
 import com.restaurante.domain.model.RestaurantTable;
 import com.restaurante.domain.model.RestaurantUserProfile;
 import com.restaurante.domain.model.TableStatus;
 import com.restaurante.domain.repository.AccountRepository;
+import com.restaurante.domain.repository.AccountTransferRepository;
+import com.restaurante.domain.repository.ComandaRepository;
 import com.restaurante.domain.repository.ReservationRepository;
 import com.restaurante.domain.repository.RestaurantTableRepository;
 import com.restaurante.domain.repository.RestaurantUserProfileRepository;
@@ -13,18 +16,21 @@ import com.restaurante.exception.ApiException;
 import com.restaurante.security.JwtData;
 import com.restaurante.web.dto.account.AccountResponse;
 import com.restaurante.web.dto.account.OpenAccountRequest;
+import com.restaurante.web.dto.account.TransferAccountRequest;
+import com.restaurante.web.dto.account.TransferAccountResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 
 /**
- * Servicio de aplicación para la gestión y apertura de cuentas de consumo en mesas del restaurante.
+ * Servicio de aplicación para la gestión, apertura y transferencia de cuentas de consumo en mesas del restaurante.
  */
 @Service
 public class AccountService {
@@ -35,16 +41,22 @@ public class AccountService {
     private final RestaurantTableRepository tableRepository;
     private final ReservationRepository reservationRepository;
     private final RestaurantUserProfileRepository userProfileRepository;
+    private final AccountTransferRepository accountTransferRepository;
+    private final ComandaRepository comandaRepository;
 
     public AccountService(
             AccountRepository accountRepository,
             RestaurantTableRepository tableRepository,
             ReservationRepository reservationRepository,
-            RestaurantUserProfileRepository userProfileRepository) {
+            RestaurantUserProfileRepository userProfileRepository,
+            AccountTransferRepository accountTransferRepository,
+            ComandaRepository comandaRepository) {
         this.accountRepository = accountRepository;
         this.tableRepository = tableRepository;
         this.reservationRepository = reservationRepository;
         this.userProfileRepository = userProfileRepository;
+        this.accountTransferRepository = accountTransferRepository;
+        this.comandaRepository = comandaRepository;
     }
 
     /**
@@ -218,6 +230,192 @@ public class AccountService {
                     return toResponse(acc, table, waiterName);
                 })
                 .toList();
+    }
+
+    /**
+     * Transfiere una cuenta abierta a otra mesa identificándola por su ID de cuenta.
+     */
+    @Transactional
+    public TransferAccountResponse transferAccountById(
+            Long accountId,
+            TransferAccountRequest request,
+            Authentication authentication) {
+        return transferAccount(accountId, false, request, authentication);
+    }
+
+    /**
+     * Transfiere la cuenta activa de una mesa a otra mesa identificándola por la mesa origen.
+     */
+    @Transactional
+    public TransferAccountResponse transferAccountByTable(
+            Long originTableId,
+            TransferAccountRequest request,
+            Authentication authentication) {
+        return transferAccount(originTableId, true, request, authentication);
+    }
+
+    /**
+     * Realiza la transferencia de una cuenta abierta a una mesa libre destino.
+     * Conserva todas las comandas de la cuenta, libera la mesa origen y ocupa la mesa destino.
+     * Si la mesa destino no está en estado "libre" o disponible, impide la transferencia.
+     */
+    @Transactional
+    public TransferAccountResponse transferAccount(
+            Long accountIdOrTableId,
+            boolean isTableId,
+            TransferAccountRequest request,
+            Authentication authentication) {
+
+        if (request == null || request.mesaDestinoId() == null) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "missing_destination_table",
+                    "Mesa destino requerida",
+                    "Debe especificar la mesa destino para la transferencia"
+            );
+        }
+
+        AuthenticatedUser context = getAuthenticatedUser(authentication);
+        Long restaurantId = context.restaurantId();
+
+        Account account;
+        if (isTableId) {
+            account = accountRepository
+                    .findActiveByTableIdAndRestaurantId(accountIdOrTableId, restaurantId)
+                    .orElseThrow(() -> new ApiException(
+                            HttpStatus.NOT_FOUND,
+                            "active_account_not_found",
+                            "Sin cuenta activa",
+                            "La mesa de origen no tiene una cuenta activa para transferir"
+                    ));
+        } else {
+            account = accountRepository
+                    .findByIdAndRestaurantId(accountIdOrTableId, restaurantId)
+                    .orElseThrow(() -> new ApiException(
+                            HttpStatus.NOT_FOUND,
+                            "account_not_found",
+                            "Cuenta no encontrada",
+                            "La cuenta seleccionada no existe"
+                    ));
+        }
+
+        if (!"ABIERTA".equals(account.getStatus()) && !"LISTA_COBRO".equals(account.getStatus())) {
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "invalid_account_status",
+                    "Estado de cuenta no transferible",
+                    "Solo se pueden transferir cuentas en estado activa o abierta"
+            );
+        }
+
+        Long originTableId = account.getTableId();
+        Long destinationTableId = request.mesaDestinoId();
+
+        if (originTableId.equals(destinationTableId)) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "same_table_transfer",
+                    "Mesa destino inválida",
+                    "La mesa destino debe ser diferente a la mesa origen"
+            );
+        }
+
+        RestaurantTable originTable = tableRepository
+                .findByIdAndRestaurantId(originTableId, restaurantId)
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "origin_table_not_found",
+                        "Mesa origen no encontrada",
+                        "La mesa de origen de la cuenta no existe"
+                ));
+
+        RestaurantTable destinationTable = tableRepository
+                .findByIdAndRestaurantId(destinationTableId, restaurantId)
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "destination_table_not_found",
+                        "Mesa destino no encontrada",
+                        "La mesa destino no existe"
+                ));
+
+        // Validar que la mesa destino esté activa y en estado 'LIBRE'
+        if (!destinationTable.isActive() || destinationTable.getStatus() != TableStatus.LIBRE) {
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "destination_table_not_available",
+                    "Mesa destino no disponible",
+                    "La mesa destino no está disponible"
+            );
+        }
+
+        // Validar que la mesa destino no tenga ya una cuenta activa
+        Optional<Account> destAccount = accountRepository
+                .findActiveByTableIdAndRestaurantId(destinationTable.getId(), restaurantId);
+        if (destAccount.isPresent()) {
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "destination_table_not_available",
+                    "Mesa destino no disponible",
+                    "La mesa destino no está disponible"
+            );
+        }
+
+        // Validar que la mesa destino no esté bloqueada por reservas en la ventana horaria actual
+        OffsetDateTime now = OffsetDateTime.now(GUATEMALA);
+        List<Reservation> activeReservations = reservationRepository
+                .findActiveReservationsForTable(destinationTable.getId(), now.minusMinutes(45), now.plusMinutes(15));
+        if (!activeReservations.isEmpty()) {
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "destination_table_not_available",
+                    "Mesa destino no disponible",
+                    "La mesa destino no está disponible"
+            );
+        }
+
+        // Reubicar la cuenta en la mesa destino
+        account.setTableId(destinationTable.getId());
+        Account savedAccount = accountRepository.save(account);
+
+        // La mesa origen debe quedar "libre"
+        originTable.setStatus(TableStatus.LIBRE);
+        tableRepository.save(originTable);
+
+        // La mesa destino debe quedar "ocupada"
+        destinationTable.occupy();
+        tableRepository.save(destinationTable);
+
+        // Registrar la auditoría de transferencia
+        String reason = request.motivo() != null && !request.motivo().trim().isEmpty()
+                ? request.motivo().trim()
+                : "Reubicación de cliente";
+        AccountTransfer transfer = new AccountTransfer(
+                savedAccount.getId(),
+                originTable.getId(),
+                destinationTable.getId(),
+                context.userId(),
+                reason
+        );
+        accountTransferRepository.save(transfer);
+
+        // Conservar comandas ya registradas asociadas a la cuenta
+        int totalComandas = comandaRepository.findByAccountId(savedAccount.getId()).size();
+
+        return new TransferAccountResponse(
+                "Cuenta transferida exitosamente a la mesa destino",
+                savedAccount.getId(),
+                savedAccount.getAccountNumber(),
+                originTable.getId(),
+                originTable.getNumber(),
+                TableStatus.LIBRE,
+                destinationTable.getId(),
+                destinationTable.getNumber(),
+                TableStatus.OCUPADA,
+                totalComandas,
+                context.userId(),
+                reason,
+                Instant.now()
+        );
     }
 
     private AccountResponse toResponse(Account account, RestaurantTable table, String waiterName) {
