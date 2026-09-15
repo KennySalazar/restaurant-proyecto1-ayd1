@@ -93,6 +93,16 @@ export const routes: Routes = [
       },
 
       {
+          path: 'reservations',
+          loadComponent: () =>
+            import(
+              './pages/protected/reservations/reservations'
+            ).then(
+              (module) => module.ReservationsPageComponent,
+            ),
+        },
+
+      {
         path: 'employees',
         loadComponent: () =>
           import('./pages/protected/employees/employees').then(
