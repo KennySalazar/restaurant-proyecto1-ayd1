@@ -60,4 +60,106 @@ public class CashTransaction {
 
         return transaction;
     }
+
+    public static CashTransaction sale(
+            Long shiftId,
+            Long invoiceId,
+            Long paymentId,
+            Long cashierId,
+            BigDecimal amount) {
+
+        CashTransaction transaction = new CashTransaction();
+        transaction.cashShiftId = shiftId;
+        transaction.invoiceId = invoiceId;
+        transaction.paymentId = paymentId;
+        transaction.type = CashTransactionType.VENTA;
+        transaction.amount = amount;
+        transaction.points = 0L;
+        transaction.description = "Venta registrada durante el turno de caja";
+        transaction.registeredById = cashierId;
+        transaction.registeredAt = Instant.now();
+
+        return transaction;
+    }
+
+    public static CashTransaction tip(
+            Long shiftId,
+            Long invoiceId,
+            Long cashierId,
+            BigDecimal amount) {
+
+        CashTransaction transaction = new CashTransaction();
+        transaction.cashShiftId = shiftId;
+        transaction.invoiceId = invoiceId;
+        transaction.paymentId = null;
+        transaction.type = CashTransactionType.PROPINA;
+        transaction.amount = amount;
+        transaction.points = 0L;
+        transaction.description = "Propina registrada durante el turno de caja";
+        transaction.registeredById = cashierId;
+        transaction.registeredAt = Instant.now();
+
+        return transaction;
+    }
+
+    public static CashTransaction pointsRedemption(
+            Long shiftId,
+            Long invoiceId,
+            Long cashierId,
+            BigDecimal amount,
+            Long points) {
+
+        CashTransaction transaction = new CashTransaction();
+        transaction.cashShiftId = shiftId;
+        transaction.invoiceId = invoiceId;
+        transaction.paymentId = null;
+        transaction.type = CashTransactionType.REDENCION_PUNTOS;
+        transaction.amount = amount;
+        transaction.points = points;
+        transaction.description = "Redencion de puntos registrada durante el turno de caja";
+        transaction.registeredById = cashierId;
+        transaction.registeredAt = Instant.now();
+
+        return transaction;
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public Long getCashShiftId() {
+        return cashShiftId;
+    }
+
+    public Long getInvoiceId() {
+        return invoiceId;
+    }
+
+    public Long getPaymentId() {
+        return paymentId;
+    }
+
+    public CashTransactionType getType() {
+        return type;
+    }
+
+    public BigDecimal getAmount() {
+        return amount;
+    }
+
+    public Long getPoints() {
+        return points;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public Long getRegisteredById() {
+        return registeredById;
+    }
+
+    public Instant getRegisteredAt() {
+        return registeredAt;
+    }
 }
