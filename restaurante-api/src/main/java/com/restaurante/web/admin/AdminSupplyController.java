@@ -1,7 +1,10 @@
 package com.restaurante.web.admin;
 
+import com.restaurante.application.inventory.InventoryAdjustmentService;
 import com.restaurante.application.inventory.KardexService;
 import com.restaurante.application.supply.SupplyService;
+import com.restaurante.web.dto.inventory.CreateInventoryAdjustmentRequest;
+import com.restaurante.web.dto.inventory.InventoryAdjustmentResponse;
 import com.restaurante.web.dto.kardex.KardexRecordResponse;
 import com.restaurante.web.dto.supply.ConfigureStockLimitsRequest;
 import com.restaurante.web.dto.supply.CreateSupplyEntryRequest;
@@ -59,10 +62,14 @@ public class AdminSupplyController {
 
         private final SupplyService supplyService;
         private final KardexService kardexService;
+        private final InventoryAdjustmentService inventoryAdjustmentService;
 
-        public AdminSupplyController(SupplyService supplyService, KardexService kardexService) {
+        public AdminSupplyController(SupplyService supplyService,
+                                     KardexService kardexService,
+                                     InventoryAdjustmentService inventoryAdjustmentService) {
                 this.supplyService = supplyService;
                 this.kardexService = kardexService;
+                this.inventoryAdjustmentService = inventoryAdjustmentService;
         }
 
         @PostMapping
@@ -285,5 +292,38 @@ public class AdminSupplyController {
                                         .body(movements);
                 }
                 return ResponseEntity.ok(movements);
+        }
+
+        @PostMapping({ "/{id}/adjustments", "/{id}/ajustes" })
+        @Operation(summary = "Registrar ajuste manual de inventario para un insumo", description = "Registra un ajuste manual de existencias (aumento o disminución) para un insumo específico, actualizando existencias, registrando el movimiento en el kardex, verificando alertas de stock bajo y actualizando la disponibilidad de platillos.")
+        @ApiResponses({
+                        @ApiResponse(responseCode = "201", description = "Ajuste manual de inventario registrado exitosamente", content = @Content(schema = @Schema(implementation = InventoryAdjustmentResponse.class))),
+                        @ApiResponse(responseCode = "400", description = "Motivo faltante, cantidad menor o igual a cero, o cantidad excede existencias disponibles", content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+                        @ApiResponse(responseCode = "401", description = "No autenticado o token JWT no provisto", content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+                        @ApiResponse(responseCode = "403", description = "Acceso denegado (requiere rol ADMIN)", content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+                        @ApiResponse(responseCode = "404", description = "Insumo no encontrado o inactivo", content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+        })
+        public ResponseEntity<InventoryAdjustmentResponse> registerAdjustment(
+                        @Parameter(description = "Identificador único del insumo", required = true) @PathVariable Long id,
+                        @Valid @RequestBody CreateInventoryAdjustmentRequest request,
+                        @Parameter(hidden = true) Authentication authentication) {
+                return ResponseEntity.status(HttpStatus.CREATED)
+                                .body(inventoryAdjustmentService.registerAdjustment(id, request, authentication));
+        }
+
+        @PostMapping({ "/adjustments", "/ajustes" })
+        @Operation(summary = "Registrar ajuste manual de inventario general", description = "Registra un ajuste manual de existencias indicando el identificador del insumo en el cuerpo de la solicitud.")
+        @ApiResponses({
+                        @ApiResponse(responseCode = "201", description = "Ajuste manual de inventario registrado exitosamente", content = @Content(schema = @Schema(implementation = InventoryAdjustmentResponse.class))),
+                        @ApiResponse(responseCode = "400", description = "Campos obligatorios vacíos o cantidad inválida", content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+                        @ApiResponse(responseCode = "401", description = "No autenticado o token JWT no provisto", content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+                        @ApiResponse(responseCode = "403", description = "Acceso denegado (requiere rol ADMIN)", content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+                        @ApiResponse(responseCode = "404", description = "Insumo no encontrado o inactivo", content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+        })
+        public ResponseEntity<InventoryAdjustmentResponse> registerGeneralAdjustment(
+                        @Valid @RequestBody CreateInventoryAdjustmentRequest request,
+                        @Parameter(hidden = true) Authentication authentication) {
+                return ResponseEntity.status(HttpStatus.CREATED)
+                                .body(inventoryAdjustmentService.registerAdjustment(request.supplyId(), request, authentication));
         }
 }
