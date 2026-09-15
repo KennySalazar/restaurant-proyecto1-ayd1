@@ -48,6 +48,13 @@ const NAVIGATION: readonly NavigationItem[] = [
     icon: 'pi-calendar',
     roles: ['ADMIN'],
   },
+
+  {
+    path: '/app/waitlist',
+    labelKey: 'nav.waitlist',
+    icon: 'pi-clock',
+    roles: ['ADMIN'],
+  },
   { path: '/app/security', labelKey: 'nav.security', icon: 'pi-shield' },
   {
     path: '/app/admin',
