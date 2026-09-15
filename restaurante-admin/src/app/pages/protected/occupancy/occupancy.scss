@@ -98,6 +98,11 @@
   color: #ad4a38;
 }
 
+.summary-icon--requested {
+  background: #eee8fb;
+  color: #69509a;
+}
+
 .occupancy-panel {
   overflow: hidden;
   border: 1px solid #ead9ce;
@@ -377,5 +382,11 @@
   .header-actions {
     align-items: flex-start;
     flex-direction: column;
+  }
+}
+
+@media (max-width: 1300px) {
+  .summary-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }

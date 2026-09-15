@@ -402,11 +402,12 @@
   "account": "Cuenta:",
   "waitlist": "Lista de espera:",
   "summary": {
-    "total": "Mesas",
-    "free": "Libres",
-    "reserved": "Reservadas",
-    "occupied": "Ocupadas"
-  },
+  "total": "Mesas",
+  "free": "Libres",
+  "reserved": "Reservadas",
+  "occupied": "Ocupadas",
+  "requested": "Cuenta solicitada"
+},
   "list": {
     "title": "Estado actual de las mesas",
     "description": "El panel se actualiza automáticamente cada 5 segundos."
