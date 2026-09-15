@@ -179,11 +179,18 @@ public class TableService {
 
     @Transactional(readOnly = true)
     public List<TableResponse> getTables(Authentication authentication) {
+        return getTables(null, null, authentication);
+    }
+
+    @Transactional(readOnly = true)
+    public List<TableResponse> getTables(Long zoneId, TableStatus status, Authentication authentication) {
 
         Long restaurantId = getRestaurantId(authentication);
 
         return tables.findAllByRestaurantIdOrderByIdAsc(restaurantId)
                 .stream()
+                .filter(table -> zoneId == null || (table.getZone() != null && zoneId.equals(table.getZone().getId())))
+                .filter(table -> status == null || table.getStatus() == status)
                 .map(this::toResponse)
                 .toList();
     }
