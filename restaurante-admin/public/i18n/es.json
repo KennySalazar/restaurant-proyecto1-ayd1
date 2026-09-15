@@ -57,7 +57,6 @@
       "submit": "Iniciar sesión"
     },
 
-
     "loginVerify": {
       "kicker": "Verificación de seguridad",
       "title": "Confirma tu acceso",
@@ -84,8 +83,6 @@
       "confirmPlaceholder": "Repite la nueva contraseña",
       "submit": "Restablecer contraseña"
     }
-
-
   },
   "validation": {
     "required": "Este campo es obligatorio.",
@@ -112,303 +109,339 @@
   },
 
   "tables": {
-  "eyebrow": "Configuración del restaurante",
-  "title": "Mesas registradas",
-  "description": "Consulta la configuración, ubicación y estado actual de las mesas del restaurante.",
-  "people": "personas",
-  "summary": {
-    "total": "Mesas registradas",
-    "active": "Mesas activas",
-    "retired": "Mesas retiradas"
-  },
-  "list": {
-    "title": "Listado de mesas",
-    "description": "Información actualizada de las mesas registradas.",
-    "refresh": "Actualizar",
-    "emptyTitle": "Todavía no existen mesas registradas",
-    "emptyDescription": "Cuando se registren mesas en el restaurante aparecerán en este listado."
-  },
-  "columns": {
-    "number": "Número",
-    "capacity": "Capacidad",
-    "zone": "Zona",
-    "status": "Estado actual",
-    "activity": "Situación",
-    "actions": "Acciones"
-  },
-  "states": {
-    "LIBRE": "Libre",
-    "RESERVADA": "Reservada",
-    "OCUPADA": "Ocupada",
-    "CUENTA_SOLICITADA": "Cuenta solicitada"
-  },
-  "activity": {
-    "active": "Activa",
-    "retired": "Retirada"
-  },
-  "actions": {
-  "view": "Ver detalle",
-  "close": "Cerrar detalle",
-  "retire": "Retirar",
-  "alreadyRetired": "Retirada"
-},
-  "detail": {
-    "eyebrow": "Detalle de mesa",
-    "title": "Mesa"
-  },
-
-  "retirement": {
-  "eyebrow": "Retiro de mesa",
-  "title": "¿Retirar la mesa {{number}}?",
-  "description": "La mesa dejará de estar disponible para nuevas operaciones.",
-  "historyNotice": "La información histórica y las operaciones anteriores asociadas a esta mesa se conservarán.",
-  "cancel": "Cancelar",
-  "confirm": "Confirmar retiro",
-  "processing": "Retirando...",
-  "successTitle": "Mesa retirada",
-  "successMessage": "La mesa {{number}} fue retirada correctamente.",
-  "alreadyRetiredTitle": "Mesa ya retirada",
-  "alreadyRetiredMessage": "La mesa seleccionada ya se encuentra retirada."
-}
-
-},
-
-"supplies": {
-  "eyebrow": "Catálogo de insumos",
-  "title": "Catálogo de insumos",
-  "description": "Consulta la materia prima disponible y revisa su información de compra e inventario.",
-  "summary": {
-    "total": "Insumos registrados",
-    "active": "Insumos activos",
-    "outOfStock": "Sin existencias"
-  },
-  "list": {
-    "title": "Listado de insumos",
-    "description": "Información actualizada de los insumos registrados.",
-    "refresh": "Actualizar",
-    "emptyTitle": "Todavía no existen insumos registrados",
-    "emptyDescription": "Cuando se registren insumos en el catálogo aparecerán en este listado.",
-    "noResultsTitle": "No se encontraron insumos",
-    "noResultsDescription": "Ningún insumo coincide con los filtros de búsqueda o categoría aplicados."
-  },
-  "filters": {
-    "searchPlaceholder": "Buscar por nombre o código",
-    "category": "Categoría",
-    "allCategories": "Todas las categorías",
-    "clear": "Limpiar filtros"
-  },
-  "columns": {
-    "code": "Código",
-    "name": "Insumo",
-    "unit": "Unidad",
-    "category": "Categoría",
-    "unitCost": "Costo unitario",
-    "stock": "Disponible",
-    "actions": "Acciones"
-  }
-},
-
-"reservations": {
-  "eyebrow": "Reservas y disponibilidad",
-  "title": "Registrar una reserva",
-  "description": "Registra una reserva y asigna una mesa adecuada al cliente.",
-  "form": {
-    "eyebrow": "Nueva reserva",
-    "title": "Datos de la reserva",
-    "description": "Completa la información del cliente, horario y mesa solicitada."
-  },
-  "fields": {
-    "name": "Nombre del cliente",
-    "phone": "Teléfono",
-    "people": "Número de personas",
-    "dateTime": "Fecha y hora",
-    "table": "Mesa",
-    "notes": "Notas",
-    "notesHint": "Información adicional opcional para la reserva."
-  },
-  "tables": {
-    "loading": "Cargando mesas disponibles...",
-    "placeholder": "Selecciona una mesa",
-    "empty": "No existen mesas activas disponibles para seleccionar."
-  },
-  "tableSummary": {
-    "number": "Mesa",
-    "zone": "Zona",
-    "capacity": "Capacidad",
+    "eyebrow": "Configuración del restaurante",
+    "title": "Mesas registradas",
+    "description": "Consulta la configuración, ubicación y estado actual de las mesas del restaurante.",
     "people": "personas",
-    "status": "Situación",
-    "active": "Activa"
-  },
-  "validation": {
-    "name": "El nombre del cliente es obligatorio.",
-    "phoneRequired": "El teléfono del cliente es obligatorio.",
-    "phoneFormat": "El teléfono debe contener exactamente 8 dígitos.",
-    "people": "El número de personas debe ser mayor que cero.",
-    "dateRequired": "La fecha y hora son obligatorias.",
-    "future": "La reserva debe programarse para un horario futuro.",
-    "tableRequired": "Debes seleccionar una mesa.",
-    "capacity": "La capacidad de la mesa es insuficiente para la reserva."
-  },
-  "notice": "Solamente se muestran mesas activas. El sistema verificará también que la mesa no tenga otra reserva en el horario solicitado.",
-  "actions": {
-    "save": "Registrar reserva",
-    "saving": "Registrando..."
-  },
-  "success": {
-    "title": "Reserva registrada",
-    "message": "La reserva {{code}} fue registrada correctamente para la mesa {{table}}."
-  }
-},
+    "summary": {
+      "total": "Mesas registradas",
+      "active": "Mesas activas",
+      "retired": "Mesas retiradas"
+    },
+    "list": {
+      "title": "Listado de mesas",
+      "description": "Información actualizada de las mesas registradas.",
+      "refresh": "Actualizar",
+      "emptyTitle": "Todavía no existen mesas registradas",
+      "emptyDescription": "Cuando se registren mesas en el restaurante aparecerán en este listado."
+    },
+    "columns": {
+      "number": "Número",
+      "capacity": "Capacidad",
+      "zone": "Zona",
+      "status": "Estado actual",
+      "activity": "Situación",
+      "actions": "Acciones"
+    },
+    "states": {
+      "LIBRE": "Libre",
+      "RESERVADA": "Reservada",
+      "OCUPADA": "Ocupada",
+      "CUENTA_SOLICITADA": "Cuenta solicitada"
+    },
+    "activity": {
+      "active": "Activa",
+      "retired": "Retirada"
+    },
+    "actions": {
+      "view": "Ver detalle",
+      "close": "Cerrar detalle",
+      "retire": "Retirar",
+      "alreadyRetired": "Retirada"
+    },
+    "detail": {
+      "eyebrow": "Detalle de mesa",
+      "title": "Mesa"
+    },
 
-"configuration": {
-  "eyebrow": "Configuración del restaurante",
-  "title": "Configuración",
-  "description": "Administra los parámetros utilizados por la operación del restaurante.",
-  "tip": {
-    "eyebrow": "Cobros",
-    "title": "Propina sugerida",
-    "description": "Define el porcentaje que se recomendará al cliente durante los nuevos cobros.",
-    "current": "Porcentaje actual",
-    "status": "Estado",
-    "since": "Vigente desde",
-    "enabled": "Activa",
-    "disabled": "Desactivada",
-    "percentage": "Porcentaje de propina sugerida",
-    "hint": "Ingresa un valor entre 0 y 100. Puedes utilizar decimales.",
-    "invalidPercentage": "El porcentaje debe estar entre 0 y 100.",
-    "notice": "La propina es únicamente una sugerencia. Establecer el porcentaje en 0 desactiva la sugerencia para los nuevos cobros.",
-    "save": "Guardar configuración",
-    "saving": "Guardando...",
-    "successTitle": "Configuración actualizada",
-    "successMessage": "La propina sugerida fue actualizada a {{percentage}}%.",
-    "disabledSuccess": "La propina sugerida fue desactivada correctamente."
+    "retirement": {
+      "eyebrow": "Retiro de mesa",
+      "title": "¿Retirar la mesa {{number}}?",
+      "description": "La mesa dejará de estar disponible para nuevas operaciones.",
+      "historyNotice": "La información histórica y las operaciones anteriores asociadas a esta mesa se conservarán.",
+      "cancel": "Cancelar",
+      "confirm": "Confirmar retiro",
+      "processing": "Retirando...",
+      "successTitle": "Mesa retirada",
+      "successMessage": "La mesa {{number}} fue retirada correctamente.",
+      "alreadyRetiredTitle": "Mesa ya retirada",
+      "alreadyRetiredMessage": "La mesa seleccionada ya se encuentra retirada."
+    }
   },
-  "loyalty": {
-  "eyebrow": "Programa de fidelización",
-  "accumulation": {
-    "title": "Acumulación de puntos",
-    "description": "Define cuántos puntos obtiene un cliente por cada unidad monetaria gastada.",
-    "current": "Regla actual",
-    "status": "Estado",
-    "active": "Vigente",
-    "since": "Vigente desde",
-    "pointsPerCurrency": "Puntos por unidad monetaria",
-    "hint": "Ingresa una cantidad mayor que cero. Puedes utilizar decimales.",
-    "invalid": "La cantidad de puntos debe ser mayor que cero.",
-    "notice": "La nueva regla se aplicará únicamente a las ventas posteriores. Los puntos acreditados anteriormente se conservarán sin cambios.",
-    "save": "Guardar regla de acumulación",
-    "saving": "Guardando...",
-    "successTitle": "Configuración actualizada",
-    "successMessage": "La regla de acumulación fue actualizada a {{points}} puntos por unidad monetaria."
-  }
-}
-},
 
-"employees": {
-  "eyebrow": "Configuración del restaurante",
-  "title": "Empleados registrados",
-  "description": "Consulta la información, rol operativo y estado de los empleados del restaurante.",
-  "summary": {
-    "total": "Empleados registrados",
-    "active": "Empleados activos",
-    "disabled": "Empleados desactivados"
+  "supplies": {
+    "eyebrow": "Catálogo de insumos",
+    "title": "Catálogo de insumos",
+    "description": "Consulta la materia prima disponible y revisa su información de compra e inventario.",
+    "summary": {
+      "total": "Insumos registrados",
+      "active": "Insumos activos",
+      "outOfStock": "Sin existencias"
+    },
+    "list": {
+      "title": "Listado de insumos",
+      "description": "Información actualizada de los insumos registrados.",
+      "refresh": "Actualizar",
+      "emptyTitle": "Todavía no existen insumos registrados",
+      "emptyDescription": "Cuando se registren insumos en el catálogo aparecerán en este listado.",
+      "noResultsTitle": "No se encontraron insumos",
+      "noResultsDescription": "Ningún insumo coincide con los filtros de búsqueda o categoría aplicados."
+    },
+    "filters": {
+      "searchPlaceholder": "Buscar por nombre o código",
+      "category": "Categoría",
+      "allCategories": "Todas las categorías",
+      "clear": "Limpiar filtros"
+    },
+    "columns": {
+      "code": "Código",
+      "name": "Insumo",
+      "unit": "Unidad",
+      "category": "Categoría",
+      "unitCost": "Costo unitario",
+      "stock": "Disponible",
+      "actions": "Acciones"
+    },
+    "actions": {
+      "register": "Registrar insumo"
+    },
+    "registration": {
+      "eyebrow": "Productos base",
+      "title": "Registrar nuevo insumo",
+      "description": "Ingresa la información básica y el costo de compra del insumo.",
+      "fields": {
+        "code": "Código",
+        "codeHint": "Opcional. Se generará automáticamente si se omite.",
+        "name": "Nombre del insumo",
+        "description": "Descripción",
+        "category": "Categoría",
+        "selectCategory": "Selecciona una categoría",
+        "unit": "Unidad de medida",
+        "selectUnit": "Selecciona una unidad",
+        "unitCost": "Costo unitario",
+        "minimumStock": "Stock mínimo",
+        "maximumStock": "Stock máximo"
+      },
+      "validation": {
+        "name": "El nombre del insumo es obligatorio.",
+        "category": "Debes seleccionar una categoría.",
+        "unit": "Debes seleccionar una unidad de medida.",
+        "unitCostRequired": "El costo unitario de compra es obligatorio.",
+        "unitCostMin": "El costo unitario no puede ser negativo.",
+        "stockMin": "El valor no puede ser negativo."
+      },
+      "actions": {
+        "save": "Registrar insumo",
+        "saving": "Registrando..."
+      },
+      "success": {
+        "title": "Insumo registrado",
+        "message": "El insumo {{name}} fue registrado correctamente."
+      }
+    }
   },
-  "list": {
-    "title": "Listado de empleados",
-    "description": "Información actualizada de los empleados registrados.",
-    "emptyTitle": "Todavía no existen empleados registrados",
-    "emptyDescription": "Cuando se registren empleados aparecerán en este listado."
-  },
-  "columns": {
-    "code": "Código",
-    "employee": "Empleado",
-    "email": "Correo",
-    "hireDate": "Contratación",
-    "role": "Rol",
-    "status": "Estado",
-    "actions": "Acciones"
-  },
-  "roles": {
-    "WAITER": "Mesero",
-    "KITCHEN": "Cocina",
-    "CASHIER": "Cajero"
-  },
-  "status": {
-    "active": "Activo",
-    "disabled": "Desactivado"
-  },
-  "actions": {
-  "view": "Ver detalle",
-  "close": "Cerrar detalle",
-  "refresh": "Actualizar",
-  "deactivate": "Desactivar",
-  "alreadyDisabled": "Desactivado"
-},
-  "detail": {
-    "eyebrow": "Detalle de empleado",
-    "name": "Nombre completo"
-  },
-  "deactivation": {
-  "eyebrow": "Desactivación de empleado",
-  "title": "¿Desactivar a {{name}}?",
-  "description": "El empleado dejará de poder acceder a la Aplicación de Operación.",
-  "historyNotice": "Las operaciones realizadas anteriormente por este empleado se conservarán y continuarán identificándolo como responsable.",
-  "cancel": "Cancelar",
-  "confirm": "Confirmar desactivación",
-  "processing": "Desactivando...",
-  "successTitle": "Empleado desactivado",
-  "successMessage": "{{name}} fue desactivado correctamente.",
-  "alreadyDisabledTitle": "Empleado ya desactivado",
-  "alreadyDisabledMessage": "El empleado seleccionado ya se encuentra desactivado."
-}
-},
 
-"occupancy": {
-  "eyebrow": "Operación en tiempo real",
-  "title": "Panel de ocupación",
-  "description": "Consulta el estado operativo actual de las mesas del restaurante.",
-  "live": "Actualización automática",
-  "lastUpdated": "Actualizado:",
-  "refresh": "Actualizar",
-  "loading": "Consultando estado de las mesas...",
-  "table": "Mesa",
-  "people": "personas",
-  "account": "Cuenta:",
-  "waitlist": "Lista de espera:",
-  "summary": {
-    "total": "Mesas",
-    "free": "Libres",
-    "reserved": "Reservadas",
-    "occupied": "Ocupadas"
+  "reservations": {
+    "eyebrow": "Reservas y disponibilidad",
+    "title": "Registrar una reserva",
+    "description": "Registra una reserva y asigna una mesa adecuada al cliente.",
+    "form": {
+      "eyebrow": "Nueva reserva",
+      "title": "Datos de la reserva",
+      "description": "Completa la información del cliente, horario y mesa solicitada."
+    },
+    "fields": {
+      "name": "Nombre del cliente",
+      "phone": "Teléfono",
+      "people": "Número de personas",
+      "dateTime": "Fecha y hora",
+      "table": "Mesa",
+      "notes": "Notas",
+      "notesHint": "Información adicional opcional para la reserva."
+    },
+    "tables": {
+      "loading": "Cargando mesas disponibles...",
+      "placeholder": "Selecciona una mesa",
+      "empty": "No existen mesas activas disponibles para seleccionar."
+    },
+    "tableSummary": {
+      "number": "Mesa",
+      "zone": "Zona",
+      "capacity": "Capacidad",
+      "people": "personas",
+      "status": "Situación",
+      "active": "Activa"
+    },
+    "validation": {
+      "name": "El nombre del cliente es obligatorio.",
+      "phoneRequired": "El teléfono del cliente es obligatorio.",
+      "phoneFormat": "El teléfono debe contener exactamente 8 dígitos.",
+      "people": "El número de personas debe ser mayor que cero.",
+      "dateRequired": "La fecha y hora son obligatorias.",
+      "future": "La reserva debe programarse para un horario futuro.",
+      "tableRequired": "Debes seleccionar una mesa.",
+      "capacity": "La capacidad de la mesa es insuficiente para la reserva."
+    },
+    "notice": "Solamente se muestran mesas activas. El sistema verificará también que la mesa no tenga otra reserva en el horario solicitado.",
+    "actions": {
+      "save": "Registrar reserva",
+      "saving": "Registrando..."
+    },
+    "success": {
+      "title": "Reserva registrada",
+      "message": "La reserva {{code}} fue registrada correctamente para la mesa {{table}}."
+    }
   },
-  "list": {
-    "title": "Estado actual de las mesas",
-    "description": "El panel se actualiza automáticamente cada 5 segundos."
+
+  "configuration": {
+    "eyebrow": "Configuración del restaurante",
+    "title": "Configuración",
+    "description": "Administra los parámetros utilizados por la operación del restaurante.",
+    "tip": {
+      "eyebrow": "Cobros",
+      "title": "Propina sugerida",
+      "description": "Define el porcentaje que se recomendará al cliente durante los nuevos cobros.",
+      "current": "Porcentaje actual",
+      "status": "Estado",
+      "since": "Vigente desde",
+      "enabled": "Activa",
+      "disabled": "Desactivada",
+      "percentage": "Porcentaje de propina sugerida",
+      "hint": "Ingresa un valor entre 0 y 100. Puedes utilizar decimales.",
+      "invalidPercentage": "El porcentaje debe estar entre 0 y 100.",
+      "notice": "La propina es únicamente una sugerencia. Establecer el porcentaje en 0 desactiva la sugerencia para los nuevos cobros.",
+      "save": "Guardar configuración",
+      "saving": "Guardando...",
+      "successTitle": "Configuración actualizada",
+      "successMessage": "La propina sugerida fue actualizada a {{percentage}}%.",
+      "disabledSuccess": "La propina sugerida fue desactivada correctamente."
+    },
+    "loyalty": {
+      "eyebrow": "Programa de fidelización",
+      "accumulation": {
+        "title": "Acumulación de puntos",
+        "description": "Define cuántos puntos obtiene un cliente por cada unidad monetaria gastada.",
+        "current": "Regla actual",
+        "status": "Estado",
+        "active": "Vigente",
+        "since": "Vigente desde",
+        "pointsPerCurrency": "Puntos por unidad monetaria",
+        "hint": "Ingresa una cantidad mayor que cero. Puedes utilizar decimales.",
+        "invalid": "La cantidad de puntos debe ser mayor que cero.",
+        "notice": "La nueva regla se aplicará únicamente a las ventas posteriores. Los puntos acreditados anteriormente se conservarán sin cambios.",
+        "save": "Guardar regla de acumulación",
+        "saving": "Guardando...",
+        "successTitle": "Configuración actualizada",
+        "successMessage": "La regla de acumulación fue actualizada a {{points}} puntos por unidad monetaria."
+      }
+    }
   },
-  "fields": {
-    "zone": "Zona",
-    "capacity": "Capacidad"
+
+  "employees": {
+    "eyebrow": "Configuración del restaurante",
+    "title": "Empleados registrados",
+    "description": "Consulta la información, rol operativo y estado de los empleados del restaurante.",
+    "summary": {
+      "total": "Empleados registrados",
+      "active": "Empleados activos",
+      "disabled": "Empleados desactivados"
+    },
+    "list": {
+      "title": "Listado de empleados",
+      "description": "Información actualizada de los empleados registrados.",
+      "emptyTitle": "Todavía no existen empleados registrados",
+      "emptyDescription": "Cuando se registren empleados aparecerán en este listado."
+    },
+    "columns": {
+      "code": "Código",
+      "employee": "Empleado",
+      "email": "Correo",
+      "hireDate": "Contratación",
+      "role": "Rol",
+      "status": "Estado",
+      "actions": "Acciones"
+    },
+    "roles": {
+      "WAITER": "Mesero",
+      "KITCHEN": "Cocina",
+      "CASHIER": "Cajero"
+    },
+    "status": {
+      "active": "Activo",
+      "disabled": "Desactivado"
+    },
+    "actions": {
+      "view": "Ver detalle",
+      "close": "Cerrar detalle",
+      "refresh": "Actualizar",
+      "deactivate": "Desactivar",
+      "alreadyDisabled": "Desactivado"
+    },
+    "detail": {
+      "eyebrow": "Detalle de empleado",
+      "name": "Nombre completo"
+    },
+    "deactivation": {
+      "eyebrow": "Desactivación de empleado",
+      "title": "¿Desactivar a {{name}}?",
+      "description": "El empleado dejará de poder acceder a la Aplicación de Operación.",
+      "historyNotice": "Las operaciones realizadas anteriormente por este empleado se conservarán y continuarán identificándolo como responsable.",
+      "cancel": "Cancelar",
+      "confirm": "Confirmar desactivación",
+      "processing": "Desactivando...",
+      "successTitle": "Empleado desactivado",
+      "successMessage": "{{name}} fue desactivado correctamente.",
+      "alreadyDisabledTitle": "Empleado ya desactivado",
+      "alreadyDisabledMessage": "El empleado seleccionado ya se encuentra desactivado."
+    }
   },
-  "status": {
-    "LIBRE": "Libre",
-    "RESERVADA": "Reservada",
-    "OCUPADA": "Ocupada",
-    "CUENTA_SOLICITADA": "Cuenta solicitada"
+
+  "occupancy": {
+    "eyebrow": "Operación en tiempo real",
+    "title": "Panel de ocupación",
+    "description": "Consulta el estado operativo actual de las mesas del restaurante.",
+    "live": "Actualización automática",
+    "lastUpdated": "Actualizado:",
+    "refresh": "Actualizar",
+    "loading": "Consultando estado de las mesas...",
+    "table": "Mesa",
+    "people": "personas",
+    "account": "Cuenta:",
+    "waitlist": "Lista de espera:",
+    "summary": {
+      "total": "Mesas",
+      "free": "Libres",
+      "reserved": "Reservadas",
+      "occupied": "Ocupadas"
+    },
+    "list": {
+      "title": "Estado actual de las mesas",
+      "description": "El panel se actualiza automáticamente cada 5 segundos."
+    },
+    "fields": {
+      "zone": "Zona",
+      "capacity": "Capacidad"
+    },
+    "status": {
+      "LIBRE": "Libre",
+      "RESERVADA": "Reservada",
+      "OCUPADA": "Ocupada",
+      "CUENTA_SOLICITADA": "Cuenta solicitada"
+    },
+    "reservation": {
+      "title": "Reserva vigente",
+      "client": "Cliente",
+      "until": "Reservada hasta"
+    },
+    "empty": {
+      "title": "No existen mesas para mostrar",
+      "description": "El panel de ocupación no tiene información disponible."
+    },
+    "error": {
+      "title": "No fue posible consultar el panel",
+      "description": "Verifica la conexión e intenta nuevamente."
+    }
   },
-  "reservation": {
-    "title": "Reserva vigente",
-    "client": "Cliente",
-    "until": "Reservada hasta"
-  },
-  "empty": {
-    "title": "No existen mesas para mostrar",
-    "description": "El panel de ocupación no tiene información disponible."
-  },
-  "error": {
-    "title": "No fue posible consultar el panel",
-    "description": "Verifica la conexión e intenta nuevamente."
-  }
-},
   "security": {
     "eyebrow": "Cuenta y seguridad",
     "title": "Seguridad de la cuenta",
@@ -435,5 +468,4 @@
     "description": "Tu sesión es válida, pero no tienes permisos suficientes para acceder a esta sección.",
     "action": "Volver al resumen"
   }
-
 }

@@ -1,9 +1,11 @@
 import { Component, computed, DestroyRef, inject, OnInit, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { TranslocoPipe } from '@jsverse/transloco';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
+import { MessageService } from 'primeng/api';
 import { debounceTime, distinctUntilChanged, finalize, forkJoin, Subject } from 'rxjs';
 
-import { Supply, SupplyCategory } from '../../../core/models/supply.models';
+import { MeasurementUnit, Supply, SupplyCategory } from '../../../core/models/supply.models';
 import { ApiErrorService } from '../../../core/services/api-error.service';
 import { SupplyService } from '../../../core/services/supply.service';
 import { FormFeedbackComponent } from '../../../shared/components/form-feedback/form-feedback';
@@ -11,23 +13,32 @@ import { PageHeadingComponent } from '../../../shared/components/page-heading/pa
 
 @Component({
   selector: 'app-supplies-page',
-  imports: [FormFeedbackComponent, PageHeadingComponent, TranslocoPipe],
+  imports: [FormFeedbackComponent, PageHeadingComponent, ReactiveFormsModule, TranslocoPipe],
   templateUrl: './supplies.html',
   styleUrl: './supplies.scss',
 })
 export class SuppliesPageComponent implements OnInit {
+  private readonly formBuilder = inject(FormBuilder);
   private readonly supplyService = inject(SupplyService);
   private readonly errors = inject(ApiErrorService);
+  private readonly messages = inject(MessageService);
+  private readonly transloco = inject(TranslocoService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly searchSubject = new Subject<string>();
 
   readonly supplies = signal<Supply[]>([]);
   readonly categories = signal<SupplyCategory[]>([]);
+  readonly measurementUnits = signal<MeasurementUnit[]>([]);
   readonly isLoading = signal(true);
   readonly isFiltering = signal(false);
   readonly errorMessage = signal<string | null>(null);
   readonly searchTerm = signal('');
   readonly selectedCategory = signal<number | null>(null);
+
+  readonly isRegistrationOpen = signal(false);
+  readonly isSaving = signal(false);
+  readonly submitted = signal(false);
+  readonly serverMessage = signal<string | null>(null);
 
   readonly totalSupplies = computed(() => this.supplies().length);
 
@@ -43,6 +54,17 @@ export class SuppliesPageComponent implements OnInit {
     () => !!this.searchTerm() || this.selectedCategory() != null,
   );
 
+  readonly registrationForm = this.formBuilder.group({
+    code: ['', [Validators.maxLength(30)]],
+    name: ['', [Validators.required, Validators.maxLength(120)]],
+    description: ['', [Validators.maxLength(255)]],
+    categoryId: [0 as number, [Validators.required, Validators.min(1)]],
+    unitId: [0 as number, [Validators.required, Validators.min(1)]],
+    unitCost: [null as number | null, [Validators.required, Validators.min(0)]],
+    minimumStock: [null as number | null, [Validators.min(0)]],
+    maximumStock: [null as number | null, [Validators.min(0)]],
+  });
+
   ngOnInit(): void {
     this.searchSubject
       .pipe(debounceTime(300), distinctUntilChanged(), takeUntilDestroyed(this.destroyRef))
@@ -51,12 +73,14 @@ export class SuppliesPageComponent implements OnInit {
     forkJoin({
       supplies: this.supplyService.listSupplies(),
       categories: this.supplyService.listCategories(),
+      measurementUnits: this.supplyService.listMeasurementUnits(),
     })
       .pipe(finalize(() => this.isLoading.set(false)))
       .subscribe({
-        next: ({ supplies, categories }) => {
+        next: ({ supplies, categories, measurementUnits }) => {
           this.supplies.set(supplies);
           this.categories.set(categories);
+          this.measurementUnits.set(measurementUnits);
         },
         error: (error: unknown) => {
           this.errorMessage.set(this.errors.getMessage(error));
@@ -93,6 +117,85 @@ export class SuppliesPageComponent implements OnInit {
     this.searchTerm.set('');
     this.selectedCategory.set(null);
     this.loadSupplies();
+  }
+
+  openRegistration(): void {
+    this.submitted.set(false);
+    this.serverMessage.set(null);
+    this.registrationForm.reset({
+      code: '',
+      name: '',
+      description: '',
+      categoryId: 0,
+      unitId: 0,
+      unitCost: null,
+      minimumStock: null,
+      maximumStock: null,
+    });
+    this.isRegistrationOpen.set(true);
+  }
+
+  closeRegistration(): void {
+    if (this.isSaving()) {
+      return;
+    }
+
+    this.isRegistrationOpen.set(false);
+  }
+
+  submitRegistration(): void {
+    this.submitted.set(true);
+    this.serverMessage.set(null);
+
+    if (this.registrationForm.invalid) {
+      this.registrationForm.markAllAsTouched();
+      return;
+    }
+
+    const raw = this.registrationForm.getRawValue();
+
+    this.isSaving.set(true);
+
+    this.supplyService
+      .registerSupply({
+        code: raw.code?.trim() || null,
+        name: raw.name!.trim(),
+        description: raw.description?.trim() || null,
+        categoryId: raw.categoryId!,
+        unitId: raw.unitId!,
+        unitCost: raw.unitCost,
+        minimumStock: raw.minimumStock ?? null,
+        maximumStock: raw.maximumStock ?? null,
+      })
+      .pipe(finalize(() => this.isSaving.set(false)))
+      .subscribe({
+        next: (response) => {
+          this.messages.add({
+            severity: 'success',
+            summary: this.transloco.translate('supplies.registration.success.title'),
+            detail: this.transloco.translate('supplies.registration.success.message', {
+              name: response.supply.name,
+            }),
+            life: 6000,
+          });
+
+          this.isRegistrationOpen.set(false);
+          this.submitted.set(false);
+          this.serverMessage.set(null);
+          this.registrationForm.reset();
+
+          this.loadSupplies();
+        },
+        error: (error: unknown) => {
+          this.serverMessage.set(this.errors.getMessage(error));
+        },
+      });
+  }
+
+  invalid(controlName: keyof typeof this.registrationForm.controls): boolean {
+    const control = this.registrationForm.controls[controlName];
+
+    return control.invalid && (control.touched || this.submitted());
   }
 
   formatCost(value: number): string {

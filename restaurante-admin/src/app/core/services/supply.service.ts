@@ -3,7 +3,13 @@ import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
-import { MeasurementUnit, Supply, SupplyCategory } from '../models/supply.models';
+import {
+  CreateSupplyRequest,
+  MeasurementUnit,
+  Supply,
+  SupplyCategory,
+  SupplyRegistrationResponse,
+} from '../models/supply.models';
 
 @Injectable({
   providedIn: 'root',
@@ -28,6 +34,10 @@ export class SupplyService {
 
   getSupply(id: number): Observable<Supply> {
     return this.http.get<Supply>(`${this.suppliesUrl}/${id}`);
+  }
+
+  registerSupply(payload: CreateSupplyRequest): Observable<SupplyRegistrationResponse> {
+    return this.http.post<SupplyRegistrationResponse>(this.suppliesUrl, payload);
   }
 
   listCategories(): Observable<SupplyCategory[]> {

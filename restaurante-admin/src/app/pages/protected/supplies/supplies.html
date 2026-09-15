@@ -46,15 +46,22 @@
       <p>{{ 'supplies.list.description' | transloco }}</p>
     </div>
 
-    <button
-      class="refresh-button"
-      type="button"
-      [disabled]="isLoading() || isFiltering()"
-      (click)="loadSupplies()"
-    >
-      <i class="pi pi-refresh" [class.pi-spin]="isLoading() || isFiltering()"></i>
-      {{ 'supplies.list.refresh' | transloco }}
-    </button>
+    <div class="header-actions">
+      <button class="register-button" type="button" (click)="openRegistration()">
+        <i class="pi pi-plus"></i>
+        {{ 'supplies.actions.register' | transloco }}
+      </button>
+
+      <button
+        class="refresh-button"
+        type="button"
+        [disabled]="isLoading() || isFiltering()"
+        (click)="loadSupplies()"
+      >
+        <i class="pi pi-refresh" [class.pi-spin]="isLoading() || isFiltering()"></i>
+        {{ 'supplies.list.refresh' | transloco }}
+      </button>
+    </div>
   </header>
 
   <div class="filters-bar">
@@ -197,3 +204,235 @@
     </div>
   }
 </section>
+
+@if (isRegistrationOpen()) {
+  <div class="registration-backdrop" role="presentation">
+    <section
+      class="registration-dialog"
+      role="dialog"
+      aria-modal="true"
+      [attr.aria-labelledby]="'registration-dialog-title'"
+    >
+      <header class="registration-dialog__header">
+        <div>
+          <span class="registration-dialog__eyebrow">
+            {{ 'supplies.registration.eyebrow' | transloco }}
+          </span>
+
+          <h2 id="registration-dialog-title">
+            {{ 'supplies.registration.title' | transloco }}
+          </h2>
+
+          <p>
+            {{ 'supplies.registration.description' | transloco }}
+          </p>
+        </div>
+
+        <button
+          class="close-button"
+          type="button"
+          [attr.aria-label]="'common.cancel' | transloco"
+          [disabled]="isSaving()"
+          (click)="closeRegistration()"
+        >
+          <i class="pi pi-times"></i>
+        </button>
+      </header>
+
+      <app-form-feedback [message]="serverMessage()" />
+
+      <form
+        class="registration-form"
+        [formGroup]="registrationForm"
+        (ngSubmit)="submitRegistration()"
+        novalidate
+      >
+        <div class="form-grid">
+          <div class="form-field">
+            <label for="supply-name">
+              {{ 'supplies.registration.fields.name' | transloco }}
+            </label>
+
+            <input id="supply-name" type="text" formControlName="name" maxlength="120" />
+
+            @if (invalid('name')) {
+              <small class="field-error">
+                {{ 'supplies.registration.validation.name' | transloco }}
+              </small>
+            }
+          </div>
+
+          <div class="form-field">
+            <label for="supply-code">
+              {{ 'supplies.registration.fields.code' | transloco }}
+
+              <small class="field-hint">
+                {{ 'supplies.registration.fields.codeHint' | transloco }}
+              </small>
+            </label>
+
+            <input id="supply-code" type="text" formControlName="code" maxlength="30" />
+
+            @if (invalid('code')) {
+              <small class="field-error">
+                {{ 'validation.invalid' | transloco }}
+              </small>
+            }
+          </div>
+
+          <div class="form-field">
+            <label for="supply-description">
+              {{ 'supplies.registration.fields.description' | transloco }}
+            </label>
+
+            <textarea
+              id="supply-description"
+              formControlName="description"
+              maxlength="255"
+              rows="3"
+            ></textarea>
+
+            @if (invalid('description')) {
+              <small class="field-error">
+                {{ 'validation.invalid' | transloco }}
+              </small>
+            }
+          </div>
+
+          <div class="form-field">
+            <label for="supply-category">
+              {{ 'supplies.registration.fields.category' | transloco }}
+            </label>
+
+            <select id="supply-category" formControlName="categoryId">
+              <option [ngValue]="0">
+                {{ 'supplies.registration.fields.selectCategory' | transloco }}
+              </option>
+
+              @for (category of categories(); track category.id) {
+                <option [ngValue]="category.id">{{ category.name }}</option>
+              }
+            </select>
+
+            @if (invalid('categoryId')) {
+              <small class="field-error">
+                {{ 'supplies.registration.validation.category' | transloco }}
+              </small>
+            }
+          </div>
+
+          <div class="form-field">
+            <label for="supply-unit">
+              {{ 'supplies.registration.fields.unit' | transloco }}
+            </label>
+
+            <select id="supply-unit" formControlName="unitId">
+              <option [ngValue]="0">
+                {{ 'supplies.registration.fields.selectUnit' | transloco }}
+              </option>
+
+              @for (unit of measurementUnits(); track unit.id) {
+                <option [ngValue]="unit.id">{{ unit.name }} ({{ unit.abbreviation }})</option>
+              }
+            </select>
+
+            @if (invalid('unitId')) {
+              <small class="field-error">
+                {{ 'supplies.registration.validation.unit' | transloco }}
+              </small>
+            }
+          </div>
+
+          <div class="form-field">
+            <label for="supply-unit-cost">
+              {{ 'supplies.registration.fields.unitCost' | transloco }}
+            </label>
+
+            <input
+              id="supply-unit-cost"
+              type="number"
+              formControlName="unitCost"
+              min="0"
+              step="0.01"
+            />
+
+            @if (invalid('unitCost') && registrationForm.controls.unitCost.hasError('required')) {
+              <small class="field-error">
+                {{ 'supplies.registration.validation.unitCostRequired' | transloco }}
+              </small>
+            } @else if (invalid('unitCost') && registrationForm.controls.unitCost.hasError('min')) {
+              <small class="field-error">
+                {{ 'supplies.registration.validation.unitCostMin' | transloco }}
+              </small>
+            }
+          </div>
+
+          <div class="form-field">
+            <label for="supply-minimum-stock">
+              {{ 'supplies.registration.fields.minimumStock' | transloco }}
+            </label>
+
+            <input
+              id="supply-minimum-stock"
+              type="number"
+              formControlName="minimumStock"
+              min="0"
+              step="0.01"
+            />
+
+            @if (
+              invalid('minimumStock') && registrationForm.controls.minimumStock.hasError('min')
+            ) {
+              <small class="field-error">
+                {{ 'supplies.registration.validation.stockMin' | transloco }}
+              </small>
+            }
+          </div>
+
+          <div class="form-field">
+            <label for="supply-maximum-stock">
+              {{ 'supplies.registration.fields.maximumStock' | transloco }}
+            </label>
+
+            <input
+              id="supply-maximum-stock"
+              type="number"
+              formControlName="maximumStock"
+              min="0"
+              step="0.01"
+            />
+
+            @if (
+              invalid('maximumStock') && registrationForm.controls.maximumStock.hasError('min')
+            ) {
+              <small class="field-error">
+                {{ 'supplies.registration.validation.stockMin' | transloco }}
+              </small>
+            }
+          </div>
+        </div>
+
+        <footer class="registration-dialog__actions">
+          <button
+            class="cancel-button"
+            type="button"
+            [disabled]="isSaving()"
+            (click)="closeRegistration()"
+          >
+            {{ 'common.cancel' | transloco }}
+          </button>
+
+          <button class="save-button" type="submit" [disabled]="isSaving()">
+            @if (isSaving()) {
+              <i class="pi pi-spin pi-spinner"></i>
+              {{ 'supplies.registration.actions.saving' | transloco }}
+            } @else {
+              <i class="pi pi-plus"></i>
+              {{ 'supplies.registration.actions.save' | transloco }}
+            }
+          </button>
+        </footer>
+      </form>
+    </section>
+  </div>
+}

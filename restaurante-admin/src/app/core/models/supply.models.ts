@@ -29,3 +29,19 @@ export interface MeasurementUnit {
   abbreviation: string;
   dimension: string;
 }
+
+export interface CreateSupplyRequest {
+  code?: string | null;
+  name: string;
+  description?: string | null;
+  categoryId: number;
+  unitId: number;
+  unitCost: number | null;
+  minimumStock?: number | null;
+  maximumStock?: number | null;
+}
+
+export interface SupplyRegistrationResponse {
+  message: string;
+  supply: Supply;
+}
