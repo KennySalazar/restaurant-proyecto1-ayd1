@@ -23,4 +23,9 @@ public interface CashShiftRepository
             Long cashierId,
             CashShiftStatus status
     );
+
+    Optional<CashShift> findByCashierIdAndStatus(
+            Long cashierId,
+            CashShiftStatus status
+    );
 }
