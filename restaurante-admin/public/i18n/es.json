@@ -24,6 +24,7 @@
     "employees": "Empleados",
     "configuration": "Configuración",
     "reservations": "Reservas",
+    "occupancy": "Panel de ocupación",
     "security": "Seguridad",
     "admin": "Administración",
     "logout": "Cerrar sesión",
@@ -324,6 +325,53 @@
   "alreadyDisabledTitle": "Empleado ya desactivado",
   "alreadyDisabledMessage": "El empleado seleccionado ya se encuentra desactivado."
 }
+},
+
+"occupancy": {
+  "eyebrow": "Operación en tiempo real",
+  "title": "Panel de ocupación",
+  "description": "Consulta el estado operativo actual de las mesas del restaurante.",
+  "live": "Actualización automática",
+  "lastUpdated": "Actualizado:",
+  "refresh": "Actualizar",
+  "loading": "Consultando estado de las mesas...",
+  "table": "Mesa",
+  "people": "personas",
+  "account": "Cuenta:",
+  "waitlist": "Lista de espera:",
+  "summary": {
+    "total": "Mesas",
+    "free": "Libres",
+    "reserved": "Reservadas",
+    "occupied": "Ocupadas"
+  },
+  "list": {
+    "title": "Estado actual de las mesas",
+    "description": "El panel se actualiza automáticamente cada 5 segundos."
+  },
+  "fields": {
+    "zone": "Zona",
+    "capacity": "Capacidad"
+  },
+  "status": {
+    "LIBRE": "Libre",
+    "RESERVADA": "Reservada",
+    "OCUPADA": "Ocupada",
+    "CUENTA_SOLICITADA": "Cuenta solicitada"
+  },
+  "reservation": {
+    "title": "Reserva vigente",
+    "client": "Cliente",
+    "until": "Reservada hasta"
+  },
+  "empty": {
+    "title": "No existen mesas para mostrar",
+    "description": "El panel de ocupación no tiene información disponible."
+  },
+  "error": {
+    "title": "No fue posible consultar el panel",
+    "description": "Verifica la conexión e intenta nuevamente."
+  }
 },
   "security": {
     "eyebrow": "Cuenta y seguridad",
