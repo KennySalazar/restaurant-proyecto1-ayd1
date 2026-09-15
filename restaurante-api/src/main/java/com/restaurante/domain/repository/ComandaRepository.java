@@ -37,4 +37,13 @@ public interface ComandaRepository extends JpaRepository<Comanda, Long> {
 
     @Query("SELECT c FROM Comanda c WHERE c.account.id = :accountId ORDER BY c.roundNumber ASC")
     List<Comanda> findByAccountId(@Param("accountId") Long accountId);
+
+    @Query("""
+           SELECT c
+           FROM Comanda c
+           WHERE c.account.id = :accountId
+             AND c.status = com.restaurante.domain.model.ComandaStatus.BORRADOR
+           ORDER BY c.roundNumber DESC
+           """)
+    List<Comanda> findDraftComandasByAccountId(@Param("accountId") Long accountId);
 }
