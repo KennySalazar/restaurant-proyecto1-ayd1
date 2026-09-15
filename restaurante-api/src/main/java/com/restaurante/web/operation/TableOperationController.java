@@ -1,6 +1,7 @@
 package com.restaurante.web.operation;
 
 import com.restaurante.application.account.AccountService;
+import com.restaurante.application.account.SubaccountService;
 import com.restaurante.application.table.TableSeatingService;
 import com.restaurante.application.table.TableService;
 import com.restaurante.domain.model.TableStatus;
@@ -10,6 +11,10 @@ import com.restaurante.web.dto.account.MergeAccountsResponse;
 import com.restaurante.web.dto.account.OpenAccountRequest;
 import com.restaurante.web.dto.account.TransferAccountRequest;
 import com.restaurante.web.dto.account.TransferAccountResponse;
+import com.restaurante.web.dto.subaccount.SplitAccountResponse;
+import com.restaurante.web.dto.subaccount.SplitByItemsRequest;
+import com.restaurante.web.dto.subaccount.SplitByPeopleRequest;
+import com.restaurante.web.dto.subaccount.SubaccountResponse;
 import com.restaurante.web.dto.table.SeatReservationRequest;
 import com.restaurante.web.dto.table.SeatReservationResponse;
 import com.restaurante.web.dto.table.SeatWaitlistRequest;
@@ -55,14 +60,17 @@ public class TableOperationController {
     private final TableService tableService;
     private final TableSeatingService tableSeatingService;
     private final AccountService accountService;
+    private final SubaccountService subaccountService;
 
     public TableOperationController(
             TableService tableService,
             TableSeatingService tableSeatingService,
-            AccountService accountService) {
+            AccountService accountService,
+            SubaccountService subaccountService) {
         this.tableService = tableService;
         this.tableSeatingService = tableSeatingService;
         this.accountService = accountService;
+        this.subaccountService = subaccountService;
     }
 
     @GetMapping
@@ -433,5 +441,105 @@ public class TableOperationController {
             Authentication authentication) {
 
         return ResponseEntity.ok(accountService.mergeAccountsByTable(id, request, authentication));
+    }
+
+    @PostMapping("/{id}/dividir-cuenta/personas")
+    @PreAuthorize("hasAnyRole('WAITER', 'ADMIN')")
+    @Operation(
+            summary = "Dividir cuenta de la mesa por personas",
+            description = "Divide la cuenta activa de la mesa entre un número de personas indicado, generando sub-cuentas con el porcentaje y subtotal correspondiente."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Cuenta dividida exitosamente por personas",
+                    content = @Content(schema = @Schema(implementation = SplitAccountResponse.class))
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Número de personas inválido o la mesa no tiene platillos registrados",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Mesa no encontrada o no tiene cuenta activa",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "409",
+                    description = "La cuenta ya tiene subcuentas facturadas",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            )
+    })
+    public ResponseEntity<SplitAccountResponse> splitTableAccountByPeople(
+            @Parameter(description = "Identificador único de la mesa", required = true)
+            @PathVariable Long id,
+            @Valid @RequestBody SplitByPeopleRequest request,
+            Authentication authentication) {
+
+        return ResponseEntity.ok(subaccountService.splitByPeopleByTable(id, request, authentication));
+    }
+
+    @PostMapping("/{id}/dividir-cuenta/items")
+    @PreAuthorize("hasAnyRole('WAITER', 'ADMIN')")
+    @Operation(
+            summary = "Dividir cuenta de la mesa por ítems específicos",
+            description = "Divide la cuenta activa de la mesa asignando ítems específicos a distintas sub-cuentas. Si un platillo ya fue asignado a otra sub-cuenta, la acción es impedida."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Cuenta dividida exitosamente por ítems específicos",
+                    content = @Content(schema = @Schema(implementation = SplitAccountResponse.class))
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Datos inválidos o platillo no pertenece a la cuenta de la mesa",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Mesa o platillo no encontrado",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "409",
+                    description = "El platillo ya fue asignado a otra sub-cuenta",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            )
+    })
+    public ResponseEntity<SplitAccountResponse> splitTableAccountByItems(
+            @Parameter(description = "Identificador único de la mesa", required = true)
+            @PathVariable Long id,
+            @Valid @RequestBody SplitByItemsRequest request,
+            Authentication authentication) {
+
+        return ResponseEntity.ok(subaccountService.splitByItemsByTable(id, request, authentication));
+    }
+
+    @GetMapping("/{id}/subcuentas")
+    @PreAuthorize("hasAnyRole('WAITER', 'ADMIN')")
+    @Operation(
+            summary = "Consultar subcuentas de la mesa activa",
+            description = "Devuelve el listado de sub-cuentas generadas para la cuenta activa de la mesa indicada."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Listado de subcuentas de la mesa",
+                    content = @Content(array = @ArraySchema(schema = @Schema(implementation = SubaccountResponse.class)))
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Mesa no encontrada o no tiene cuenta activa",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            )
+    })
+    public ResponseEntity<List<SubaccountResponse>> getTableSubaccounts(
+            @Parameter(description = "Identificador único de la mesa", required = true)
+            @PathVariable Long id,
+            Authentication authentication) {
+
+        return ResponseEntity.ok(subaccountService.getSubaccountsByTableId(id, authentication));
     }
 }

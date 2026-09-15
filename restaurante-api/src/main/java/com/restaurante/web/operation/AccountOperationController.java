@@ -1,12 +1,18 @@
 package com.restaurante.web.operation;
 
 import com.restaurante.application.account.AccountService;
+import com.restaurante.application.account.SubaccountService;
 import com.restaurante.web.dto.account.AccountResponse;
 import com.restaurante.web.dto.account.MergeAccountsRequest;
 import com.restaurante.web.dto.account.MergeAccountsResponse;
 import com.restaurante.web.dto.account.OpenAccountRequest;
 import com.restaurante.web.dto.account.TransferAccountRequest;
 import com.restaurante.web.dto.account.TransferAccountResponse;
+import com.restaurante.web.dto.subaccount.AssignItemRequest;
+import com.restaurante.web.dto.subaccount.SplitAccountResponse;
+import com.restaurante.web.dto.subaccount.SplitByItemsRequest;
+import com.restaurante.web.dto.subaccount.SplitByPeopleRequest;
+import com.restaurante.web.dto.subaccount.SubaccountResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
@@ -33,21 +39,23 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 /**
- * Controlador de operación para la apertura y gestión de cuentas de mesa para meseros.
+ * Controlador de operación para la apertura, gestión y división de cuentas de mesa para meseros.
  */
 @RestController
 @RequestMapping("/operacion/cuentas")
 @Tag(
         name = "Cuentas (Operación)",
-        description = "Apertura y consulta de cuentas de mesa para meseros y personal de servicio"
+        description = "Apertura, consulta y división de cuentas de mesa para meseros y personal de servicio"
 )
 @SecurityRequirement(name = "bearerAuth")
 public class AccountOperationController {
 
     private final AccountService accountService;
+    private final SubaccountService subaccountService;
 
-    public AccountOperationController(AccountService accountService) {
+    public AccountOperationController(AccountService accountService, SubaccountService subaccountService) {
         this.accountService = accountService;
+        this.subaccountService = subaccountService;
     }
 
     @PostMapping
@@ -303,5 +311,174 @@ public class AccountOperationController {
             Authentication authentication) {
 
         return ResponseEntity.ok(accountService.mergeAccountsById(id, request, authentication));
+    }
+
+    @PostMapping({ "/{id}/dividir/personas", "/{id}/dividir-personas" })
+    @PreAuthorize("hasAnyRole('WAITER', 'ADMIN')")
+    @Operation(
+            summary = "Dividir cuenta por número de personas",
+            description = "Divide una cuenta abierta con platillos registrados entre un número de personas especificado, generando sub-cuentas con el porcentaje y subtotal correspondiente a cada una."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Cuenta dividida exitosamente entre las personas indicadas",
+                    content = @Content(schema = @Schema(implementation = SplitAccountResponse.class))
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Número de personas inválido (mínimo 2) o la cuenta no tiene platillos registrados",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "No autenticado o token JWT no provisto",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Acceso denegado (requiere rol de mesero o administrador)",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Cuenta no encontrada",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "409",
+                    description = "La cuenta ya se encuentra cerrada o tiene subcuentas facturadas",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            )
+    })
+    public ResponseEntity<SplitAccountResponse> splitByPeople(
+            @Parameter(description = "Identificador de la cuenta abierta a dividir", required = true)
+            @PathVariable Long id,
+            @Valid @RequestBody SplitByPeopleRequest request,
+            Authentication authentication) {
+
+        return ResponseEntity.ok(subaccountService.splitByPeople(id, request, authentication));
+    }
+
+    @PostMapping({ "/{id}/dividir/items", "/{id}/dividir-items" })
+    @PreAuthorize("hasAnyRole('WAITER', 'ADMIN')")
+    @Operation(
+            summary = "Dividir cuenta por ítems específicos",
+            description = "Divide una cuenta abierta asignando ítems o platillos específicos a distintas sub-cuentas. Cada sub-cuenta reflejará únicamente sus ítems y subtotal. Si se intenta asignar un mismo ítem a más de una sub-cuenta, la acción es impedida."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Cuenta dividida exitosamente por ítems específicos",
+                    content = @Content(schema = @Schema(implementation = SplitAccountResponse.class))
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Datos inválidos o platillo no pertenece a la cuenta",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "No autenticado o token JWT no provisto",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Acceso denegado (requiere rol de mesero o administrador)",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Cuenta o platillo no encontrado",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "409",
+                    description = "El platillo ya fue asignado a otra sub-cuenta o la cuenta ya tiene subcuentas facturadas",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            )
+    })
+    public ResponseEntity<SplitAccountResponse> splitByItems(
+            @Parameter(description = "Identificador de la cuenta abierta a dividir", required = true)
+            @PathVariable Long id,
+            @Valid @RequestBody SplitByItemsRequest request,
+            Authentication authentication) {
+
+        return ResponseEntity.ok(subaccountService.splitByItems(id, request, authentication));
+    }
+
+    @PostMapping("/{id}/subcuentas/{subcuentaId}/items")
+    @PreAuthorize("hasAnyRole('WAITER', 'ADMIN')")
+    @Operation(
+            summary = "Asignar ítem a una subcuenta específica",
+            description = "Asigna un platillo de la cuenta a una sub-cuenta existente. Si el platillo ya fue asignado a otra sub-cuenta, el sistema impide la doble asignación."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Platillo asignado exitosamente a la sub-cuenta",
+                    content = @Content(schema = @Schema(implementation = SubaccountResponse.class))
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Platillo ajeno a la cuenta o cantidad inválida",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "No autenticado o token JWT no provisto",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Acceso denegado (requiere rol de mesero o administrador)",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Cuenta, subcuenta o platillo no encontrado",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "409",
+                    description = "El platillo ya fue asignado a otra sub-cuenta",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            )
+    })
+    public ResponseEntity<SubaccountResponse> assignItemToSubaccount(
+            @Parameter(description = "Identificador de la cuenta principal", required = true)
+            @PathVariable Long id,
+            @Parameter(description = "Identificador de la subcuenta destino", required = true)
+            @PathVariable Long subcuentaId,
+            @Valid @RequestBody AssignItemRequest request,
+            Authentication authentication) {
+
+        return ResponseEntity.ok(subaccountService.assignItemToSubaccount(id, subcuentaId, request, authentication));
+    }
+
+    @GetMapping("/{id}/subcuentas")
+    @PreAuthorize("hasAnyRole('WAITER', 'ADMIN')")
+    @Operation(
+            summary = "Consultar subcuentas de una cuenta",
+            description = "Devuelve el listado de sub-cuentas generadas para la cuenta, con su detalle de platillos asignados y subtotales."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Listado de subcuentas",
+                    content = @Content(array = @ArraySchema(schema = @Schema(implementation = SubaccountResponse.class)))
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Cuenta no encontrada",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            )
+    })
+    public ResponseEntity<List<SubaccountResponse>> getSubaccounts(
+            @Parameter(description = "Identificador de la cuenta", required = true)
+            @PathVariable Long id,
+            Authentication authentication) {
+
+        return ResponseEntity.ok(subaccountService.getSubaccountsByAccountId(id, authentication));
     }
 }
