@@ -19,6 +19,8 @@ public interface SupplyRepository extends JpaRepository<Supply, Long> {
 
   boolean existsByRestaurantIdAndCodeIgnoreCaseAndIdNot(Long restaurantId, String code, Long id);
 
+  boolean existsByIdAndRestaurantId(Long id, Long restaurantId);
+
   long countByRestaurantId(Long restaurantId);
 
   @EntityGraph(attributePaths = { "category", "measurementUnit" })

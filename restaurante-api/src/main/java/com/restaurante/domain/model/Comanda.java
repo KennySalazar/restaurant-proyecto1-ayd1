@@ -40,6 +40,10 @@ public class Comanda {
     @Column(name = "mesero_id", nullable = false)
     private Long waiterId;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "mesero_id", insertable = false, updatable = false)
+    private RestaurantUserProfile waiterUser;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "estado", nullable = false, length = 20)
     private ComandaStatus status = ComandaStatus.BORRADOR;
@@ -158,5 +162,13 @@ public class Comanda {
     public void addDetail(ComandaDetail detail) {
         details.add(detail);
         detail.setComanda(this);
+    }
+
+    public RestaurantUserProfile getWaiterUser() {
+        return waiterUser;
+    }
+
+    public void setWaiterUser(RestaurantUserProfile waiterUser) {
+        this.waiterUser = waiterUser;
     }
 }

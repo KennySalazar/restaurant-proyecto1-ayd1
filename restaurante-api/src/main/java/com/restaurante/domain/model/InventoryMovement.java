@@ -53,8 +53,16 @@ public class InventoryMovement {
     @Column(name = "entrada_detalle_id")
     private Long entryDetailId;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "entrada_detalle_id", insertable = false, updatable = false)
+    private InventoryEntryDetail entryDetail;
+
     @Column(name = "merma_detalle_id")
     private Long wasteDetailId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "merma_detalle_id", insertable = false, updatable = false)
+    private InventoryWasteDetail wasteDetail;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "comanda_detalle_id")
@@ -68,6 +76,10 @@ public class InventoryMovement {
 
     @Column(name = "usuario_responsable_id", nullable = false)
     private Long responsibleUserId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "usuario_responsable_id", insertable = false, updatable = false)
+    private RestaurantUserProfile responsibleUser;
 
     @Column(name = "creado_en", nullable = false, updatable = false)
     private Instant createdAt;
@@ -208,5 +220,29 @@ public class InventoryMovement {
 
     public Instant getCreatedAt() {
         return createdAt;
+    }
+
+    public InventoryEntryDetail getEntryDetail() {
+        return entryDetail;
+    }
+
+    public void setEntryDetail(InventoryEntryDetail entryDetail) {
+        this.entryDetail = entryDetail;
+    }
+
+    public InventoryWasteDetail getWasteDetail() {
+        return wasteDetail;
+    }
+
+    public void setWasteDetail(InventoryWasteDetail wasteDetail) {
+        this.wasteDetail = wasteDetail;
+    }
+
+    public RestaurantUserProfile getResponsibleUser() {
+        return responsibleUser;
+    }
+
+    public void setResponsibleUser(RestaurantUserProfile responsibleUser) {
+        this.responsibleUser = responsibleUser;
     }
 }
