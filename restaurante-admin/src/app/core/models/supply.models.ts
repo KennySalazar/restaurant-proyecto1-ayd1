@@ -45,3 +45,10 @@ export interface SupplyRegistrationResponse {
   message: string;
   supply: Supply;
 }
+
+export type UpdateSupplyRequest = CreateSupplyRequest;
+
+export interface SupplyUpdateResponse {
+  message: string;
+  supply: Supply;
+}

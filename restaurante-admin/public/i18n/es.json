@@ -198,12 +198,13 @@
       "name": "Insumo",
       "unit": "Unidad",
       "category": "Categoría",
-      "unitCost": "Costo unitario",
+      "unitCost": "Costo unitario (Q)",
       "stock": "Disponible",
       "actions": "Acciones"
     },
     "actions": {
-      "register": "Registrar insumo"
+      "register": "Registrar insumo",
+      "edit": "Editar"
     },
     "registration": {
       "eyebrow": "Productos base",
@@ -218,7 +219,7 @@
         "selectCategory": "Selecciona una categoría",
         "unit": "Unidad de medida",
         "selectUnit": "Selecciona una unidad",
-        "unitCost": "Costo unitario",
+        "unitCost": "Costo unitario (Q)",
         "minimumStock": "Stock mínimo",
         "maximumStock": "Stock máximo"
       },
@@ -237,6 +238,19 @@
       "success": {
         "title": "Insumo registrado",
         "message": "El insumo {{name}} fue registrado correctamente."
+      }
+    },
+    "update": {
+      "eyebrow": "Productos base",
+      "title": "Actualizar insumo",
+      "description": "Modifica la información de identificación, clasificación y costo de compra del insumo.",
+      "actions": {
+        "save": "Guardar cambios",
+        "saving": "Guardando..."
+      },
+      "success": {
+        "title": "Insumo actualizado",
+        "message": "La información del insumo {{name}} fue actualizada correctamente."
       }
     }
   },

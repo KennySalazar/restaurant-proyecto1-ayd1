@@ -149,6 +149,11 @@
             <th>{{ 'supplies.columns.category' | transloco }}</th>
             <th>{{ 'supplies.columns.unitCost' | transloco }}</th>
             <th>{{ 'supplies.columns.stock' | transloco }}</th>
+            <th>
+              <span class="sr-only">
+                {{ 'supplies.columns.actions' | transloco }}
+              </span>
+            </th>
           </tr>
         </thead>
 
@@ -197,6 +202,13 @@
                   {{ supply.unitAbbreviation }}
                 </span>
               </td>
+
+              <td class="restaurant-table__actions">
+                <button class="edit-button" type="button" (click)="openEdit(supply)">
+                  <i class="pi pi-pencil"></i>
+                  {{ 'supplies.actions.edit' | transloco }}
+                </button>
+              </td>
             </tr>
           }
         </tbody>
@@ -216,15 +228,23 @@
       <header class="registration-dialog__header">
         <div>
           <span class="registration-dialog__eyebrow">
-            {{ 'supplies.registration.eyebrow' | transloco }}
+            {{
+              (isEditing() ? 'supplies.update.eyebrow' : 'supplies.registration.eyebrow')
+                | transloco
+            }}
           </span>
 
           <h2 id="registration-dialog-title">
-            {{ 'supplies.registration.title' | transloco }}
+            {{
+              (isEditing() ? 'supplies.update.title' : 'supplies.registration.title') | transloco
+            }}
           </h2>
 
           <p>
-            {{ 'supplies.registration.description' | transloco }}
+            {{
+              (isEditing() ? 'supplies.update.description' : 'supplies.registration.description')
+                | transloco
+            }}
           </p>
         </div>
 
@@ -244,7 +264,7 @@
       <form
         class="registration-form"
         [formGroup]="registrationForm"
-        (ngSubmit)="submitRegistration()"
+        (ngSubmit)="submitSupply()"
         novalidate
       >
         <div class="form-grid">
@@ -425,10 +445,20 @@
           <button class="save-button" type="submit" [disabled]="isSaving()">
             @if (isSaving()) {
               <i class="pi pi-spin pi-spinner"></i>
-              {{ 'supplies.registration.actions.saving' | transloco }}
+              {{
+                (isEditing()
+                  ? 'supplies.update.actions.saving'
+                  : 'supplies.registration.actions.saving'
+                ) | transloco
+              }}
             } @else {
-              <i class="pi pi-plus"></i>
-              {{ 'supplies.registration.actions.save' | transloco }}
+              <i class="pi pi-check"></i>
+              {{
+                (isEditing()
+                  ? 'supplies.update.actions.save'
+                  : 'supplies.registration.actions.save'
+                ) | transloco
+              }}
             }
           </button>
         </footer>

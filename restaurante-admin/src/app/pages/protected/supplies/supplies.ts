@@ -5,7 +5,12 @@ import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { MessageService } from 'primeng/api';
 import { debounceTime, distinctUntilChanged, finalize, forkJoin, Subject } from 'rxjs';
 
-import { MeasurementUnit, Supply, SupplyCategory } from '../../../core/models/supply.models';
+import {
+  CreateSupplyRequest,
+  MeasurementUnit,
+  Supply,
+  SupplyCategory,
+} from '../../../core/models/supply.models';
 import { ApiErrorService } from '../../../core/services/api-error.service';
 import { SupplyService } from '../../../core/services/supply.service';
 import { FormFeedbackComponent } from '../../../shared/components/form-feedback/form-feedback';
@@ -39,6 +44,9 @@ export class SuppliesPageComponent implements OnInit {
   readonly isSaving = signal(false);
   readonly submitted = signal(false);
   readonly serverMessage = signal<string | null>(null);
+  readonly editingSupply = signal<Supply | null>(null);
+
+  readonly isEditing = computed(() => this.editingSupply() != null);
 
   readonly totalSupplies = computed(() => this.supplies().length);
 
@@ -122,6 +130,7 @@ export class SuppliesPageComponent implements OnInit {
   openRegistration(): void {
     this.submitted.set(false);
     this.serverMessage.set(null);
+    this.editingSupply.set(null);
     this.registrationForm.reset({
       code: '',
       name: '',
@@ -135,6 +144,25 @@ export class SuppliesPageComponent implements OnInit {
     this.isRegistrationOpen.set(true);
   }
 
+  openEdit(supply: Supply): void {
+    this.submitted.set(false);
+    this.serverMessage.set(null);
+    this.editingSupply.set(supply);
+
+    this.registrationForm.setValue({
+      code: supply.code ?? '',
+      name: supply.name,
+      description: supply.description ?? '',
+      categoryId: supply.categoryId,
+      unitId: supply.unitId,
+      unitCost: supply.unitCost,
+      minimumStock: supply.minimumStock,
+      maximumStock: supply.maximumStock,
+    });
+
+    this.isRegistrationOpen.set(true);
+  }
+
   closeRegistration(): void {
     if (this.isSaving()) {
       return;
@@ -143,7 +171,7 @@ export class SuppliesPageComponent implements OnInit {
     this.isRegistrationOpen.set(false);
   }
 
-  submitRegistration(): void {
+  submitSupply(): void {
     this.submitted.set(true);
     this.serverMessage.set(null);
 
@@ -152,44 +180,59 @@ export class SuppliesPageComponent implements OnInit {
       return;
     }
 
-    const raw = this.registrationForm.getRawValue();
-
+    const editing = this.editingSupply();
     this.isSaving.set(true);
 
-    this.supplyService
-      .registerSupply({
-        code: raw.code?.trim() || null,
-        name: raw.name!.trim(),
-        description: raw.description?.trim() || null,
-        categoryId: raw.categoryId!,
-        unitId: raw.unitId!,
-        unitCost: raw.unitCost,
-        minimumStock: raw.minimumStock ?? null,
-        maximumStock: raw.maximumStock ?? null,
-      })
-      .pipe(finalize(() => this.isSaving.set(false)))
-      .subscribe({
-        next: (response) => {
-          this.messages.add({
-            severity: 'success',
-            summary: this.transloco.translate('supplies.registration.success.title'),
-            detail: this.transloco.translate('supplies.registration.success.message', {
-              name: response.supply.name,
-            }),
-            life: 6000,
-          });
+    const request = editing
+      ? this.supplyService.updateSupply(editing.id, this.buildPayload())
+      : this.supplyService.registerSupply(this.buildPayload());
 
-          this.isRegistrationOpen.set(false);
-          this.submitted.set(false);
-          this.serverMessage.set(null);
-          this.registrationForm.reset();
+    request.pipe(finalize(() => this.isSaving.set(false))).subscribe({
+      next: (response) => {
+        const successKey = editing ? 'supplies.update.success' : 'supplies.registration.success';
 
+        this.messages.add({
+          severity: 'success',
+          summary: this.transloco.translate(`${successKey}.title`),
+          detail: this.transloco.translate(`${successKey}.message`, {
+            name: response.supply.name,
+          }),
+          life: 6000,
+        });
+
+        if (editing) {
+          this.supplies.update((list) =>
+            list.map((current) => (current.id === response.supply.id ? response.supply : current)),
+          );
+        } else {
           this.loadSupplies();
-        },
-        error: (error: unknown) => {
-          this.serverMessage.set(this.errors.getMessage(error));
-        },
-      });
+        }
+
+        this.isRegistrationOpen.set(false);
+        this.submitted.set(false);
+        this.serverMessage.set(null);
+        this.editingSupply.set(null);
+        this.registrationForm.reset();
+      },
+      error: (error: unknown) => {
+        this.serverMessage.set(this.errors.getMessage(error));
+      },
+    });
+  }
+
+  private buildPayload(): CreateSupplyRequest {
+    const raw = this.registrationForm.getRawValue();
+
+    return {
+      code: raw.code?.trim() || null,
+      name: raw.name!.trim(),
+      description: raw.description?.trim() || null,
+      categoryId: raw.categoryId!,
+      unitId: raw.unitId!,
+      unitCost: raw.unitCost,
+      minimumStock: raw.minimumStock ?? null,
+      maximumStock: raw.maximumStock ?? null,
+    };
   }
 
   invalid(controlName: keyof typeof this.registrationForm.controls): boolean {

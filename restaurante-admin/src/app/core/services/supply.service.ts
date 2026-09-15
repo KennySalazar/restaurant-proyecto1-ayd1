@@ -9,6 +9,8 @@ import {
   Supply,
   SupplyCategory,
   SupplyRegistrationResponse,
+  SupplyUpdateResponse,
+  UpdateSupplyRequest,
 } from '../models/supply.models';
 
 @Injectable({
@@ -38,6 +40,10 @@ export class SupplyService {
 
   registerSupply(payload: CreateSupplyRequest): Observable<SupplyRegistrationResponse> {
     return this.http.post<SupplyRegistrationResponse>(this.suppliesUrl, payload);
+  }
+
+  updateSupply(id: number, payload: UpdateSupplyRequest): Observable<SupplyUpdateResponse> {
+    return this.http.put<SupplyUpdateResponse>(`${this.suppliesUrl}/${id}`, payload);
   }
 
   listCategories(): Observable<SupplyCategory[]> {

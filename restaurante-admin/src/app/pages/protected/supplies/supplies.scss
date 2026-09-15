@@ -235,6 +235,30 @@
   font-size: 0.78rem;
 }
 
+.restaurant-table__actions {
+  text-align: right !important;
+}
+
+.edit-button {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 0.55rem;
+  color: #b85c38;
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 750;
+  gap: 0.4rem;
+  justify-content: center;
+  padding: 0.5rem 0.65rem;
+}
+
+.edit-button:hover {
+  background: #f7eee7;
+}
+
 .restaurant-table tbody tr {
   transition: background-color 0.16s ease;
 }
@@ -466,7 +490,7 @@
 }
 
 .form-field label .field-hint {
-  font-size: 0.60rem;
+  font-size: 0.6rem;
   font-weight: 400;
   margin-left: 0.35rem;
 }
