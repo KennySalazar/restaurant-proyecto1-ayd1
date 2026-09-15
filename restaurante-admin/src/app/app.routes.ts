@@ -110,6 +110,14 @@ export const routes: Routes = [
             ),
         },
 
+        {
+          path: 'waitlist',
+          loadComponent: () =>
+            import('./pages/protected/waitlist/waitlist').then(
+              (module) => module.WaitlistPageComponent,
+            ),
+        },
+
       {
         path: 'employees',
         loadComponent: () =>
