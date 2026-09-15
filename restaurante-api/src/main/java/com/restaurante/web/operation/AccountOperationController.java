@@ -2,6 +2,8 @@ package com.restaurante.web.operation;
 
 import com.restaurante.application.account.AccountService;
 import com.restaurante.web.dto.account.AccountResponse;
+import com.restaurante.web.dto.account.MergeAccountsRequest;
+import com.restaurante.web.dto.account.MergeAccountsResponse;
 import com.restaurante.web.dto.account.OpenAccountRequest;
 import com.restaurante.web.dto.account.TransferAccountRequest;
 import com.restaurante.web.dto.account.TransferAccountResponse;
@@ -209,5 +211,97 @@ public class AccountOperationController {
             Authentication authentication) {
 
         return ResponseEntity.ok(accountService.transferAccountById(id, request, authentication));
+    }
+
+    @PostMapping("/fusionar")
+    @PreAuthorize("hasAnyRole('WAITER', 'ADMIN')")
+    @Operation(
+            summary = "Fusionar dos cuentas de mesas",
+            description = "Fusiona dos cuentas abiertas de mesas que se unieron físicamente, combinando el detalle y comandas en una sola cuenta y liberando la mesa origen. Si alguna cuenta está en proceso de cobro ('LISTA_COBRO'), la acción es impedida."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Cuentas fusionadas exitosamente y mesa origen liberada",
+                    content = @Content(schema = @Schema(implementation = MergeAccountsResponse.class))
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Cuentas requeridas, idénticas o mesas idénticas",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "No autenticado o token JWT no provisto",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Acceso denegado (requiere rol de mesero o administrador)",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Cuenta o mesa no encontrada",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "409",
+                    description = "La cuenta ya está en proceso de cobro o no está en estado abierta",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            )
+    })
+    public ResponseEntity<MergeAccountsResponse> mergeAccounts(
+            @Valid @RequestBody MergeAccountsRequest request,
+            Authentication authentication) {
+
+        return ResponseEntity.ok(accountService.mergeAccounts(null, false, request, authentication));
+    }
+
+    @PostMapping("/{id}/fusionar")
+    @PreAuthorize("hasAnyRole('WAITER', 'ADMIN')")
+    @Operation(
+            summary = "Fusionar cuenta origen con otra cuenta destino",
+            description = "Fusiona la cuenta abierta especificada por ID con otra cuenta destino indicada en la solicitud, combinando sus órdenes y liberando la mesa origen. Si alguna cuenta está en proceso de cobro ('LISTA_COBRO'), la acción es impedida."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Cuentas fusionadas exitosamente y mesa origen liberada",
+                    content = @Content(schema = @Schema(implementation = MergeAccountsResponse.class))
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Cuenta destino requerida, idéntica o misma mesa",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "No autenticado o token JWT no provisto",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Acceso denegado (requiere rol de mesero o administrador)",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Cuenta o mesa no encontrada",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "409",
+                    description = "La cuenta ya está en proceso de cobro o no está en estado abierta",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            )
+    })
+    public ResponseEntity<MergeAccountsResponse> mergeAccountById(
+            @Parameter(description = "Identificador de la cuenta origen a fusionar", required = true)
+            @PathVariable Long id,
+            @Valid @RequestBody MergeAccountsRequest request,
+            Authentication authentication) {
+
+        return ResponseEntity.ok(accountService.mergeAccountsById(id, request, authentication));
     }
 }
