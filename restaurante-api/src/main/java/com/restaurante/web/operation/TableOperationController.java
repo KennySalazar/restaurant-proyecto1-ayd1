@@ -2,6 +2,7 @@ package com.restaurante.web.operation;
 
 import com.restaurante.application.account.AccountService;
 import com.restaurante.application.account.SubaccountService;
+import com.restaurante.application.inventory.ComandaInventoryService;
 import com.restaurante.application.table.TableSeatingService;
 import com.restaurante.application.table.TableService;
 import com.restaurante.domain.model.TableStatus;
@@ -12,6 +13,8 @@ import com.restaurante.web.dto.account.OpenAccountRequest;
 import com.restaurante.web.dto.account.RequestBillResponse;
 import com.restaurante.web.dto.account.TransferAccountRequest;
 import com.restaurante.web.dto.account.TransferAccountResponse;
+import com.restaurante.web.dto.comanda.AddDishResponse;
+import com.restaurante.web.dto.comanda.AddDishToAccountRequest;
 import com.restaurante.web.dto.subaccount.SplitAccountResponse;
 import com.restaurante.web.dto.subaccount.SplitByItemsRequest;
 import com.restaurante.web.dto.subaccount.SplitByPeopleRequest;
@@ -32,6 +35,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -42,6 +46,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -62,16 +67,19 @@ public class TableOperationController {
     private final TableSeatingService tableSeatingService;
     private final AccountService accountService;
     private final SubaccountService subaccountService;
+    private final ComandaInventoryService comandaInventoryService;
 
     public TableOperationController(
             TableService tableService,
             TableSeatingService tableSeatingService,
             AccountService accountService,
-            SubaccountService subaccountService) {
+            SubaccountService subaccountService,
+            ComandaInventoryService comandaInventoryService) {
         this.tableService = tableService;
         this.tableSeatingService = tableSeatingService;
         this.accountService = accountService;
         this.subaccountService = subaccountService;
+        this.comandaInventoryService = comandaInventoryService;
     }
 
     @GetMapping
@@ -578,5 +586,44 @@ public class TableOperationController {
             Authentication authentication) {
 
         return ResponseEntity.ok(accountService.requestBillByTable(id, authentication));
+    }
+
+    @PostMapping("/{id}/platillos")
+    @ResponseStatus(HttpStatus.CREATED)
+    @PreAuthorize("hasAnyRole('WAITER', 'ADMIN')")
+    @Operation(
+            summary = "Agregar platillos a la cuenta de una mesa",
+            description = "Registra platillos en la cuenta activa de la mesa indicada con cantidad, modificadores y notas especiales. Valida que la cuenta esté abierta y que los insumos requeridos tengan stock suficiente."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "201",
+                    description = "Platillo(s) registrado(s) exitosamente en la cuenta de la mesa",
+                    content = @Content(schema = @Schema(implementation = AddDishResponse.class))
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Stock insuficiente de insumos, platillo inactivo o datos inválidos",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Mesa o cuenta activa no encontrada",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "409",
+                    description = "La cuenta de la mesa ya está marcada como lista para cobro o no está en estado ABIERTA",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            )
+    })
+    public ResponseEntity<AddDishResponse> addDishesToTable(
+            @Parameter(description = "Identificador único de la mesa", required = true)
+            @PathVariable Long id,
+            @Valid @RequestBody AddDishToAccountRequest request,
+            Authentication authentication) {
+
+        AddDishResponse response = comandaInventoryService.addDishesToTable(id, request, authentication);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 }

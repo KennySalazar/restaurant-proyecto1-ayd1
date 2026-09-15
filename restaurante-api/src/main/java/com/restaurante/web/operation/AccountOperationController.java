@@ -2,6 +2,7 @@ package com.restaurante.web.operation;
 
 import com.restaurante.application.account.AccountService;
 import com.restaurante.application.account.SubaccountService;
+import com.restaurante.application.inventory.ComandaInventoryService;
 import com.restaurante.web.dto.account.AccountResponse;
 import com.restaurante.web.dto.account.MergeAccountsRequest;
 import com.restaurante.web.dto.account.MergeAccountsResponse;
@@ -9,6 +10,8 @@ import com.restaurante.web.dto.account.OpenAccountRequest;
 import com.restaurante.web.dto.account.RequestBillResponse;
 import com.restaurante.web.dto.account.TransferAccountRequest;
 import com.restaurante.web.dto.account.TransferAccountResponse;
+import com.restaurante.web.dto.comanda.AddDishResponse;
+import com.restaurante.web.dto.comanda.AddDishToAccountRequest;
 import com.restaurante.web.dto.subaccount.AssignItemRequest;
 import com.restaurante.web.dto.subaccount.SplitAccountResponse;
 import com.restaurante.web.dto.subaccount.SplitByItemsRequest;
@@ -53,10 +56,15 @@ public class AccountOperationController {
 
     private final AccountService accountService;
     private final SubaccountService subaccountService;
+    private final ComandaInventoryService comandaInventoryService;
 
-    public AccountOperationController(AccountService accountService, SubaccountService subaccountService) {
+    public AccountOperationController(
+            AccountService accountService,
+            SubaccountService subaccountService,
+            ComandaInventoryService comandaInventoryService) {
         this.accountService = accountService;
         this.subaccountService = subaccountService;
+        this.comandaInventoryService = comandaInventoryService;
     }
 
     @PostMapping
@@ -517,5 +525,44 @@ public class AccountOperationController {
             Authentication authentication) {
 
         return ResponseEntity.ok(accountService.requestBillById(id, authentication));
+    }
+
+    @PostMapping("/{id}/platillos")
+    @ResponseStatus(HttpStatus.CREATED)
+    @PreAuthorize("hasAnyRole('WAITER', 'ADMIN')")
+    @Operation(
+            summary = "Agregar platillos a una cuenta abierta",
+            description = "Registra platillos en la cuenta abierta indicando cantidad, modificadores y notas especiales. Valida que la cuenta esté abierta y que los insumos requeridos por la receta tengan stock suficiente en inventario."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "201",
+                    description = "Platillo(s) registrado(s) exitosamente en la cuenta",
+                    content = @Content(schema = @Schema(implementation = AddDishResponse.class))
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Stock insuficiente de insumos, platillo inactivo o datos inválidos",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Cuenta o platillo no encontrado",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "409",
+                    description = "La cuenta ya se encuentra marcada como lista para cobro o no está en estado ABIERTA",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            )
+    })
+    public ResponseEntity<AddDishResponse> addDishesToAccount(
+            @Parameter(description = "Identificador único de la cuenta", required = true)
+            @PathVariable Long id,
+            @Valid @RequestBody AddDishToAccountRequest request,
+            Authentication authentication) {
+
+        AddDishResponse response = comandaInventoryService.addDishesToAccount(id, request, authentication);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 }

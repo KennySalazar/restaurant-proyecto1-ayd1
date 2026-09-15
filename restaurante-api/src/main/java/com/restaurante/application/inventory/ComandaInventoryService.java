@@ -16,6 +16,7 @@ import com.restaurante.domain.model.ModifierRecipeVersion;
 import com.restaurante.domain.model.RecipeDetail;
 import com.restaurante.domain.model.RecipeVersion;
 import com.restaurante.domain.model.RestaurantTable;
+import com.restaurante.domain.model.RestaurantUserProfile;
 import com.restaurante.domain.model.RoleName;
 import com.restaurante.domain.model.Supply;
 import com.restaurante.domain.repository.AccountRepository;
@@ -34,11 +35,15 @@ import com.restaurante.domain.repository.RestaurantUserProfileRepository;
 import com.restaurante.domain.repository.SupplyRepository;
 import com.restaurante.exception.ApiException;
 import com.restaurante.security.JwtData;
+import com.restaurante.web.dto.comanda.AddDishItemRequest;
+import com.restaurante.web.dto.comanda.AddDishResponse;
+import com.restaurante.web.dto.comanda.AddDishToAccountRequest;
 import com.restaurante.web.dto.comanda.ComandaInventoryProcessResponse;
 import com.restaurante.web.dto.comanda.ComandaItemResponse;
 import com.restaurante.web.dto.comanda.ComandaResponse;
 import com.restaurante.web.dto.comanda.CreateComandaItemRequest;
 import com.restaurante.web.dto.comanda.CreateComandaRequest;
+import com.restaurante.web.dto.comanda.DishOrderDetailResponse;
 import com.restaurante.web.dto.comanda.KardexMovementResponse;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -133,6 +138,23 @@ public class ComandaInventoryService {
 
         Long waiterId = resolveWaiterUserId(restaurantId, authentication);
         Account account = resolveOrCreateAccount(restaurantId, request, waiterId);
+
+        if ("LISTA_COBRO".equalsIgnoreCase(account.getStatus())) {
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "account_already_in_billing",
+                    "Cuenta en proceso de cobro",
+                    "No se pueden registrar comandas para una cuenta marcada como lista para cobro"
+            );
+        }
+        if (!"ABIERTA".equalsIgnoreCase(account.getStatus())) {
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "invalid_account_status",
+                    "Estado de cuenta inválido",
+                    "Solo se pueden registrar comandas para cuentas en estado abierta"
+            );
+        }
 
         short nextRound = (short) (comandaRepository.findMaxRoundNumberByAccountId(account.getId()) + 1);
         Comanda comanda = new Comanda(
@@ -278,6 +300,8 @@ public class ComandaInventoryService {
                 comandaDetailRepository.save(detail);
             }
         }
+
+        validateSupplyAvailability(restaurantId, savedComanda);
 
         if (Boolean.TRUE.equals(request.sendImmediately())) {
             return sendComanda(savedComanda.getId(), authentication);
@@ -672,5 +696,399 @@ public class ComandaInventoryService {
                 movement.getResponsibleUserId(),
                 movement.getCreatedAt()
         );
+    }
+
+    /**
+     * Agrega platillos a una cuenta abierta indicando cantidad, modificadores y notas.
+     * Valida que la cuenta se encuentre abierta y que exista stock suficiente de todos los insumos de su receta.
+     */
+    @Transactional
+    public AddDishResponse addDishesToAccount(
+            Long accountId,
+            AddDishToAccountRequest request,
+            Authentication authentication) {
+
+        Long restaurantId = resolveRestaurantId(authentication);
+        Long waiterId = resolveWaiterUserId(restaurantId, authentication);
+
+        if (accountId == null) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "missing_account_id",
+                    "Cuenta no especificada",
+                    "Debe indicar el identificador de la cuenta"
+            );
+        }
+
+        Account account = accountRepository.findByIdAndRestaurantId(accountId, restaurantId)
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "account_not_found",
+                        "Cuenta no encontrada",
+                        "No se encontró una cuenta con el identificador " + accountId
+                ));
+
+        if ("LISTA_COBRO".equalsIgnoreCase(account.getStatus())) {
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "account_already_in_billing",
+                    "Cuenta en proceso de cobro",
+                    "No se pueden agregar platillos a una cuenta que ya está en proceso de cobro"
+            );
+        }
+
+        if (!"ABIERTA".equalsIgnoreCase(account.getStatus())) {
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "invalid_account_status",
+                    "Estado de cuenta inválido",
+                    "Solo se pueden agregar platillos a cuentas en estado abierta"
+            );
+        }
+
+        List<AddDishItemRequest> items = extractItems(request);
+        if (items.isEmpty()) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "missing_dish",
+                    "Platillo no especificado",
+                    "Debe indicar al menos un platillo para agregar a la cuenta"
+            );
+        }
+
+        List<PreparedItemData> preparedItems = new ArrayList<>();
+        Map<Long, BigDecimal> supplyRequirements = new LinkedHashMap<>();
+        Map<Long, String> supplyDishNames = new LinkedHashMap<>();
+
+        for (AddDishItemRequest item : items) {
+            if (item.dishId() == null) {
+                throw new ApiException(
+                        HttpStatus.BAD_REQUEST,
+                        "missing_dish_id",
+                        "Platillo no especificado",
+                        "El identificador del platillo es obligatorio"
+                );
+            }
+            if (item.quantity() == null || item.quantity() <= 0) {
+                throw new ApiException(
+                        HttpStatus.BAD_REQUEST,
+                        "invalid_item_quantity",
+                        "Cantidad inválida",
+                        "La cantidad ordenada debe ser mayor a cero"
+                );
+            }
+
+            Dish dish = dishRepository.findByIdAndRestaurantId(item.dishId(), restaurantId)
+                    .orElseThrow(() -> new ApiException(
+                            HttpStatus.NOT_FOUND,
+                            "dish_not_found",
+                            "Platillo no encontrado",
+                            "No se encontró un platillo con el identificador " + item.dishId()
+                    ));
+
+            if (!dish.isActive() || !dish.isManualAvailable()) {
+                throw new ApiException(
+                        HttpStatus.BAD_REQUEST,
+                        "dish_not_available",
+                        "Platillo no disponible",
+                        "El platillo '" + dish.getName() + "' no se encuentra disponible en el menú"
+                );
+            }
+
+            RecipeVersion recipe = recipeVersionRepository.findActiveWithDetailsByDishId(dish.getId())
+                    .orElseThrow(() -> new ApiException(
+                            HttpStatus.BAD_REQUEST,
+                            "recipe_not_valid",
+                            "Receta no vigente",
+                            "El platillo '" + dish.getName() + "' no cuenta con una receta vigente"
+                    ));
+
+            List<PreparedModifierData> preparedMods = new ArrayList<>();
+            if (item.modifierIds() != null && !item.modifierIds().isEmpty()) {
+                for (Long modId : item.modifierIds()) {
+                    Modifier mod = modifierRepository.findById(modId)
+                            .orElseThrow(() -> new ApiException(
+                                    HttpStatus.NOT_FOUND,
+                                    "modifier_not_found",
+                                    "Modificador no encontrado",
+                                    "No se encontró un modificador con el identificador " + modId
+                            ));
+
+                    if (!mod.isActive()) {
+                        throw new ApiException(
+                                HttpStatus.BAD_REQUEST,
+                                "modifier_inactive",
+                                "Modificador inactivo",
+                                "El modificador '" + mod.getName() + "' no se encuentra activo"
+                        );
+                    }
+
+                    ModifierRecipeVersion mrv = modifierRecipeVersionRepository.findActiveByModifierId(mod.getId()).orElse(null);
+                    preparedMods.add(new PreparedModifierData(mod, mrv));
+                }
+            }
+
+            preparedItems.add(new PreparedItemData(dish, recipe, item.quantity(), item.notes(), preparedMods));
+
+            for (RecipeDetail rd : recipe.getDetails()) {
+                Supply supply = rd.getSupply();
+                BigDecimal urBase = rd.getMeasurementUnit() != null ? rd.getMeasurementUnit().getBaseFactor() : BigDecimal.ONE;
+                BigDecimal usBase = supply.getMeasurementUnit() != null ? supply.getMeasurementUnit().getBaseFactor() : BigDecimal.ONE;
+
+                BigDecimal required = BigDecimal.valueOf(item.quantity())
+                        .multiply(rd.getQuantity())
+                        .multiply(urBase)
+                        .divide(usBase, 4, RoundingMode.HALF_UP);
+
+                supplyRequirements.merge(supply.getId(), required, BigDecimal::add);
+                supplyDishNames.putIfAbsent(supply.getId(), dish.getName());
+            }
+
+            for (PreparedModifierData pmod : preparedMods) {
+                if (pmod.recipeVersion() != null) {
+                    List<ModifierRecipeDetail> mrds = modifierRecipeDetailRepository.findByModifierRecipeVersionId(pmod.recipeVersion().getId());
+                    for (ModifierRecipeDetail mrd : mrds) {
+                        Supply supply = mrd.getSupply();
+                        BigDecimal urBase = mrd.getMeasurementUnit() != null ? mrd.getMeasurementUnit().getBaseFactor() : BigDecimal.ONE;
+                        BigDecimal usBase = supply.getMeasurementUnit() != null ? supply.getMeasurementUnit().getBaseFactor() : BigDecimal.ONE;
+
+                        BigDecimal modQty = BigDecimal.valueOf(item.quantity())
+                                .multiply(BigDecimal.ONE)
+                                .multiply(mrd.getQuantity())
+                                .multiply(urBase)
+                                .divide(usBase, 4, RoundingMode.HALF_UP);
+
+                        if ("AGREGAR".equalsIgnoreCase(mrd.getAdjustmentType())) {
+                            supplyRequirements.merge(supply.getId(), modQty, BigDecimal::add);
+                            supplyDishNames.putIfAbsent(supply.getId(), dish.getName());
+                        } else {
+                            supplyRequirements.merge(supply.getId(), modQty.negate(), BigDecimal::add);
+                        }
+                    }
+                }
+            }
+        }
+
+        for (Map.Entry<Long, BigDecimal> entry : supplyRequirements.entrySet()) {
+            BigDecimal requiredAmount = entry.getValue();
+            if (requiredAmount.compareTo(BigDecimal.ZERO) > 0) {
+                Supply supply = supplyRepository.findByIdAndRestaurantId(entry.getKey(), restaurantId)
+                        .orElseThrow(() -> new ApiException(
+                                HttpStatus.NOT_FOUND,
+                                "supply_not_found",
+                                "Insumo no encontrado",
+                                "No se encontró el insumo con identificador " + entry.getKey()
+                        ));
+
+                if (!supply.isActive()) {
+                    throw new ApiException(
+                            HttpStatus.BAD_REQUEST,
+                            "inactive_supply",
+                            "Insumo inactivo",
+                            "El platillo requiere el insumo inactivo '" + supply.getName() + "'"
+                    );
+                }
+
+                if (supply.getCurrentStock().compareTo(requiredAmount) < 0) {
+                    String dishName = supplyDishNames.getOrDefault(supply.getId(), "seleccionado");
+                    throw new ApiException(
+                            HttpStatus.BAD_REQUEST,
+                            "insufficient_supply_stock",
+                            "Stock insuficiente de insumos",
+                            "El platillo '" + dishName + "' no tiene stock suficiente del insumo '" + supply.getName() + "' (requerido: " + requiredAmount + ", disponible: " + supply.getCurrentStock() + ")"
+                    );
+                }
+            }
+        }
+
+        List<Comanda> draftComandas = comandaRepository.findDraftComandasByAccountId(account.getId());
+        Comanda targetComanda;
+        if (!draftComandas.isEmpty()) {
+            targetComanda = draftComandas.get(0);
+        } else {
+            short nextRound = (short) (comandaRepository.findMaxRoundNumberByAccountId(account.getId()) + 1);
+            targetComanda = new Comanda(account, nextRound, waiterId, null);
+            targetComanda = comandaRepository.save(targetComanda);
+        }
+
+        List<DishOrderDetailResponse> registeredDishes = new ArrayList<>();
+        BigDecimal subtotalAgregado = BigDecimal.ZERO;
+
+        for (PreparedItemData item : preparedItems) {
+            Dish dish = item.dish();
+            RecipeVersion recipe = item.recipe();
+            short qty = item.quantity();
+            String notes = item.notes() != null ? item.notes().trim() : null;
+
+            ComandaDetail detail = new ComandaDetail(
+                    targetComanda,
+                    dish,
+                    recipe,
+                    dish.getName(),
+                    qty,
+                    dish.getSalePrice(),
+                    BigDecimal.ZERO,
+                    dish.getPreparationTimeMinutes() != null ? dish.getPreparationTimeMinutes() : (short) 15,
+                    notes
+            );
+            detail.setStatus(ComandaDetailStatus.BORRADOR);
+
+            List<String> modNames = new ArrayList<>();
+            BigDecimal modTotalUnit = BigDecimal.ZERO;
+
+            for (PreparedModifierData pmod : item.modifiers()) {
+                Modifier mod = pmod.modifier();
+                BigDecimal modPrice = mod.getAdditionalPrice() != null ? mod.getAdditionalPrice() : BigDecimal.ZERO;
+                ComandaDetailModifier cdm = new ComandaDetailModifier(
+                        detail,
+                        mod,
+                        pmod.recipeVersion(),
+                        mod.getName(),
+                        (short) 1,
+                        modPrice,
+                        BigDecimal.ZERO
+                );
+                detail.addModifier(cdm);
+                modNames.add(mod.getName());
+                modTotalUnit = modTotalUnit.add(modPrice);
+            }
+
+            targetComanda.addDetail(detail);
+            ComandaDetail savedDetail = comandaDetailRepository.save(detail);
+
+            BigDecimal lineSubtotal = dish.getSalePrice().add(modTotalUnit).multiply(BigDecimal.valueOf(qty));
+            subtotalAgregado = subtotalAgregado.add(lineSubtotal);
+
+            registeredDishes.add(new DishOrderDetailResponse(
+                    savedDetail.getId(),
+                    dish.getId(),
+                    dish.getName(),
+                    qty,
+                    dish.getSalePrice(),
+                    lineSubtotal,
+                    notes,
+                    modNames,
+                    savedDetail.getStatus().name()
+            ));
+        }
+
+        RestaurantTable table = tableRepository.findByIdAndRestaurantId(account.getTableId(), restaurantId).orElse(null);
+        String tableNumber = table != null ? table.getNumber() : "";
+
+        return new AddDishResponse(
+                "Platillo(s) registrado(s) exitosamente en la cuenta",
+                account.getId(),
+                account.getAccountNumber(),
+                table != null ? table.getId() : null,
+                tableNumber,
+                targetComanda.getId(),
+                targetComanda.getRoundNumber(),
+                registeredDishes,
+                subtotalAgregado
+        );
+    }
+
+    /**
+     * Agrega platillos a la cuenta activa de la mesa indicada.
+     */
+    @Transactional
+    public AddDishResponse addDishesToTable(
+            Long tableId,
+            AddDishToAccountRequest request,
+            Authentication authentication) {
+
+        Long restaurantId = resolveRestaurantId(authentication);
+        if (tableId == null) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "missing_table_id",
+                    "Mesa no especificada",
+                    "Debe indicar el identificador de la mesa"
+            );
+        }
+
+        RestaurantTable table = tableRepository.findByIdAndRestaurantId(tableId, restaurantId)
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "table_not_found",
+                        "Mesa no encontrada",
+                        "No se encontró una mesa con el identificador " + tableId
+                ));
+
+        Account account = accountRepository.findActiveByTableIdAndRestaurantId(table.getId(), restaurantId)
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "active_account_not_found",
+                        "Sin cuenta activa",
+                        "La mesa no tiene una cuenta activa para agregar platillos"
+                ));
+
+        return addDishesToAccount(account.getId(), request, authentication);
+    }
+
+    public void validateSupplyAvailability(Long restaurantId, Comanda comanda) {
+        Map<Long, BigDecimal> supplyTotals = calculateSupplyRequirements(restaurantId, comanda);
+
+        for (Map.Entry<Long, BigDecimal> entry : supplyTotals.entrySet()) {
+            Long supplyId = entry.getKey();
+            BigDecimal requiredAmount = entry.getValue();
+
+            if (requiredAmount.compareTo(BigDecimal.ZERO) > 0) {
+                Supply supply = supplyRepository.findByIdAndRestaurantId(supplyId, restaurantId)
+                        .orElseThrow(() -> new ApiException(
+                                HttpStatus.NOT_FOUND,
+                                "supply_not_found",
+                                "Insumo no encontrado",
+                                "No se encontró el insumo con identificador " + supplyId
+                        ));
+
+                if (!supply.isActive()) {
+                    throw new ApiException(
+                            HttpStatus.BAD_REQUEST,
+                            "inactive_supply",
+                            "Insumo inactivo",
+                            "La comanda requiere el insumo inactivo '" + supply.getName() + "'"
+                    );
+                }
+
+                if (supply.getCurrentStock().compareTo(requiredAmount) < 0) {
+                    throw new ApiException(
+                            HttpStatus.BAD_REQUEST,
+                            "insufficient_supply_stock",
+                            "Stock insuficiente de insumos",
+                            "No fue posible registrar los platillos: stock insuficiente del insumo '" + supply.getName() + "' (requerido: " + requiredAmount + ", disponible: " + supply.getCurrentStock() + ")"
+                    );
+                }
+            }
+        }
+    }
+
+    private Long resolveRestaurantId(Authentication authentication) {
+        if (authentication != null && authentication.getDetails() instanceof JwtData jwtData) {
+            return userProfileRepository.findById(jwtData.userId())
+                    .map(RestaurantUserProfile::getRestaurantId)
+                    .orElse(DEFAULT_RESTAURANT_ID);
+        }
+        return DEFAULT_RESTAURANT_ID;
+    }
+
+    private List<AddDishItemRequest> extractItems(AddDishToAccountRequest request) {
+        if (request == null) {
+            return List.of();
+        }
+        if (request.items() != null && !request.items().isEmpty()) {
+            return request.items();
+        }
+        if (request.dishId() != null) {
+            short qty = (request.quantity() != null && request.quantity() > 0) ? request.quantity() : 1;
+            return List.of(new AddDishItemRequest(request.dishId(), qty, request.notes(), request.modifierIds()));
+        }
+        return List.of();
+    }
+
+    private record PreparedModifierData(Modifier modifier, ModifierRecipeVersion recipeVersion) {
+    }
+
+    private record PreparedItemData(Dish dish, RecipeVersion recipe, short quantity, String notes, List<PreparedModifierData> modifiers) {
     }
 }
