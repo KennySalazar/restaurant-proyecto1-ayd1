@@ -93,6 +93,14 @@ export const routes: Routes = [
       },
 
       {
+        path: 'occupancy',
+        loadComponent: () =>
+          import('./pages/protected/occupancy/occupancy').then(
+            (module) => module.OccupancyPageComponent,
+          ),
+      },
+
+      {
           path: 'reservations',
           loadComponent: () =>
             import(

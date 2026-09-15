@@ -21,6 +21,13 @@ const NAVIGATION: readonly NavigationItem[] = [
     roles: ['ADMIN'],
   },
 
+    {
+    path: '/app/occupancy',
+    labelKey: 'nav.occupancy',
+    icon: 'pi-chart-bar',
+    roles: ['ADMIN'],
+  },
+
   {
     path: '/app/employees',
     labelKey: 'nav.employees',

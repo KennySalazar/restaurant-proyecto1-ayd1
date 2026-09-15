@@ -1,0 +1,201 @@
+<section class="page-heading">
+  <div class="page-heading__eyebrow">
+    <span></span>
+    {{ 'occupancy.eyebrow' | transloco }}
+  </div>
+
+  <h1>{{ 'occupancy.title' | transloco }}</h1>
+  <p>{{ 'occupancy.description' | transloco }}</p>
+</section>
+
+<section class="summary-grid">
+  <article class="summary-card">
+    <div class="summary-icon">
+      <i class="pi pi-th-large"></i>
+    </div>
+    <div>
+      <span>{{ 'occupancy.summary.total' | transloco }}</span>
+      <strong>{{ tables().length }}</strong>
+    </div>
+  </article>
+
+  <article class="summary-card">
+    <div class="summary-icon summary-icon--free">
+      <i class="pi pi-check-circle"></i>
+    </div>
+    <div>
+      <span>{{ 'occupancy.summary.free' | transloco }}</span>
+      <strong>{{ freeCount() }}</strong>
+    </div>
+  </article>
+
+  <article class="summary-card">
+    <div class="summary-icon summary-icon--reserved">
+      <i class="pi pi-calendar"></i>
+    </div>
+    <div>
+      <span>{{ 'occupancy.summary.reserved' | transloco }}</span>
+      <strong>{{ reservedCount() }}</strong>
+    </div>
+  </article>
+
+  <article class="summary-card">
+    <div class="summary-icon summary-icon--occupied">
+      <i class="pi pi-users"></i>
+    </div>
+    <div>
+      <span>{{ 'occupancy.summary.occupied' | transloco }}</span>
+      <strong>{{ occupiedCount() }}</strong>
+    </div>
+  </article>
+</section>
+
+<section class="occupancy-panel">
+  <header class="occupancy-panel__header">
+    <div>
+      <h2>{{ 'occupancy.list.title' | transloco }}</h2>
+      <p>{{ 'occupancy.list.description' | transloco }}</p>
+    </div>
+
+    <div class="header-actions">
+      <div class="live-status">
+        <span class="live-dot"></span>
+
+        <div>
+          <strong>{{ 'occupancy.live' | transloco }}</strong>
+
+          @if (lastUpdated()) {
+            <small>
+              {{ 'occupancy.lastUpdated' | transloco }}
+              {{ formatLastUpdated() }}
+            </small>
+          }
+        </div>
+      </div>
+
+      <button
+        type="button"
+        class="refresh-button"
+        [disabled]="refreshing()"
+        (click)="loadPanel()"
+      >
+        <i
+          class="pi pi-refresh"
+          [class.is-spinning]="refreshing()"
+        ></i>
+        {{ 'occupancy.refresh' | transloco }}
+      </button>
+    </div>
+  </header>
+
+  @if (loading()) {
+    <div class="panel-state">
+      <i class="pi pi-spin pi-spinner"></i>
+      <span>{{ 'occupancy.loading' | transloco }}</span>
+    </div>
+  } @else if (error() && tables().length === 0) {
+    <div class="panel-state panel-state--error">
+      <i class="pi pi-exclamation-triangle"></i>
+      <strong>{{ 'occupancy.error.title' | transloco }}</strong>
+      <span>{{ 'occupancy.error.description' | transloco }}</span>
+    </div>
+  } @else if (tables().length === 0) {
+    <div class="panel-state">
+      <i class="pi pi-th-large"></i>
+      <strong>{{ 'occupancy.empty.title' | transloco }}</strong>
+      <span>{{ 'occupancy.empty.description' | transloco }}</span>
+    </div>
+  } @else {
+    <div class="table-grid">
+      @for (table of tables(); track table.mesaId) {
+        <article
+          class="table-card"
+          [class.table-card--free]="table.estado === 'LIBRE'"
+          [class.table-card--reserved]="table.estado === 'RESERVADA'"
+          [class.table-card--occupied]="table.estado === 'OCUPADA'"
+          [class.table-card--requested]="table.estado === 'CUENTA_SOLICITADA'"
+        >
+          <div class="table-card__top">
+            <div>
+              <span class="table-label">
+                {{ 'occupancy.table' | transloco }}
+              </span>
+              <h3>{{ table.numero }}</h3>
+            </div>
+
+            <span
+              class="status-pill"
+              [class.status-pill--free]="table.estado === 'LIBRE'"
+              [class.status-pill--reserved]="table.estado === 'RESERVADA'"
+              [class.status-pill--occupied]="table.estado === 'OCUPADA'"
+              [class.status-pill--requested]="table.estado === 'CUENTA_SOLICITADA'"
+            >
+              <i [class]="'pi ' + statusIcon(table.estado)"></i>
+              {{ statusKey(table.estado) | transloco }}
+            </span>
+          </div>
+
+          <div class="table-information">
+            <div>
+              <span>{{ 'occupancy.fields.zone' | transloco }}</span>
+              <strong>{{ table.zona }}</strong>
+            </div>
+
+            <div>
+              <span>{{ 'occupancy.fields.capacity' | transloco }}</span>
+              <strong>
+                {{ table.capacidad }}
+                {{ 'occupancy.people' | transloco }}
+              </strong>
+            </div>
+          </div>
+
+          @if (table.estado === 'RESERVADA') {
+            <div class="reservation-information">
+              <div class="reservation-information__title">
+                <i class="pi pi-calendar"></i>
+                {{ 'occupancy.reservation.title' | transloco }}
+              </div>
+
+              @if (table.clienteReserva) {
+                <div class="detail-row">
+                  <span>{{ 'occupancy.reservation.client' | transloco }}</span>
+                  <strong>{{ table.clienteReserva }}</strong>
+                </div>
+              }
+
+              @if (table.reservaHasta) {
+                <div class="detail-row">
+                  <span>{{ 'occupancy.reservation.until' | transloco }}</span>
+                  <strong>
+                    {{ formatReservationUntil(table.reservaHasta) }}
+                  </strong>
+                </div>
+              }
+            </div>
+          }
+
+          @if (table.numeroCuenta) {
+            <div class="account-information">
+              <i class="pi pi-receipt"></i>
+              <span>
+                {{ 'occupancy.account' | transloco }}
+                <strong>{{ table.numeroCuenta }}</strong>
+              </span>
+            </div>
+          }
+
+          @if (table.clienteListaEspera) {
+            <div class="waitlist-information">
+              <i class="pi pi-clock"></i>
+              <span>
+                {{ 'occupancy.waitlist' | transloco }}
+                <strong>{{ table.clienteListaEspera }}</strong>
+              </span>
+            </div>
+          }
+        </article>
+      }
+    </div>
+  }
+</section>
