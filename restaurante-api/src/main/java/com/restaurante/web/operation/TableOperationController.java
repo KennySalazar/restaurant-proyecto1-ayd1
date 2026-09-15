@@ -15,6 +15,7 @@ import com.restaurante.web.dto.account.TransferAccountRequest;
 import com.restaurante.web.dto.account.TransferAccountResponse;
 import com.restaurante.web.dto.comanda.AddDishResponse;
 import com.restaurante.web.dto.comanda.AddDishToAccountRequest;
+import com.restaurante.web.dto.comanda.ComandaInventoryProcessResponse;
 import com.restaurante.web.dto.subaccount.SplitAccountResponse;
 import com.restaurante.web.dto.subaccount.SplitByItemsRequest;
 import com.restaurante.web.dto.subaccount.SplitByPeopleRequest;
@@ -592,8 +593,8 @@ public class TableOperationController {
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("hasAnyRole('WAITER', 'ADMIN')")
     @Operation(
-            summary = "Agregar platillos a la cuenta de una mesa",
-            description = "Registra platillos en la cuenta activa de la mesa indicada con cantidad, modificadores y notas especiales. Valida que la cuenta esté abierta y que los insumos requeridos tengan stock suficiente."
+            summary = "Agregar platillos a la cuenta activa de una mesa",
+            description = "Registra platillos en la cuenta actualmente activa de la mesa indicada, validando disponibilidad de insumos en inventario."
     )
     @ApiResponses({
             @ApiResponse(
@@ -625,5 +626,42 @@ public class TableOperationController {
 
         AddDishResponse response = comandaInventoryService.addDishesToTable(id, request, authentication);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @PostMapping("/{id}/enviar-comanda")
+    @PreAuthorize("hasAnyRole('WAITER', 'ADMIN')")
+    @Operation(
+            summary = "Enviar comanda de la mesa a cocina",
+            description = "Envía la comanda en borrador de la mesa a cocina, descontando automáticamente del inventario los insumos requeridos. Si algún platillo no tiene stock suficiente, su envío es rechazado, se marca como no disponible y se notifica al mesero."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Comanda enviada a cocina exitosamente",
+                    content = @Content(schema = @Schema(implementation = ComandaInventoryProcessResponse.class))
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Comanda vacía, sin platillos en borrador o stock insuficiente de insumos",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Mesa o cuenta activa no encontrada",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "409",
+                    description = "Inventario ya procesado o cuenta no está activa",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            )
+    })
+    public ResponseEntity<ComandaInventoryProcessResponse> sendComandaByTable(
+            @Parameter(description = "Identificador único de la mesa", required = true)
+            @PathVariable Long id,
+            Authentication authentication) {
+
+        ComandaInventoryProcessResponse response = comandaInventoryService.sendComandaByTableId(id, authentication);
+        return ResponseEntity.ok(response);
     }
 }

@@ -5,11 +5,17 @@ import com.restaurante.web.dto.comanda.ComandaInventoryProcessResponse;
 import com.restaurante.web.dto.comanda.ComandaResponse;
 import com.restaurante.web.dto.comanda.CreateComandaRequest;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -51,7 +57,33 @@ public class OperationComandaController {
      * Envía una comanda registrada en borrador a cocina y descuenta automáticamente los insumos en el kardex.
      */
     @PostMapping("/{id}/enviar")
-    @Operation(summary = "Enviar comanda y descontar insumos automáticamente")
+    @PreAuthorize("hasAnyRole('WAITER', 'ADMIN')")
+    @Operation(
+            summary = "Enviar comanda y descontar insumos automáticamente",
+            description = "Valida y descuenta automáticamente los insumos de inventario de cada platillo y modificador. Notifica a cocina en tiempo real y marca los platillos como recibidos. Si algún platillo no tiene stock suficiente, rechaza su envío, lo marca como no disponible y notifica al mesero."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Comanda enviada a cocina exitosamente",
+                    content = @Content(schema = @Schema(implementation = ComandaInventoryProcessResponse.class))
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Comanda vacía, sin platillos en borrador o stock insuficiente de insumos",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Comanda no encontrada",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "409",
+                    description = "La comanda ya fue procesada previamente",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            )
+    })
     public ResponseEntity<ComandaInventoryProcessResponse> sendComanda(
             @PathVariable Long id,
             Authentication authentication) {

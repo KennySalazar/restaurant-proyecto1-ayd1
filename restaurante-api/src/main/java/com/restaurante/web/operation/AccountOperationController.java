@@ -12,6 +12,7 @@ import com.restaurante.web.dto.account.TransferAccountRequest;
 import com.restaurante.web.dto.account.TransferAccountResponse;
 import com.restaurante.web.dto.comanda.AddDishResponse;
 import com.restaurante.web.dto.comanda.AddDishToAccountRequest;
+import com.restaurante.web.dto.comanda.ComandaInventoryProcessResponse;
 import com.restaurante.web.dto.subaccount.AssignItemRequest;
 import com.restaurante.web.dto.subaccount.SplitAccountResponse;
 import com.restaurante.web.dto.subaccount.SplitByItemsRequest;
@@ -564,5 +565,42 @@ public class AccountOperationController {
 
         AddDishResponse response = comandaInventoryService.addDishesToAccount(id, request, authentication);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @PostMapping("/{id}/enviar-comanda")
+    @PreAuthorize("hasAnyRole('WAITER', 'ADMIN')")
+    @Operation(
+            summary = "Enviar comanda de la cuenta a cocina",
+            description = "Envía la comanda en borrador de la cuenta a cocina, descontando automáticamente del inventario los insumos requeridos. Si algún platillo no tiene stock suficiente, su envío es rechazado, se marca como no disponible y se notifica al mesero."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Comanda enviada a cocina exitosamente",
+                    content = @Content(schema = @Schema(implementation = ComandaInventoryProcessResponse.class))
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Comanda vacía, sin platillos en borrador o stock insuficiente de insumos",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Cuenta no encontrada",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "409",
+                    description = "Inventario ya procesado o cuenta no está activa",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            )
+    })
+    public ResponseEntity<ComandaInventoryProcessResponse> sendComandaByAccount(
+            @Parameter(description = "Identificador único de la cuenta", required = true)
+            @PathVariable Long id,
+            Authentication authentication) {
+
+        ComandaInventoryProcessResponse response = comandaInventoryService.sendComandaByAccountId(id, authentication);
+        return ResponseEntity.ok(response);
     }
 }

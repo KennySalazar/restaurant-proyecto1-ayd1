@@ -17,6 +17,8 @@ import com.restaurante.domain.model.RecipeDetail;
 import com.restaurante.domain.model.RecipeVersion;
 import com.restaurante.domain.model.RestaurantTable;
 import com.restaurante.domain.model.RestaurantUserProfile;
+import com.restaurante.domain.model.Notification;
+import com.restaurante.domain.model.Role;
 import com.restaurante.domain.model.RoleName;
 import com.restaurante.domain.model.Supply;
 import com.restaurante.domain.repository.AccountRepository;
@@ -29,9 +31,11 @@ import com.restaurante.domain.repository.InventoryMovementRepository;
 import com.restaurante.domain.repository.ModifierRecipeDetailRepository;
 import com.restaurante.domain.repository.ModifierRecipeVersionRepository;
 import com.restaurante.domain.repository.ModifierRepository;
+import com.restaurante.domain.repository.NotificationRepository;
 import com.restaurante.domain.repository.RecipeVersionRepository;
 import com.restaurante.domain.repository.RestaurantTableRepository;
 import com.restaurante.domain.repository.RestaurantUserProfileRepository;
+import com.restaurante.domain.repository.RoleRepository;
 import com.restaurante.domain.repository.SupplyRepository;
 import com.restaurante.exception.ApiException;
 import com.restaurante.security.JwtData;
@@ -45,6 +49,7 @@ import com.restaurante.web.dto.comanda.CreateComandaItemRequest;
 import com.restaurante.web.dto.comanda.CreateComandaRequest;
 import com.restaurante.web.dto.comanda.DishOrderDetailResponse;
 import com.restaurante.web.dto.comanda.KardexMovementResponse;
+import com.restaurante.web.dto.comanda.RejectedDishDetailResponse;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import org.springframework.http.HttpStatus;
@@ -59,6 +64,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Servicio de negocio para el procesamiento de comandas y descuento automático de inventario.
@@ -82,6 +88,8 @@ public class ComandaInventoryService {
     private final InventoryMovementRepository inventoryMovementRepository;
     private final RestaurantTableRepository tableRepository;
     private final RestaurantUserProfileRepository userProfileRepository;
+    private final NotificationRepository notificationRepository;
+    private final RoleRepository roleRepository;
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -99,7 +107,9 @@ public class ComandaInventoryService {
                                    SupplyRepository supplyRepository,
                                    InventoryMovementRepository inventoryMovementRepository,
                                    RestaurantTableRepository tableRepository,
-                                   RestaurantUserProfileRepository userProfileRepository) {
+                                   RestaurantUserProfileRepository userProfileRepository,
+                                   NotificationRepository notificationRepository,
+                                   RoleRepository roleRepository) {
         this.comandaRepository = comandaRepository;
         this.comandaDetailRepository = comandaDetailRepository;
         this.accountRepository = accountRepository;
@@ -114,6 +124,8 @@ public class ComandaInventoryService {
         this.inventoryMovementRepository = inventoryMovementRepository;
         this.tableRepository = tableRepository;
         this.userProfileRepository = userProfileRepository;
+        this.notificationRepository = notificationRepository;
+        this.roleRepository = roleRepository;
     }
 
     /**
@@ -316,14 +328,17 @@ public class ComandaInventoryService {
 
     /**
      * Envía una comanda a cocina y descuenta automáticamente los insumos del inventario en el kardex.
+     * Valida individualmente el stock de cada platillo y modificador: si un platillo no tiene stock
+     * suficiente de insumos, se rechaza su envío, se marca como no disponible y se notifica al mesero.
+     * Los platillos con stock disponible se envían a cocina y se notifica al equipo de cocina en tiempo real.
      *
      * @param comandaId Identificador de la comanda a enviar
      * @param authentication Información de autenticación del usuario que procesa el envío
      * @return Confirmación del procesamiento, estado actualizado y movimientos de kardex generados
      */
-    @Transactional
+    @Transactional(noRollbackFor = ApiException.class)
     public ComandaInventoryProcessResponse sendComanda(Long comandaId, Authentication authentication) {
-        Long restaurantId = DEFAULT_RESTAURANT_ID;
+        Long restaurantId = resolveRestaurantId(authentication);
 
         if (comandaId == null) {
             throw new ApiException(
@@ -363,46 +378,124 @@ public class ComandaInventoryService {
             );
         }
 
-        // Calcular consumos consolidados de insumos (recetas base, combos y modificadores)
-        Map<Long, BigDecimal> supplyTotals = calculateSupplyRequirements(restaurantId, comanda);
+        List<ComandaDetail> draftDetails = comanda.getDetails().stream()
+                .filter(d -> d.getStatus() == ComandaDetailStatus.BORRADOR)
+                .toList();
 
-        // Pre-validar existencia de stock suficiente para evitar errores parciales
-        for (Map.Entry<Long, BigDecimal> entry : supplyTotals.entrySet()) {
-            Long supplyId = entry.getKey();
-            BigDecimal requiredAmount = entry.getValue();
+        if (draftDetails.isEmpty()) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "no_draft_items",
+                    "Sin platillos pendientes",
+                    "La comanda no tiene platillos en borrador pendientes de enviar a cocina"
+            );
+        }
 
-            if (requiredAmount.compareTo(BigDecimal.ZERO) > 0) {
-                Supply supply = supplyRepository.findByIdAndRestaurantId(supplyId, restaurantId)
-                        .orElseThrow(() -> new ApiException(
-                                HttpStatus.NOT_FOUND,
-                                "supply_not_found",
-                                "Insumo no encontrado",
-                                "No se encontró el insumo con identificador " + supplyId
-                        ));
+        Role waiterRole = roleRepository.findByName(RoleName.WAITER).orElse(null);
+        Long waiterRoleId = waiterRole != null ? waiterRole.getId() : null;
 
-                if (!supply.isActive()) {
-                    throw new ApiException(
-                            HttpStatus.BAD_REQUEST,
-                            "inactive_supply",
-                            "Insumo inactivo",
-                            "La comanda requiere el insumo inactivo '" + supply.getName() + "'"
-                    );
+        List<ComandaDetail> validDetails = new ArrayList<>();
+        List<RejectedDishDetailResponse> rejectedDishes = new ArrayList<>();
+        Map<Long, BigDecimal> availableStockMap = new LinkedHashMap<>();
+        Map<Long, BigDecimal> totalsToDeduct = new LinkedHashMap<>();
+        Map<Long, ComandaDetail> detailBySupply = new LinkedHashMap<>();
+
+        for (ComandaDetail detail : draftDetails) {
+            Map<Long, BigDecimal> detailRequirements = calculateDetailSupplyRequirements(restaurantId, detail);
+            boolean canFulfill = true;
+            String rejectReason = null;
+
+            for (Map.Entry<Long, BigDecimal> entry : detailRequirements.entrySet()) {
+                Long supplyId = entry.getKey();
+                BigDecimal requiredAmount = entry.getValue();
+
+                if (requiredAmount.compareTo(BigDecimal.ZERO) > 0) {
+                    Supply supply = supplyRepository.findByIdAndRestaurantId(supplyId, restaurantId)
+                            .orElseThrow(() -> new ApiException(
+                                    HttpStatus.NOT_FOUND,
+                                    "supply_not_found",
+                                    "Insumo no encontrado",
+                                    "No se encontró el insumo con identificador " + supplyId
+                            ));
+
+                    if (!supply.isActive()) {
+                        canFulfill = false;
+                        rejectReason = "El platillo requiere el insumo inactivo '" + supply.getName() + "'";
+                        break;
+                    }
+
+                    BigDecimal currentAvailable = availableStockMap.computeIfAbsent(supplyId, id -> supply.getCurrentStock());
+                    if (currentAvailable.compareTo(requiredAmount) < 0) {
+                        canFulfill = false;
+                        rejectReason = "Stock insuficiente del insumo '" + supply.getName() + "' (requerido: " + requiredAmount + ", disponible: " + currentAvailable + ")";
+                        break;
+                    }
                 }
+            }
 
-                if (supply.getCurrentStock().compareTo(requiredAmount) < 0) {
-                    throw new ApiException(
-                            HttpStatus.BAD_REQUEST,
-                            "insufficient_inventory",
-                            "Inventario insuficiente",
-                            "No fue posible actualizar el inventario: stock insuficiente para preparar los platillos solicitados"
-                    );
+            if (!canFulfill) {
+                // Rechazar el envío de este platillo específico
+                detail.setStatus(ComandaDetailStatus.NO_DISPONIBLE);
+                comandaDetailRepository.save(detail);
+
+                // Notificar al mesero cuál platillo no pudo enviarse y por qué
+                Notification waiterNotification = new Notification(
+                        restaurantId,
+                        comanda.getWaiterId(),
+                        waiterRoleId,
+                        "PLATILLO_RECHAZADO_STOCK",
+                        "Platillo rechazado por falta de stock - " + detail.getNameSnapshot(),
+                        "El platillo '" + detail.getNameSnapshot() + "' no pudo enviarse a cocina debido a stock insuficiente: " + rejectReason + ".",
+                        "COMANDA_DETALLE",
+                        detail.getId().toString(),
+                        "ALTA"
+                );
+                notificationRepository.save(waiterNotification);
+
+                rejectedDishes.add(new RejectedDishDetailResponse(
+                        detail.getId(),
+                        detail.getNameSnapshot(),
+                        rejectReason
+                ));
+            } else {
+                // Reservar el stock en memoria para no sobreasignar entre detalles de la misma comanda
+                for (Map.Entry<Long, BigDecimal> entry : detailRequirements.entrySet()) {
+                    Long supplyId = entry.getKey();
+                    BigDecimal requiredAmount = entry.getValue();
+                    if (requiredAmount.compareTo(BigDecimal.ZERO) > 0) {
+                        availableStockMap.put(supplyId, availableStockMap.get(supplyId).subtract(requiredAmount));
+                        totalsToDeduct.merge(supplyId, requiredAmount, BigDecimal::add);
+                        detailBySupply.putIfAbsent(supplyId, detail);
+                    }
                 }
+                validDetails.add(detail);
             }
         }
 
-        // Transición de estado a RECIBIDA (lo que detona el trigger de BD en PostgreSQL)
+        if (validDetails.isEmpty()) {
+            // Todos los platillos fueron rechazados por stock insuficiente
+            String errorSummary = rejectedDishes.stream()
+                    .map(r -> r.dishName() + ": " + r.reason())
+                    .collect(Collectors.joining("; "));
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "insufficient_supply_stock",
+                    "Stock insuficiente al enviar comanda",
+                    "No fue posible enviar la comanda a cocina. Se rechazaron los platillos por falta de inventario: " + errorSummary
+            );
+        }
+
+        // Transición de estado de los platillos válidos a RECIBIDO
+        Instant now = Instant.now();
+        for (ComandaDetail validDetail : validDetails) {
+            validDetail.setStatus(ComandaDetailStatus.RECIBIDO);
+            validDetail.setReceivedAt(now);
+            comandaDetailRepository.save(validDetail);
+        }
+
+        // Transición de la comanda a RECIBIDA
         comanda.setStatus(ComandaStatus.RECIBIDA);
-        comanda.setSentAt(Instant.now());
+        comanda.setSentAt(now);
 
         try {
             comandaRepository.saveAndFlush(comanda);
@@ -415,12 +508,12 @@ public class ComandaInventoryService {
             );
         }
 
-        // Obtener los movimientos registrados en el kardex
+        // Obtener los movimientos registrados en el kardex (por trigger si activo)
         List<InventoryMovement> movements = inventoryMovementRepository.findByComandaIdWithSupply(comanda.getId());
 
         if (movements.isEmpty()) {
-            // Mecanismo de respaldo para entornos de pruebas en memoria donde los triggers de base de datos no estén activos
-            for (Map.Entry<Long, BigDecimal> entry : supplyTotals.entrySet()) {
+            // Mecanismo de respaldo para entornos donde los triggers de base de datos no aplican automáticamente
+            for (Map.Entry<Long, BigDecimal> entry : totalsToDeduct.entrySet()) {
                 if (entry.getValue().compareTo(BigDecimal.ZERO) > 0) {
                     Supply supply = supplyRepository.findById(entry.getKey()).orElseThrow();
                     BigDecimal prevStock = supply.getCurrentStock();
@@ -428,13 +521,13 @@ public class ComandaInventoryService {
                     supply.setCurrentStock(newStock);
                     supplyRepository.save(supply);
 
-                    ComandaDetail firstDetail = comanda.getDetails().get(0);
+                    ComandaDetail detailForMovement = detailBySupply.getOrDefault(entry.getKey(), validDetails.get(0));
                     InventoryMovement movement = new InventoryMovement(
                             restaurantId,
                             supply,
                             "SALIDA_VENTA",
                             entry.getValue(),
-                            firstDetail,
+                            detailForMovement,
                             "Consumo automatico al enviar comanda " + comanda.getId(),
                             comanda.getWaiterId()
                     );
@@ -445,10 +538,6 @@ public class ComandaInventoryService {
                     movements.add(movement);
                 }
             }
-            for (ComandaDetail detail : comanda.getDetails()) {
-                detail.setStatus(ComandaDetailStatus.RECIBIDO);
-                detail.setReceivedAt(comanda.getSentAt());
-            }
         } else {
             // Sincronizar entidades de insumos afectadas en el contexto de persistencia
             for (InventoryMovement movement : movements) {
@@ -456,15 +545,122 @@ public class ComandaInventoryService {
             }
         }
 
+        // Notificar a cocina en tiempo real
+        Role kitchenRole = roleRepository.findByName(RoleName.KITCHEN).orElse(null);
+        Long kitchenRoleId = kitchenRole != null ? kitchenRole.getId() : null;
+
+        RestaurantTable table = (comanda.getAccount() != null && comanda.getAccount().getTableId() != null)
+                ? tableRepository.findById(comanda.getAccount().getTableId()).orElse(null)
+                : null;
+        String tableNumber = table != null ? table.getNumber() : "";
+
+        Notification kitchenNotification = new Notification(
+                restaurantId,
+                null,
+                kitchenRoleId,
+                "COMANDA_ENVIADA_COCINA",
+                "Nueva comanda recibida - Mesa " + tableNumber,
+                "Comanda #" + comanda.getId() + " de la mesa " + tableNumber + " recibida en cocina con " + validDetails.size() + " platillo(s) para preparación.",
+                "COMANDA",
+                comanda.getId().toString(),
+                "ALTA"
+        );
+        notificationRepository.save(kitchenNotification);
+
         List<KardexMovementResponse> movementResponses = movements.stream()
                 .map(this::mapToMovementResponse)
                 .toList();
 
+        String confirmationMessage = rejectedDishes.isEmpty()
+                ? "Procesamiento de comanda confirmado exitosamente"
+                : "Comanda enviada a cocina con " + validDetails.size() + " platillo(s). Se rechazaron " + rejectedDishes.size() + " platillo(s) por falta de stock.";
+
         return new ComandaInventoryProcessResponse(
-                "Procesamiento de comanda confirmado exitosamente",
+                confirmationMessage,
                 mapToComandaResponse(comanda),
-                movementResponses
+                movementResponses,
+                rejectedDishes
         );
+    }
+
+    /**
+     * Envía a cocina la comanda pendiente en borrador de la cuenta especificada.
+     *
+     * @param accountId Identificador de la cuenta
+     * @param authentication Información de autenticación
+     * @return Confirmación del procesamiento y movimientos generados
+     */
+    @Transactional(noRollbackFor = ApiException.class)
+    public ComandaInventoryProcessResponse sendComandaByAccountId(Long accountId, Authentication authentication) {
+        Long restaurantId = resolveRestaurantId(authentication);
+
+        if (accountId == null) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "missing_account_id",
+                    "Cuenta no especificada",
+                    "Debe indicar el identificador de la cuenta"
+            );
+        }
+
+        Account account = accountRepository.findByIdAndRestaurantId(accountId, restaurantId)
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "account_not_found",
+                        "Cuenta no encontrada",
+                        "No se encontró una cuenta con el identificador " + accountId
+                ));
+
+        List<Comanda> draftComandas = comandaRepository.findDraftComandasByAccountId(account.getId());
+        if (draftComandas.isEmpty()) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "no_draft_comanda",
+                    "Sin comanda pendiente",
+                    "La cuenta no tiene ninguna comanda en borrador pendiente de enviar a cocina"
+            );
+        }
+
+        return sendComanda(draftComandas.get(0).getId(), authentication);
+    }
+
+    /**
+     * Envía a cocina la comanda pendiente en borrador de la mesa especificada.
+     *
+     * @param tableId Identificador de la mesa
+     * @param authentication Información de autenticación
+     * @return Confirmación del procesamiento y movimientos generados
+     */
+    @Transactional(noRollbackFor = ApiException.class)
+    public ComandaInventoryProcessResponse sendComandaByTableId(Long tableId, Authentication authentication) {
+        Long restaurantId = resolveRestaurantId(authentication);
+
+        if (tableId == null) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "missing_table_id",
+                    "Mesa no especificada",
+                    "Debe indicar el identificador de la mesa"
+            );
+        }
+
+        RestaurantTable table = tableRepository.findByIdAndRestaurantId(tableId, restaurantId)
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "table_not_found",
+                        "Mesa no encontrada",
+                        "No se encontró una mesa con el identificador " + tableId
+                ));
+
+        Account account = accountRepository.findActiveByTableIdAndRestaurantId(table.getId(), restaurantId)
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "active_account_not_found",
+                        "Sin cuenta activa",
+                        "La mesa no tiene una cuenta activa para enviar comandas"
+                ));
+
+        return sendComandaByAccountId(account.getId(), authentication);
     }
 
     /**
@@ -492,20 +688,91 @@ public class ComandaInventoryService {
 
     private Map<Long, BigDecimal> calculateSupplyRequirements(Long restaurantId, Comanda comanda) {
         Map<Long, BigDecimal> totals = new LinkedHashMap<>();
-
-        for (ComandaDetail detail : comanda.getDetails()) {
-            if (detail.getDish() != null) {
-                Dish dish = detail.getDish();
-                RecipeVersion recipe = detail.getRecipeVersion();
-                if (recipe == null) {
-                    recipe = recipeVersionRepository.findActiveWithDetailsByDishId(dish.getId())
-                            .orElseThrow(() -> new ApiException(
-                                    HttpStatus.BAD_REQUEST,
-                                    "recipe_not_valid",
-                                    "Receta no vigente",
-                                    "El platillo '" + dish.getName() + "' no cuenta con una receta vigente"
-                            ));
+        if (comanda.getDetails() != null) {
+            for (ComandaDetail detail : comanda.getDetails()) {
+                Map<Long, BigDecimal> detailTotals = calculateDetailSupplyRequirements(restaurantId, detail);
+                for (Map.Entry<Long, BigDecimal> entry : detailTotals.entrySet()) {
+                    totals.merge(entry.getKey(), entry.getValue(), BigDecimal::add);
                 }
+            }
+        }
+        return totals;
+    }
+
+    private Map<Long, BigDecimal> calculateDetailSupplyRequirements(Long restaurantId, ComandaDetail detail) {
+        Map<Long, BigDecimal> totals = new LinkedHashMap<>();
+
+        if (detail.getDish() != null) {
+            Dish dish = detail.getDish();
+            RecipeVersion recipe = detail.getRecipeVersion();
+            if (recipe == null) {
+                recipe = recipeVersionRepository.findActiveWithDetailsByDishId(dish.getId())
+                        .orElseThrow(() -> new ApiException(
+                                HttpStatus.BAD_REQUEST,
+                                "recipe_not_valid",
+                                "Receta no vigente",
+                                "El platillo '" + dish.getName() + "' no cuenta con una receta vigente"
+                        ));
+            }
+
+            for (RecipeDetail rd : recipe.getDetails()) {
+                Supply supply = rd.getSupply();
+                BigDecimal urBase = rd.getMeasurementUnit() != null ? rd.getMeasurementUnit().getBaseFactor() : BigDecimal.ONE;
+                BigDecimal usBase = supply.getMeasurementUnit() != null ? supply.getMeasurementUnit().getBaseFactor() : BigDecimal.ONE;
+
+                BigDecimal required = BigDecimal.valueOf(detail.getQuantity())
+                        .multiply(rd.getQuantity())
+                        .multiply(urBase)
+                        .divide(usBase, 4, RoundingMode.HALF_UP);
+
+                totals.merge(supply.getId(), required, BigDecimal::add);
+            }
+
+            // Modificadores asociados al platillo
+            if (detail.getModifiers() != null) {
+                for (ComandaDetailModifier cdm : detail.getModifiers()) {
+                    Modifier modifier = cdm.getModifier();
+                    ModifierRecipeVersion mrv = cdm.getModifierRecipeVersion();
+                    if (mrv == null) {
+                        mrv = modifierRecipeVersionRepository.findActiveByModifierId(modifier.getId()).orElse(null);
+                    }
+
+                    if (mrv != null) {
+                        List<ModifierRecipeDetail> mrds = modifierRecipeDetailRepository.findByModifierRecipeVersionId(mrv.getId());
+                        for (ModifierRecipeDetail mrd : mrds) {
+                            Supply supply = mrd.getSupply();
+                            BigDecimal urBase = mrd.getMeasurementUnit() != null ? mrd.getMeasurementUnit().getBaseFactor() : BigDecimal.ONE;
+                            BigDecimal usBase = supply.getMeasurementUnit() != null ? supply.getMeasurementUnit().getBaseFactor() : BigDecimal.ONE;
+
+                            BigDecimal modQty = BigDecimal.valueOf(detail.getQuantity())
+                                    .multiply(BigDecimal.valueOf(cdm.getQuantity()))
+                                    .multiply(mrd.getQuantity())
+                                    .multiply(urBase)
+                                    .divide(usBase, 4, RoundingMode.HALF_UP);
+
+                            if ("AGREGAR".equalsIgnoreCase(mrd.getAdjustmentType())) {
+                                totals.merge(supply.getId(), modQty, BigDecimal::add);
+                            } else {
+                                // Omisión / reducción
+                                totals.merge(supply.getId(), modQty.negate(), BigDecimal::add);
+                            }
+                        }
+                    }
+                }
+            }
+        } else if (detail.getCombo() != null) {
+            Combo combo = detail.getCombo();
+            List<ComboDetail> comboItems = comboDetailRepository.findByComboIdWithDish(combo.getId());
+
+            for (ComboDetail cd : comboItems) {
+                Dish dish = cd.getDish();
+                RecipeVersion recipe = recipeVersionRepository.findActiveWithDetailsByDishId(dish.getId())
+                        .orElseThrow(() -> new ApiException(
+                                HttpStatus.BAD_REQUEST,
+                                "recipe_not_valid",
+                                "Receta no vigente",
+                                "El platillo '" + dish.getName() + "' del combo no cuenta con una receta vigente"
+                        ));
 
                 for (RecipeDetail rd : recipe.getDetails()) {
                     Supply supply = rd.getSupply();
@@ -513,72 +780,12 @@ public class ComandaInventoryService {
                     BigDecimal usBase = supply.getMeasurementUnit() != null ? supply.getMeasurementUnit().getBaseFactor() : BigDecimal.ONE;
 
                     BigDecimal required = BigDecimal.valueOf(detail.getQuantity())
+                            .multiply(BigDecimal.valueOf(cd.getQuantity()))
                             .multiply(rd.getQuantity())
                             .multiply(urBase)
                             .divide(usBase, 4, RoundingMode.HALF_UP);
 
                     totals.merge(supply.getId(), required, BigDecimal::add);
-                }
-
-                // Modificadores asociados al platillo
-                if (detail.getModifiers() != null) {
-                    for (ComandaDetailModifier cdm : detail.getModifiers()) {
-                        Modifier modifier = cdm.getModifier();
-                        ModifierRecipeVersion mrv = cdm.getModifierRecipeVersion();
-                        if (mrv == null) {
-                            mrv = modifierRecipeVersionRepository.findActiveByModifierId(modifier.getId()).orElse(null);
-                        }
-
-                        if (mrv != null) {
-                            List<ModifierRecipeDetail> mrds = modifierRecipeDetailRepository.findByModifierRecipeVersionId(mrv.getId());
-                            for (ModifierRecipeDetail mrd : mrds) {
-                                Supply supply = mrd.getSupply();
-                                BigDecimal urBase = mrd.getMeasurementUnit() != null ? mrd.getMeasurementUnit().getBaseFactor() : BigDecimal.ONE;
-                                BigDecimal usBase = supply.getMeasurementUnit() != null ? supply.getMeasurementUnit().getBaseFactor() : BigDecimal.ONE;
-
-                                BigDecimal modQty = BigDecimal.valueOf(detail.getQuantity())
-                                        .multiply(BigDecimal.valueOf(cdm.getQuantity()))
-                                        .multiply(mrd.getQuantity())
-                                        .multiply(urBase)
-                                        .divide(usBase, 4, RoundingMode.HALF_UP);
-
-                                if ("AGREGAR".equalsIgnoreCase(mrd.getAdjustmentType())) {
-                                    totals.merge(supply.getId(), modQty, BigDecimal::add);
-                                } else {
-                                    // Omisión / reducción
-                                    totals.merge(supply.getId(), modQty.negate(), BigDecimal::add);
-                                }
-                            }
-                        }
-                    }
-                }
-            } else if (detail.getCombo() != null) {
-                Combo combo = detail.getCombo();
-                List<ComboDetail> comboItems = comboDetailRepository.findByComboIdWithDish(combo.getId());
-
-                for (ComboDetail cd : comboItems) {
-                    Dish dish = cd.getDish();
-                    RecipeVersion recipe = recipeVersionRepository.findActiveWithDetailsByDishId(dish.getId())
-                            .orElseThrow(() -> new ApiException(
-                                    HttpStatus.BAD_REQUEST,
-                                    "recipe_not_valid",
-                                    "Receta no vigente",
-                                    "El platillo '" + dish.getName() + "' del combo no cuenta con una receta vigente"
-                            ));
-
-                    for (RecipeDetail rd : recipe.getDetails()) {
-                        Supply supply = rd.getSupply();
-                        BigDecimal urBase = rd.getMeasurementUnit() != null ? rd.getMeasurementUnit().getBaseFactor() : BigDecimal.ONE;
-                        BigDecimal usBase = supply.getMeasurementUnit() != null ? supply.getMeasurementUnit().getBaseFactor() : BigDecimal.ONE;
-
-                        BigDecimal required = BigDecimal.valueOf(detail.getQuantity())
-                                .multiply(BigDecimal.valueOf(cd.getQuantity()))
-                                .multiply(rd.getQuantity())
-                                .multiply(urBase)
-                                .divide(usBase, 4, RoundingMode.HALF_UP);
-
-                        totals.merge(supply.getId(), required, BigDecimal::add);
-                    }
                 }
             }
         }
