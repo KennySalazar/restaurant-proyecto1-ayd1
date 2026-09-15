@@ -92,6 +92,10 @@ public class RestaurantTable {
         return status;
     }
 
+    public void setStatus(TableStatus status) {
+        this.status = status;
+    }
+
     public void reserve() {
         if (this.status == TableStatus.LIBRE) {
             this.status = TableStatus.RESERVADA;
@@ -102,6 +106,10 @@ public class RestaurantTable {
         if (this.status == TableStatus.RESERVADA) {
             this.status = TableStatus.LIBRE;
         }
+    }
+
+    public void occupy() {
+        this.status = TableStatus.OCUPADA;
     }
 }
 

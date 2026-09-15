@@ -125,6 +125,18 @@ public class Reservation {
         return status;
     }
 
+    public void setStatus(ReservationStatus status) {
+        this.status = status;
+    }
+
+    public void markClientPresent() {
+        this.status = ReservationStatus.CLIENTE_PRESENTE;
+    }
+
+    public void markAttended() {
+        this.status = ReservationStatus.ATENDIDA;
+    }
+
     public String getNotes() {
         return notes;
     }

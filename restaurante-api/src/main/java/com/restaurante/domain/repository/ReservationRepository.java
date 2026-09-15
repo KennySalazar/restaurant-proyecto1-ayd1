@@ -42,6 +42,30 @@ public interface ReservationRepository
             Long restaurantId
     );
 
+    Optional<Reservation> findByRestaurantIdAndReservationCode(
+            Long restaurantId,
+            String reservationCode
+    );
+
+    @Query("""
+    SELECT r
+    FROM Reservation r
+    WHERE r.table.id = :tableId
+      AND r.status IN (
+        com.restaurante.domain.model.ReservationStatus.PENDIENTE,
+        com.restaurante.domain.model.ReservationStatus.CONFIRMADA,
+        com.restaurante.domain.model.ReservationStatus.CLIENTE_PRESENTE
+      )
+      AND r.startDateTime <= :endWindow
+      AND r.endDateTime >= :startWindow
+    ORDER BY r.startDateTime ASC
+    """)
+    List<Reservation> findActiveReservationsForTable(
+            @Param("tableId") Long tableId,
+            @Param("startWindow") OffsetDateTime startWindow,
+            @Param("endWindow") OffsetDateTime endWindow
+    );
+
     List<Reservation> findAllByRestaurantIdOrderByStartDateTimeAsc(
             Long restaurantId
     );
