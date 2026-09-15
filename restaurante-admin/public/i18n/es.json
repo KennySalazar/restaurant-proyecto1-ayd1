@@ -21,6 +21,7 @@
     "workspace": "Administración",
     "dashboard": "Resumen",
     "tables": "Mesas",
+    "supplies": "Productos base",
     "employees": "Empleados",
     "configuration": "Configuración",
     "reservations": "Reservas",
@@ -170,6 +171,41 @@
   "alreadyRetiredMessage": "La mesa seleccionada ya se encuentra retirada."
 }
 
+},
+
+"supplies": {
+  "eyebrow": "Catálogo de insumos",
+  "title": "Catálogo de insumos",
+  "description": "Consulta la materia prima disponible y revisa su información de compra e inventario.",
+  "summary": {
+    "total": "Insumos registrados",
+    "active": "Insumos activos",
+    "outOfStock": "Sin existencias"
+  },
+  "list": {
+    "title": "Listado de insumos",
+    "description": "Información actualizada de los insumos registrados.",
+    "refresh": "Actualizar",
+    "emptyTitle": "Todavía no existen insumos registrados",
+    "emptyDescription": "Cuando se registren insumos en el catálogo aparecerán en este listado.",
+    "noResultsTitle": "No se encontraron insumos",
+    "noResultsDescription": "Ningún insumo coincide con los filtros de búsqueda o categoría aplicados."
+  },
+  "filters": {
+    "searchPlaceholder": "Buscar por nombre o código",
+    "category": "Categoría",
+    "allCategories": "Todas las categorías",
+    "clear": "Limpiar filtros"
+  },
+  "columns": {
+    "code": "Código",
+    "name": "Insumo",
+    "unit": "Unidad",
+    "category": "Categoría",
+    "unitCost": "Costo unitario",
+    "stock": "Disponible",
+    "actions": "Acciones"
+  }
 },
 
 "reservations": {

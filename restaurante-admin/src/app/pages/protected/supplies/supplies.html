@@ -1,0 +1,199 @@
+<app-page-heading
+  eyebrowKey="supplies.eyebrow"
+  titleKey="supplies.title"
+  descriptionKey="supplies.description"
+/>
+
+<section class="summary-grid">
+  <article class="summary-card">
+    <span class="summary-card__icon">
+      <i class="pi pi-box"></i>
+    </span>
+
+    <div>
+      <span>{{ 'supplies.summary.total' | transloco }}</span>
+      <strong>{{ totalSupplies() }}</strong>
+    </div>
+  </article>
+
+  <article class="summary-card">
+    <span class="summary-card__icon summary-card__icon--active">
+      <i class="pi pi-check-circle"></i>
+    </span>
+
+    <div>
+      <span>{{ 'supplies.summary.active' | transloco }}</span>
+      <strong>{{ activeSupplies() }}</strong>
+    </div>
+  </article>
+
+  <article class="summary-card">
+    <span class="summary-card__icon summary-card__icon--out-of-stock">
+      <i class="pi pi-exclamation-circle"></i>
+    </span>
+
+    <div>
+      <span>{{ 'supplies.summary.outOfStock' | transloco }}</span>
+      <strong>{{ outOfStockSupplies() }}</strong>
+    </div>
+  </article>
+</section>
+
+<section class="supplies-panel">
+  <header class="supplies-panel__header">
+    <div>
+      <h2>{{ 'supplies.list.title' | transloco }}</h2>
+      <p>{{ 'supplies.list.description' | transloco }}</p>
+    </div>
+
+    <button
+      class="refresh-button"
+      type="button"
+      [disabled]="isLoading() || isFiltering()"
+      (click)="loadSupplies()"
+    >
+      <i class="pi pi-refresh" [class.pi-spin]="isLoading() || isFiltering()"></i>
+      {{ 'supplies.list.refresh' | transloco }}
+    </button>
+  </header>
+
+  <div class="filters-bar">
+    <label class="search-field">
+      <i class="pi pi-search"></i>
+
+      <input
+        #searchInput
+        type="search"
+        [value]="searchTerm()"
+        [placeholder]="'supplies.filters.searchPlaceholder' | transloco"
+        (input)="onSearchChange(searchInput.value)"
+      />
+    </label>
+
+    <label class="category-field">
+      <span class="sr-only">
+        {{ 'supplies.filters.category' | transloco }}
+      </span>
+
+      <i class="pi pi-tag"></i>
+
+      <select
+        #categorySelect
+        [value]="selectedCategory() ?? ''"
+        (change)="onCategoryChange(categorySelect.value)"
+      >
+        <option value="">
+          {{ 'supplies.filters.allCategories' | transloco }}
+        </option>
+
+        @for (category of categories(); track category.id) {
+          <option [value]="category.id">{{ category.name }}</option>
+        }
+      </select>
+    </label>
+
+    @if (hasActiveFilters()) {
+      <button class="clear-filters-button" type="button" (click)="clearFilters()">
+        <i class="pi pi-filter-slash"></i>
+        {{ 'supplies.filters.clear' | transloco }}
+      </button>
+    }
+  </div>
+
+  <app-form-feedback [message]="errorMessage()" />
+
+  @if (isLoading() || (isFiltering() && supplies().length === 0)) {
+    <div class="state-panel">
+      <i class="pi pi-spin pi-spinner"></i>
+      <span>{{ 'common.loading' | transloco }}</span>
+    </div>
+  } @else if (!errorMessage() && supplies().length === 0 && !hasActiveFilters()) {
+    <div class="state-panel state-panel--empty">
+      <span class="state-panel__icon">
+        <i class="pi pi-box"></i>
+      </span>
+
+      <strong>{{ 'supplies.list.emptyTitle' | transloco }}</strong>
+
+      <p>
+        {{ 'supplies.list.emptyDescription' | transloco }}
+      </p>
+    </div>
+  } @else if (!errorMessage() && supplies().length === 0 && hasActiveFilters()) {
+    <div class="state-panel state-panel--empty">
+      <span class="state-panel__icon">
+        <i class="pi pi-search"></i>
+      </span>
+
+      <strong>{{ 'supplies.list.noResultsTitle' | transloco }}</strong>
+
+      <p>
+        {{ 'supplies.list.noResultsDescription' | transloco }}
+      </p>
+    </div>
+  } @else if (supplies().length > 0) {
+    <div class="table-wrapper">
+      <table class="restaurant-table">
+        <thead>
+          <tr>
+            <th>{{ 'supplies.columns.code' | transloco }}</th>
+            <th>{{ 'supplies.columns.name' | transloco }}</th>
+            <th>{{ 'supplies.columns.unit' | transloco }}</th>
+            <th>{{ 'supplies.columns.category' | transloco }}</th>
+            <th>{{ 'supplies.columns.unitCost' | transloco }}</th>
+            <th>{{ 'supplies.columns.stock' | transloco }}</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          @for (supply of supplies(); track supply.id) {
+            <tr>
+              <td>
+                <span class="supply-code">
+                  {{ supply.code }}
+                </span>
+              </td>
+
+              <td>
+                <div class="supply-name">
+                  <strong>{{ supply.name }}</strong>
+
+                  @if (supply.description) {
+                    <small>{{ supply.description }}</small>
+                  }
+                </div>
+              </td>
+
+              <td>
+                <span class="unit-pill">
+                  {{ supply.unitAbbreviation }}
+                </span>
+              </td>
+
+              <td>{{ supply.categoryName }}</td>
+
+              <td>
+                <span class="cost-value">
+                  {{ formatCost(supply.unitCost) }}
+                </span>
+              </td>
+
+              <td>
+                <span class="stock-badge" [class.stock-badge--out]="supply.currentStock <= 0">
+                  <i
+                    class="pi"
+                    [class.pi-check-circle]="supply.currentStock > 0"
+                    [class.pi-exclamation-circle]="supply.currentStock <= 0"
+                  ></i>
+
+                  {{ formatStock(supply.currentStock) }}
+                  {{ supply.unitAbbreviation }}
+                </span>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</section>

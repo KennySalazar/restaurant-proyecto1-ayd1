@@ -85,6 +85,14 @@ export const routes: Routes = [
       },
 
       {
+        path: 'supplies',
+        loadComponent: () =>
+          import('./pages/protected/supplies/supplies').then(
+            (module) => module.SuppliesPageComponent,
+          ),
+      },
+
+      {
         path: 'configuration',
         loadComponent: () =>
           import('./pages/protected/configuration/configuration').then(

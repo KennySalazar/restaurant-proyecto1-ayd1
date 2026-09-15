@@ -15,6 +15,12 @@ interface NavigationItem {
 const NAVIGATION: readonly NavigationItem[] = [
   { path: '/app/dashboard', labelKey: 'nav.dashboard', icon: 'pi-home' },
   {
+    path: '/app/supplies',
+    labelKey: 'nav.supplies',
+    icon: 'pi-box',
+    roles: ['ADMIN'],
+  },
+  {
     path: '/app/tables',
     labelKey: 'nav.tables',
     icon: 'pi-list',
