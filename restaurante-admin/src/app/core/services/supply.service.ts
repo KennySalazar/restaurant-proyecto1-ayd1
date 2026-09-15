@@ -4,11 +4,13 @@ import { Observable } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
 import {
+  ConfigureStockLimitsRequest,
   CreateSupplyRequest,
   MeasurementUnit,
   Supply,
   SupplyCategory,
   SupplyRegistrationResponse,
+  SupplyStockLimitsResponse,
   SupplyUpdateResponse,
   UpdateSupplyRequest,
 } from '../models/supply.models';
@@ -44,6 +46,16 @@ export class SupplyService {
 
   updateSupply(id: number, payload: UpdateSupplyRequest): Observable<SupplyUpdateResponse> {
     return this.http.put<SupplyUpdateResponse>(`${this.suppliesUrl}/${id}`, payload);
+  }
+
+  configureStockLimits(
+    id: number,
+    payload: ConfigureStockLimitsRequest,
+  ): Observable<SupplyStockLimitsResponse> {
+    return this.http.put<SupplyStockLimitsResponse>(
+      `${this.suppliesUrl}/${id}/stock-limits`,
+      payload,
+    );
   }
 
   listCategories(): Observable<SupplyCategory[]> {

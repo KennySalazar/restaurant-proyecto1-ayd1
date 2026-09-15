@@ -1,6 +1,12 @@
 import { Component, computed, DestroyRef, inject, OnInit, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import {
+  AbstractControl,
+  FormBuilder,
+  ReactiveFormsModule,
+  ValidationErrors,
+  Validators,
+} from '@angular/forms';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { MessageService } from 'primeng/api';
 import { debounceTime, distinctUntilChanged, finalize, forkJoin, Subject } from 'rxjs';
@@ -48,6 +54,11 @@ export class SuppliesPageComponent implements OnInit {
 
   readonly isEditing = computed(() => this.editingSupply() != null);
 
+  readonly stockLimitsCandidate = signal<Supply | null>(null);
+  readonly isSavingLimits = signal(false);
+  readonly submittedLimits = signal(false);
+  readonly limitsServerMessage = signal<string | null>(null);
+
   readonly totalSupplies = computed(() => this.supplies().length);
 
   readonly activeSupplies = computed(
@@ -72,6 +83,14 @@ export class SuppliesPageComponent implements OnInit {
     minimumStock: [null as number | null, [Validators.min(0)]],
     maximumStock: [null as number | null, [Validators.min(0)]],
   });
+
+  readonly stockLimitsForm = this.formBuilder.group(
+    {
+      minimumStock: [null as number | null, [Validators.required, Validators.min(0)]],
+      maximumStock: [null as number | null, [Validators.min(0)]],
+    },
+    { validators: [this.stockLimitsValidator] },
+  );
 
   ngOnInit(): void {
     this.searchSubject
@@ -239,6 +258,96 @@ export class SuppliesPageComponent implements OnInit {
     const control = this.registrationForm.controls[controlName];
 
     return control.invalid && (control.touched || this.submitted());
+  }
+
+  openStockLimits(supply: Supply): void {
+    this.submittedLimits.set(false);
+    this.limitsServerMessage.set(null);
+    this.stockLimitsCandidate.set(supply);
+
+    this.stockLimitsForm.reset({
+      minimumStock: supply.minimumStock,
+      maximumStock: supply.maximumStock,
+    });
+  }
+
+  closeStockLimits(): void {
+    if (this.isSavingLimits()) {
+      return;
+    }
+
+    this.stockLimitsCandidate.set(null);
+  }
+
+  submitStockLimits(): void {
+    this.submittedLimits.set(true);
+    this.limitsServerMessage.set(null);
+
+    if (this.stockLimitsForm.invalid) {
+      this.stockLimitsForm.markAllAsTouched();
+      return;
+    }
+
+    const supply = this.stockLimitsCandidate();
+
+    if (!supply) {
+      return;
+    }
+
+    const raw = this.stockLimitsForm.getRawValue();
+    this.isSavingLimits.set(true);
+
+    this.supplyService
+      .configureStockLimits(supply.id, {
+        minimumStock: raw.minimumStock!,
+        maximumStock: raw.maximumStock ?? null,
+      })
+      .pipe(finalize(() => this.isSavingLimits.set(false)))
+      .subscribe({
+        next: (response) => {
+          this.messages.add({
+            severity: 'success',
+            summary: this.transloco.translate('supplies.stockLimits.success.title'),
+            detail: this.transloco.translate('supplies.stockLimits.success.message', {
+              name: response.supply.name,
+            }),
+            life: 6000,
+          });
+
+          this.supplies.update((list) =>
+            list.map((current) => (current.id === response.supply.id ? response.supply : current)),
+          );
+
+          this.stockLimitsCandidate.set(null);
+          this.submittedLimits.set(false);
+          this.limitsServerMessage.set(null);
+          this.stockLimitsForm.reset();
+        },
+        error: (error: unknown) => {
+          this.limitsServerMessage.set(this.errors.getMessage(error));
+        },
+      });
+  }
+
+  invalidLimits(controlName: 'minimumStock' | 'maximumStock'): boolean {
+    const control = this.stockLimitsForm.controls[controlName];
+
+    return control.invalid && (control.touched || this.submittedLimits());
+  }
+
+  maxBelowMin(): boolean {
+    return this.stockLimitsForm.hasError('maxBelowMin') && this.submittedLimits();
+  }
+
+  private stockLimitsValidator(control: AbstractControl): ValidationErrors | null {
+    const minimum = control.get('minimumStock')?.value;
+    const maximum = control.get('maximumStock')?.value;
+
+    if (maximum != null && minimum != null && Number(maximum) < Number(minimum)) {
+      return { maxBelowMin: true };
+    }
+
+    return null;
   }
 
   formatCost(value: number): string {

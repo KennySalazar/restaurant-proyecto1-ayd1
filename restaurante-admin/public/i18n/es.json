@@ -204,7 +204,8 @@
     },
     "actions": {
       "register": "Registrar insumo",
-      "edit": "Editar"
+      "edit": "Editar",
+      "limits": "Límites"
     },
     "registration": {
       "eyebrow": "Productos base",
@@ -251,6 +252,29 @@
       "success": {
         "title": "Insumo actualizado",
         "message": "La información del insumo {{name}} fue actualizada correctamente."
+      }
+    },
+    "stockLimits": {
+      "eyebrow": "Productos base",
+      "title": "Configurar límites de stock",
+      "description": "Controla las existencias del insumo {{name}} definiendo sus límites de stock.",
+      "fields": {
+        "minimum": "Stock mínimo",
+        "maximum": "Stock máximo",
+        "maximumHint": "Opcional."
+      },
+      "validation": {
+        "minimumRequired": "El stock mínimo es obligatorio.",
+        "negative": "Los límites de stock no pueden ser negativos.",
+        "maximumBelowMinimum": "El stock máximo no puede ser menor al stock mínimo."
+      },
+      "actions": {
+        "save": "Guardar límites",
+        "saving": "Guardando..."
+      },
+      "success": {
+        "title": "Límites de stock configurados",
+        "message": "Los límites de stock del insumo {{name}} fueron guardados correctamente."
       }
     }
   },

@@ -204,10 +204,17 @@
               </td>
 
               <td class="restaurant-table__actions">
-                <button class="edit-button" type="button" (click)="openEdit(supply)">
-                  <i class="pi pi-pencil"></i>
-                  {{ 'supplies.actions.edit' | transloco }}
-                </button>
+                <div class="row-actions">
+                  <button class="limits-button" type="button" (click)="openStockLimits(supply)">
+                    <i class="pi pi-sliders-h"></i>
+                    {{ 'supplies.actions.limits' | transloco }}
+                  </button>
+
+                  <button class="edit-button" type="button" (click)="openEdit(supply)">
+                    <i class="pi pi-pencil"></i>
+                    {{ 'supplies.actions.edit' | transloco }}
+                  </button>
+                </div>
               </td>
             </tr>
           }
@@ -459,6 +466,133 @@
                   : 'supplies.registration.actions.save'
                 ) | transloco
               }}
+            }
+          </button>
+        </footer>
+      </form>
+    </section>
+  </div>
+}
+
+@if (stockLimitsCandidate(); as supply) {
+  <div class="registration-backdrop" role="presentation">
+    <section
+      class="registration-dialog stock-limits-dialog"
+      role="dialog"
+      aria-modal="true"
+      [attr.aria-labelledby]="'stock-limits-dialog-title'"
+    >
+      <header class="registration-dialog__header">
+        <div>
+          <span class="registration-dialog__eyebrow">
+            {{ 'supplies.stockLimits.eyebrow' | transloco }}
+          </span>
+
+          <h2 id="stock-limits-dialog-title">
+            {{ 'supplies.stockLimits.title' | transloco }}
+          </h2>
+
+          <p>
+            {{ 'supplies.stockLimits.description' | transloco: { name: supply.name } }}
+          </p>
+        </div>
+
+        <button
+          class="close-button"
+          type="button"
+          [attr.aria-label]="'common.cancel' | transloco"
+          [disabled]="isSavingLimits()"
+          (click)="closeStockLimits()"
+        >
+          <i class="pi pi-times"></i>
+        </button>
+      </header>
+
+      <app-form-feedback [message]="limitsServerMessage()" />
+
+      <form
+        class="registration-form"
+        [formGroup]="stockLimitsForm"
+        (ngSubmit)="submitStockLimits()"
+        novalidate
+      >
+        <div class="form-grid form-grid--single">
+          <div class="form-field">
+            <label for="stock-minimum">
+              {{ 'supplies.stockLimits.fields.minimum' | transloco }}
+            </label>
+
+            <input
+              id="stock-minimum"
+              type="number"
+              formControlName="minimumStock"
+              min="0"
+              step="0.01"
+            />
+
+            @if (
+              invalidLimits('minimumStock') &&
+              stockLimitsForm.controls.minimumStock.hasError('required')
+            ) {
+              <small class="field-error">
+                {{ 'supplies.stockLimits.validation.minimumRequired' | transloco }}
+              </small>
+            } @else if (
+              invalidLimits('minimumStock') && stockLimitsForm.controls.minimumStock.hasError('min')
+            ) {
+              <small class="field-error">
+                {{ 'supplies.stockLimits.validation.negative' | transloco }}
+              </small>
+            }
+          </div>
+
+          <div class="form-field">
+            <label for="stock-maximum">
+              {{ 'supplies.stockLimits.fields.maximum' | transloco }}
+              <small class="field-hint">
+                {{ 'supplies.stockLimits.fields.maximumHint' | transloco }}
+              </small>
+            </label>
+
+            <input
+              id="stock-maximum"
+              type="number"
+              formControlName="maximumStock"
+              min="0"
+              step="0.01"
+            />
+
+            @if (
+              invalidLimits('maximumStock') && stockLimitsForm.controls.maximumStock.hasError('min')
+            ) {
+              <small class="field-error">
+                {{ 'supplies.stockLimits.validation.negative' | transloco }}
+              </small>
+            } @else if (maxBelowMin()) {
+              <small class="field-error">
+                {{ 'supplies.stockLimits.validation.maximumBelowMinimum' | transloco }}
+              </small>
+            }
+          </div>
+        </div>
+
+        <footer class="registration-dialog__actions">
+          <button
+            class="cancel-button"
+            type="button"
+            [disabled]="isSavingLimits()"
+            (click)="closeStockLimits()"
+          >
+            {{ 'common.cancel' | transloco }}
+          </button>
+
+          <button class="save-button" type="submit" [disabled]="isSavingLimits()">
+            @if (isSavingLimits()) {
+              <i class="pi pi-spin pi-spinner"></i>
+              {{ 'supplies.stockLimits.actions.saving' | transloco }}
+            } @else {
+              <i class="pi pi-check"></i>
+              {{ 'supplies.stockLimits.actions.save' | transloco }}
             }
           </button>
         </footer>

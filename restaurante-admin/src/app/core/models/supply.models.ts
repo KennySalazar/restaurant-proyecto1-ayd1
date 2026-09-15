@@ -52,3 +52,13 @@ export interface SupplyUpdateResponse {
   message: string;
   supply: Supply;
 }
+
+export interface ConfigureStockLimitsRequest {
+  minimumStock: number;
+  maximumStock?: number | null;
+}
+
+export interface SupplyStockLimitsResponse {
+  message: string;
+  supply: Supply;
+}
