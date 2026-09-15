@@ -1,8 +1,13 @@
 package com.restaurante.web.operation;
 
+import com.restaurante.application.account.AccountService;
 import com.restaurante.application.table.TableSeatingService;
 import com.restaurante.application.table.TableService;
 import com.restaurante.domain.model.TableStatus;
+import com.restaurante.web.dto.account.AccountResponse;
+import com.restaurante.web.dto.account.OpenAccountRequest;
+import com.restaurante.web.dto.account.TransferAccountRequest;
+import com.restaurante.web.dto.account.TransferAccountResponse;
 import com.restaurante.web.dto.table.SeatReservationRequest;
 import com.restaurante.web.dto.table.SeatReservationResponse;
 import com.restaurante.web.dto.table.SeatWaitlistRequest;
@@ -47,10 +52,15 @@ public class TableOperationController {
 
     private final TableService tableService;
     private final TableSeatingService tableSeatingService;
+    private final AccountService accountService;
 
-    public TableOperationController(TableService tableService, TableSeatingService tableSeatingService) {
+    public TableOperationController(
+            TableService tableService,
+            TableSeatingService tableSeatingService,
+            AccountService accountService) {
         this.tableService = tableService;
         this.tableSeatingService = tableSeatingService;
+        this.accountService = accountService;
     }
 
     @GetMapping
@@ -254,5 +264,125 @@ public class TableOperationController {
             return ResponseEntity.noContent().build();
         }
         return ResponseEntity.ok(suggestion);
+    }
+
+    @PostMapping({ "/{id}/abrir-cuenta", "/{id}/cuenta" })
+    @PreAuthorize("hasAnyRole('WAITER', 'ADMIN')")
+    @Operation(
+            summary = "Abrir cuenta en una mesa libre",
+            description = "Abre una nueva cuenta asociada a la mesa libre y al mesero autenticado, registra la hora de apertura y cambia el estado de la mesa a 'OCUPADA'. Si la mesa ya tiene una cuenta activa o se encuentra ocupada, la acción es impedida."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Cuenta abierta exitosamente y mesa marcada como ocupada",
+                    content = @Content(schema = @Schema(implementation = AccountResponse.class))
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Datos inválidos",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "No autenticado o token JWT no provisto",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Acceso denegado (requiere rol de mesero o administrador)",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Mesa no encontrada",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "409",
+                    description = "La mesa ya tiene una cuenta activa o está bloqueada por reserva",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            )
+    })
+    public ResponseEntity<AccountResponse> openAccount(
+            @Parameter(description = "Identificador único de la mesa", required = true)
+            @PathVariable Long id,
+            @Valid @RequestBody(required = false) OpenAccountRequest request,
+            Authentication authentication) {
+
+        return ResponseEntity.ok(accountService.openAccount(id, request, authentication));
+    }
+
+    @GetMapping("/{id}/cuenta")
+    @PreAuthorize("hasAnyRole('WAITER', 'ADMIN')")
+    @Operation(
+            summary = "Consultar cuenta activa de la mesa",
+            description = "Devuelve la cuenta activa de consumo asociada actualmente a la mesa indicada."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Cuenta activa de la mesa",
+                    content = @Content(schema = @Schema(implementation = AccountResponse.class))
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Mesa no encontrada o no tiene cuenta activa",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            )
+    })
+    public ResponseEntity<AccountResponse> getActiveAccount(
+            @Parameter(description = "Identificador único de la mesa", required = true)
+            @PathVariable Long id,
+            Authentication authentication) {
+
+        return ResponseEntity.ok(accountService.getActiveAccountByTable(id, authentication));
+    }
+
+    @PostMapping({ "/{id}/transferir-cuenta", "/{id}/transferir" })
+    @PreAuthorize("hasAnyRole('WAITER', 'ADMIN')")
+    @Operation(
+            summary = "Transferir cuenta de la mesa a otra mesa libre",
+            description = "Transfiere la cuenta activa de la mesa origen a una mesa libre destino, conservando todas las comandas ya registradas, liberando la mesa origen y ocupando la mesa destino. Si la mesa destino no está en estado 'libre' o disponible, la acción es bloqueada."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Cuenta transferida exitosamente a la mesa libre",
+                    content = @Content(schema = @Schema(implementation = TransferAccountResponse.class))
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Mesa destino requerida o idéntica a mesa origen",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "No autenticado o token JWT no provisto",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Acceso denegado (requiere rol de mesero o administrador)",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Mesa origen, cuenta activa o mesa destino no encontrada",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "409",
+                    description = "La mesa destino no está disponible",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            )
+    })
+    public ResponseEntity<TransferAccountResponse> transferTableAccount(
+            @Parameter(description = "Identificador único de la mesa origen", required = true)
+            @PathVariable Long id,
+            @Valid @RequestBody TransferAccountRequest request,
+            Authentication authentication) {
+
+        return ResponseEntity.ok(accountService.transferAccountByTable(id, request, authentication));
     }
 }
