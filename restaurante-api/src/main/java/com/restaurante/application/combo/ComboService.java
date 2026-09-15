@@ -11,7 +11,10 @@ import com.restaurante.web.dto.combo.ComboDetailResponse;
 import com.restaurante.web.dto.combo.ComboItemRequest;
 import com.restaurante.web.dto.combo.ComboRegistrationResponse;
 import com.restaurante.web.dto.combo.ComboResponse;
+import com.restaurante.web.dto.combo.ComboRetirementResponse;
+import com.restaurante.web.dto.combo.ComboUpdateResponse;
 import com.restaurante.web.dto.combo.CreateComboRequest;
+import com.restaurante.web.dto.combo.UpdateComboRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -245,6 +248,247 @@ public class ComboService {
                 .stream()
                 .map(this::mapToResponse)
                 .toList();
+    }
+
+    /**
+     * Actualiza la información de un combo o promoción existente, incluyendo platillos, cantidades y precio especial.
+     *
+     * @param id Identificador único del combo a actualizar
+     * @param request Datos actualizados del combo
+     * @return Confirmación y detalle actualizado del combo
+     */
+    @Transactional
+    public ComboUpdateResponse updateCombo(Long id, UpdateComboRequest request) {
+        Long restaurantId = DEFAULT_RESTAURANT_ID;
+
+        if (id == null) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "missing_combo_id",
+                    "Combo no especificado",
+                    "Debe indicar el identificador del combo"
+            );
+        }
+
+        Combo combo = comboRepository.findByIdAndRestaurantId(id, restaurantId)
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "combo_not_found",
+                        "Combo no encontrado",
+                        "No se encontró un combo con el identificador " + id
+                ));
+
+        if (!combo.isActive()) {
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "combo_retired",
+                    "Combo retirado",
+                    "El combo se encuentra retirado del menú y no se puede modificar"
+            );
+        }
+
+        if (request == null) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "missing_request_body",
+                    "Solicitud vacía",
+                    "Los datos del combo son obligatorios"
+            );
+        }
+
+        if (request.name() == null || request.name().isBlank()) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "missing_combo_name",
+                    "Nombre obligatorio",
+                    "El nombre del combo es obligatorio"
+            );
+        }
+
+        String trimmedName = request.name().trim();
+        if (comboRepository.existsByRestaurantIdAndNameIgnoreCaseAndIdNot(restaurantId, trimmedName, id)) {
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "duplicate_combo_name",
+                    "Nombre duplicado",
+                    "Ya existe otro combo registrado con el nombre '" + trimmedName + "'"
+            );
+        }
+
+        if (request.salePrice() == null || request.salePrice().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "invalid_combo_price",
+                    "Precio inválido",
+                    "El precio especial debe ser mayor a cero"
+            );
+        }
+
+        if (request.items() == null || request.items().size() < 2) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "insufficient_combo_dishes",
+                    "Platillos insuficientes",
+                    "Un combo debe contener al menos dos platillos"
+            );
+        }
+
+        Map<Long, Short> dishQuantities = new LinkedHashMap<>();
+        for (ComboItemRequest item : request.items()) {
+            if (item.dishId() == null) {
+                throw new ApiException(
+                        HttpStatus.BAD_REQUEST,
+                        "missing_dish_id",
+                        "Platillo no especificado",
+                        "Debe indicar el identificador de cada platillo del combo"
+                );
+            }
+            if (item.quantity() == null || item.quantity() <= 0) {
+                throw new ApiException(
+                        HttpStatus.BAD_REQUEST,
+                        "invalid_dish_quantity",
+                        "Cantidad inválida",
+                        "La cantidad debe ser mayor que cero"
+                );
+            }
+            dishQuantities.merge(item.dishId(), item.quantity(), (existing, added) -> (short) (existing + added));
+        }
+
+        if (dishQuantities.size() < 2) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "insufficient_combo_dishes",
+                    "Platillos insuficientes",
+                    "Un combo debe contener al menos dos platillos"
+            );
+        }
+
+        List<Dish> validatedDishes = new ArrayList<>();
+        short calculatedMaxPreparationTime = 15;
+
+        for (Map.Entry<Long, Short> entry : dishQuantities.entrySet()) {
+            Long dishId = entry.getKey();
+            Dish dish = dishRepository.findByIdAndRestaurantId(dishId, restaurantId)
+                    .orElseThrow(() -> new ApiException(
+                            HttpStatus.NOT_FOUND,
+                            "dish_not_found",
+                            "Platillo no encontrado",
+                            "No se encontró un platillo con el identificador " + dishId
+                    ));
+
+            if (!dish.isActive()) {
+                throw new ApiException(
+                        HttpStatus.BAD_REQUEST,
+                        "inactive_dish_not_allowed",
+                        "Platillo retirado",
+                        "El platillo '" + dish.getName() + "' se encuentra retirado del menú. Solamente pueden agregarse platillos activos"
+                );
+            }
+
+            if (dish.getPreparationTimeMinutes() != null && dish.getPreparationTimeMinutes() > calculatedMaxPreparationTime) {
+                calculatedMaxPreparationTime = dish.getPreparationTimeMinutes();
+            }
+
+            validatedDishes.add(dish);
+        }
+
+        if (request.startDate() != null && request.endDate() != null && !request.endDate().isAfter(request.startDate())) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "invalid_date_range",
+                    "Rango de fechas inválido",
+                    "La fecha de fin debe ser posterior a la fecha de inicio"
+            );
+        }
+
+        if (request.code() != null && !request.code().isBlank()) {
+            String sanitizedCode = request.code().trim().toUpperCase();
+            if (comboRepository.existsByRestaurantIdAndCodeIgnoreCaseAndIdNot(restaurantId, sanitizedCode, id)) {
+                throw new ApiException(
+                        HttpStatus.CONFLICT,
+                        "duplicate_combo_code",
+                        "Código duplicado",
+                        "Ya existe otro combo registrado con el código '" + sanitizedCode + "'"
+                );
+            }
+            combo.setCode(sanitizedCode);
+        }
+
+        combo.setName(trimmedName);
+        combo.setDescription(request.description() != null ? request.description().trim() : null);
+        combo.setSalePrice(request.salePrice());
+        combo.setImageUrl(request.imageUrl() != null ? request.imageUrl().trim() : null);
+        combo.setStartDate(request.startDate());
+        combo.setEndDate(request.endDate());
+
+        if (request.manualAvailable() != null) {
+            combo.setManualAvailable(request.manualAvailable());
+        }
+
+        Short preparationTime = (request.preparationTimeMinutes() != null && request.preparationTimeMinutes() > 0)
+                ? request.preparationTimeMinutes()
+                : calculatedMaxPreparationTime;
+        combo.setPreparationTimeMinutes(preparationTime);
+
+        comboDetailRepository.deleteByComboId(combo.getId());
+        comboDetailRepository.flush();
+
+        short visualOrder = 0;
+        for (Dish dish : validatedDishes) {
+            short quantity = dishQuantities.get(dish.getId());
+            ComboDetail detail = new ComboDetail(combo, dish, quantity, visualOrder++);
+            comboDetailRepository.save(detail);
+        }
+
+        Combo savedCombo = comboRepository.save(combo);
+
+        return new ComboUpdateResponse("Combo actualizado exitosamente", mapToResponse(savedCombo));
+    }
+
+    /**
+     * Retira un combo o promoción del menú marcándolo como inactivo sin eliminar su información histórica.
+     *
+     * @param id Identificador único del combo a retirar
+     * @return Confirmación y detalle del combo retirado
+     */
+    @Transactional
+    public ComboRetirementResponse retireCombo(Long id) {
+        Long restaurantId = DEFAULT_RESTAURANT_ID;
+
+        if (id == null) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "missing_combo_id",
+                    "Combo no especificado",
+                    "Debe indicar el identificador del combo a retirar"
+            );
+        }
+
+        Combo combo = comboRepository.findByIdAndRestaurantId(id, restaurantId)
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "combo_not_found",
+                        "Combo no encontrado",
+                        "No se encontró un combo con el identificador " + id
+                ));
+
+        if (!combo.isActive()) {
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "combo_already_retired",
+                    "Combo ya retirado",
+                    "El combo ya se encuentra retirado"
+            );
+        }
+
+        combo.setActive(false);
+        combo.setManualAvailable(false);
+        Combo savedCombo = comboRepository.save(combo);
+
+        return new ComboRetirementResponse(
+                "Combo retirado exitosamente",
+                mapToResponse(savedCombo)
+        );
     }
 
     private String resolveComboCode(Long restaurantId, String providedCode) {
