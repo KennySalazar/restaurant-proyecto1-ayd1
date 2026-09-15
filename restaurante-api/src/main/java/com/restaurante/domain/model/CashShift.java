@@ -91,4 +91,33 @@ public class CashShift {
     public String getOpeningNotes() {
         return openingNotes;
     }
+
+    public void close(
+            BigDecimal actualCashAmount,
+            String closingNotes) {
+
+        this.status = CashShiftStatus.CERRADA;
+        this.actualCashAtClose = actualCashAmount;
+        this.closingNotes = closingNotes;
+    }
+
+    public BigDecimal getExpectedCashAtClose() {
+        return expectedCashAtClose;
+    }
+
+    public BigDecimal getActualCashAtClose() {
+        return actualCashAtClose;
+    }
+
+    public BigDecimal getClosingDifference() {
+        return closingDifference;
+    }
+
+    public String getClosingNotes() {
+        return closingNotes;
+    }
+
+    public Instant getClosedAt() {
+        return closedAt;
+    }
 }

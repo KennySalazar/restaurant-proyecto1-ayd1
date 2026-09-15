@@ -162,4 +162,23 @@ public class CashTransaction {
     public Instant getRegisteredAt() {
         return registeredAt;
     }
+
+    public static CashTransaction closing(
+            Long shiftId,
+            Long cashierId) {
+
+        CashTransaction transaction = new CashTransaction();
+
+        transaction.cashShiftId = shiftId;
+        transaction.invoiceId = null;
+        transaction.paymentId = null;
+        transaction.type = CashTransactionType.CIERRE;
+        transaction.amount = BigDecimal.ZERO;
+        transaction.points = 0L;
+        transaction.description = "Cierre de turno de caja";
+        transaction.registeredById = cashierId;
+        transaction.registeredAt = Instant.now();
+
+        return transaction;
+    }
 }
