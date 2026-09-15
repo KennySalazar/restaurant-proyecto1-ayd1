@@ -9,6 +9,7 @@ import com.restaurante.web.dto.account.AccountResponse;
 import com.restaurante.web.dto.account.MergeAccountsRequest;
 import com.restaurante.web.dto.account.MergeAccountsResponse;
 import com.restaurante.web.dto.account.OpenAccountRequest;
+import com.restaurante.web.dto.account.RequestBillResponse;
 import com.restaurante.web.dto.account.TransferAccountRequest;
 import com.restaurante.web.dto.account.TransferAccountResponse;
 import com.restaurante.web.dto.subaccount.SplitAccountResponse;
@@ -276,7 +277,7 @@ public class TableOperationController {
         return ResponseEntity.ok(suggestion);
     }
 
-    @PostMapping({ "/{id}/abrir-cuenta", "/{id}/cuenta" })
+    @PostMapping("/{id}/abrir-cuenta")
     @PreAuthorize("hasAnyRole('WAITER', 'ADMIN')")
     @Operation(
             summary = "Abrir cuenta en una mesa libre",
@@ -349,7 +350,7 @@ public class TableOperationController {
         return ResponseEntity.ok(accountService.getActiveAccountByTable(id, authentication));
     }
 
-    @PostMapping({ "/{id}/transferir-cuenta", "/{id}/transferir" })
+    @PostMapping("/{id}/transferir-cuenta")
     @PreAuthorize("hasAnyRole('WAITER', 'ADMIN')")
     @Operation(
             summary = "Transferir cuenta de la mesa a otra mesa libre",
@@ -396,7 +397,7 @@ public class TableOperationController {
         return ResponseEntity.ok(accountService.transferAccountByTable(id, request, authentication));
     }
 
-    @PostMapping({ "/{id}/fusionar-cuenta", "/{id}/fusionar" })
+    @PostMapping("/{id}/fusionar-cuenta")
     @PreAuthorize("hasAnyRole('WAITER', 'ADMIN')")
     @Operation(
             summary = "Fusionar cuenta de la mesa con otra cuenta",
@@ -541,5 +542,41 @@ public class TableOperationController {
             Authentication authentication) {
 
         return ResponseEntity.ok(subaccountService.getSubaccountsByTableId(id, authentication));
+    }
+
+    @PostMapping("/{id}/solicitar-cobro")
+    @PreAuthorize("hasAnyRole('WAITER', 'ADMIN')")
+    @Operation(
+            summary = "Marcar cuenta de la mesa como lista para cobro",
+            description = "Marca la cuenta activa de la mesa como lista para cobro, actualiza el estado de la mesa a 'CUENTA_SOLICITADA' y genera notificación para el cajero. Requiere al menos un platillo registrado."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Cuenta de la mesa marcada como lista para cobro exitosamente",
+                    content = @Content(schema = @Schema(implementation = RequestBillResponse.class))
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "La cuenta no tiene platillos registrados",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Mesa no encontrada o no tiene cuenta activa",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "409",
+                    description = "La cuenta ya se encuentra marcada como lista para cobro o no está en estado ABIERTA",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            )
+    })
+    public ResponseEntity<RequestBillResponse> requestTableBill(
+            @Parameter(description = "Identificador único de la mesa", required = true)
+            @PathVariable Long id,
+            Authentication authentication) {
+
+        return ResponseEntity.ok(accountService.requestBillByTable(id, authentication));
     }
 }
