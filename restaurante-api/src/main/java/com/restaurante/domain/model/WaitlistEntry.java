@@ -141,11 +141,29 @@ public class WaitlistEntry {
 
     public void markSeated() {
         this.status = WaitlistStatus.SENTADA;
+        if (this.seatedAt == null) {
+            this.seatedAt = OffsetDateTime.now();
+        }
     }
 
     public void returnToWaiting() {
         this.status = WaitlistStatus.ESPERANDO;
+        this.suggestedTable = null;
     }
 
+    public void setStatus(WaitlistStatus status) {
+        this.status = status;
+    }
 
+    public void setSuggestedTable(RestaurantTable suggestedTable) {
+        this.suggestedTable = suggestedTable;
+    }
+
+    public void markSuggested(RestaurantTable table) {
+        this.suggestedTable = table;
+        this.status = WaitlistStatus.SUGERIDA;
+        if (this.suggestedAt == null) {
+            this.suggestedAt = OffsetDateTime.now();
+        }
+    }
 }

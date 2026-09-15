@@ -326,6 +326,12 @@ public class WaitlistService {
             );
         }
 
+        RestaurantTable table = entry.getSuggestedTable();
+        if (table != null) {
+            table.occupy();
+            tables.save(table);
+        }
+
         entry.markSeated();
 
         WaitlistEntry saved =

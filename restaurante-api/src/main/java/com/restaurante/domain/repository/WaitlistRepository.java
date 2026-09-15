@@ -33,4 +33,30 @@ public interface WaitlistRepository
             Long id,
             Long restaurantId
     );
+
+    @Query("""
+    SELECT w
+    FROM WaitlistEntry w
+    WHERE w.restaurantId = :restaurantId
+      AND w.suggestedTable.id = :tableId
+      AND w.status IN :statuses
+    """)
+    Optional<WaitlistEntry> findActiveSuggestionForTable(
+            @Param("restaurantId") Long restaurantId,
+            @Param("tableId") Long tableId,
+            @Param("statuses") Collection<WaitlistStatus> statuses
+    );
+
+    @Query("""
+    SELECT w
+    FROM WaitlistEntry w
+    WHERE w.restaurantId = :restaurantId
+      AND w.status = com.restaurante.domain.model.WaitlistStatus.ESPERANDO
+      AND w.peopleCount <= :capacity
+    ORDER BY w.arrivalTime ASC, w.id ASC
+    """)
+    List<WaitlistEntry> findCompatibleWaiting(
+            @Param("restaurantId") Long restaurantId,
+            @Param("capacity") Short capacity
+    );
 }
