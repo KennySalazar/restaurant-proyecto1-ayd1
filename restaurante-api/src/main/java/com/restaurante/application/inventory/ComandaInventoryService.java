@@ -27,6 +27,8 @@ import com.restaurante.domain.repository.ComandaRepository;
 import com.restaurante.domain.repository.ComboDetailRepository;
 import com.restaurante.domain.repository.ComboRepository;
 import com.restaurante.domain.repository.DishRepository;
+import com.restaurante.application.kitchen.KitchenRealtimeService;
+import com.restaurante.application.kitchen.KitchenService;
 import com.restaurante.domain.repository.InventoryMovementRepository;
 import com.restaurante.domain.repository.ModifierRecipeDetailRepository;
 import com.restaurante.domain.repository.ModifierRecipeVersionRepository;
@@ -43,6 +45,7 @@ import com.restaurante.web.dto.comanda.AddDishItemRequest;
 import com.restaurante.web.dto.comanda.AddDishResponse;
 import com.restaurante.web.dto.comanda.AddDishToAccountRequest;
 import com.restaurante.web.dto.comanda.ComandaInventoryProcessResponse;
+import com.restaurante.web.dto.kitchen.KitchenComandaResponse;
 import com.restaurante.web.dto.comanda.ComandaItemResponse;
 import com.restaurante.web.dto.comanda.ComandaResponse;
 import com.restaurante.web.dto.comanda.CreateComandaItemRequest;
@@ -90,6 +93,8 @@ public class ComandaInventoryService {
     private final RestaurantUserProfileRepository userProfileRepository;
     private final NotificationRepository notificationRepository;
     private final RoleRepository roleRepository;
+    private final KitchenRealtimeService kitchenRealtimeService;
+    private final KitchenService kitchenService;
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -109,7 +114,9 @@ public class ComandaInventoryService {
                                    RestaurantTableRepository tableRepository,
                                    RestaurantUserProfileRepository userProfileRepository,
                                    NotificationRepository notificationRepository,
-                                   RoleRepository roleRepository) {
+                                   RoleRepository roleRepository,
+                                   KitchenRealtimeService kitchenRealtimeService,
+                                   KitchenService kitchenService) {
         this.comandaRepository = comandaRepository;
         this.comandaDetailRepository = comandaDetailRepository;
         this.accountRepository = accountRepository;
@@ -126,6 +133,8 @@ public class ComandaInventoryService {
         this.userProfileRepository = userProfileRepository;
         this.notificationRepository = notificationRepository;
         this.roleRepository = roleRepository;
+        this.kitchenRealtimeService = kitchenRealtimeService;
+        this.kitchenService = kitchenService;
     }
 
     /**
@@ -566,6 +575,13 @@ public class ComandaInventoryService {
                 "ALTA"
         );
         notificationRepository.save(kitchenNotification);
+
+        // Emitir actualización en tiempo real a las pantallas de cocina (SSE)
+        try {
+            KitchenComandaResponse kitchenPayload = kitchenService.mapToKitchenResponse(comanda);
+            kitchenRealtimeService.notifyNewComanda(restaurantId, kitchenPayload);
+        } catch (Exception ignored) {
+        }
 
         List<KardexMovementResponse> movementResponses = movements.stream()
                 .map(this::mapToMovementResponse)
