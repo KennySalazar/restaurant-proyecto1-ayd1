@@ -4,6 +4,8 @@ import com.restaurante.application.account.AccountService;
 import com.restaurante.application.account.SubaccountService;
 import com.restaurante.application.inventory.ComandaInventoryService;
 import com.restaurante.web.dto.account.AccountResponse;
+import com.restaurante.web.dto.account.AccountRoundResponse;
+import com.restaurante.web.dto.account.CreateAccountRoundRequest;
 import com.restaurante.web.dto.account.MergeAccountsRequest;
 import com.restaurante.web.dto.account.MergeAccountsResponse;
 import com.restaurante.web.dto.account.OpenAccountRequest;
@@ -601,6 +603,92 @@ public class AccountOperationController {
             Authentication authentication) {
 
         ComandaInventoryProcessResponse response = comandaInventoryService.sendComandaByAccountId(id, authentication);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/{id}/rondas")
+    @ResponseStatus(HttpStatus.CREATED)
+    @PreAuthorize("hasAnyRole('WAITER', 'ADMIN')")
+    @Operation(
+            summary = "Agregar nueva ronda de platillos a una cuenta abierta",
+            description = "Agrega una nueva ronda (comanda) de platillos a una cuenta abierta con su propio ciclo de estados independiente. Si sendImmediately es true, se descuenta inventario y se envía de inmediato a cocina."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "201",
+                    description = "Ronda creada exitosamente",
+                    content = @Content(schema = @Schema(implementation = AccountRoundResponse.class))
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Ronda vacía, cantidades inválidas o stock insuficiente",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "No autenticado o token JWT no provisto",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Acceso denegado",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Cuenta, platillo o modificador no encontrado",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "409",
+                    description = "La cuenta no está en estado ABIERTA, está en proceso de cobro, o tiene un borrador previo sin enviar",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            )
+    })
+    public ResponseEntity<AccountRoundResponse> createAccountRound(
+            @Parameter(description = "Identificador único de la cuenta", required = true)
+            @PathVariable Long id,
+            @Valid @RequestBody CreateAccountRoundRequest request,
+            Authentication authentication) {
+
+        AccountRoundResponse response = comandaInventoryService.createAccountRound(id, request, authentication);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @GetMapping("/{id}/rondas")
+    @PreAuthorize("hasAnyRole('WAITER', 'ADMIN')")
+    @Operation(
+            summary = "Consultar todas las rondas de una cuenta",
+            description = "Devuelve el listado cronológico de todas las rondas de comandas asociadas a una cuenta con su ciclo independiente de estados."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Listado de rondas de la cuenta",
+                    content = @Content(array = @ArraySchema(schema = @Schema(implementation = AccountRoundResponse.class)))
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "No autenticado o token JWT no provisto",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Acceso denegado",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Cuenta no encontrada",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            )
+    })
+    public ResponseEntity<List<AccountRoundResponse>> getAccountRounds(
+            @Parameter(description = "Identificador único de la cuenta", required = true)
+            @PathVariable Long id,
+            Authentication authentication) {
+
+        List<AccountRoundResponse> response = comandaInventoryService.getAccountRounds(id, authentication);
         return ResponseEntity.ok(response);
     }
 }
