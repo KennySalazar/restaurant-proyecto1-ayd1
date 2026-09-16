@@ -8,6 +8,7 @@
   <button
     type="button"
     role="tab"
+    class="menu-tabs__tab"
     [attr.aria-selected]="isTabActive('dishes')"
     [class.menu-tabs__tab--active]="isTabActive('dishes')"
     (click)="selectTab('dishes')"
@@ -19,6 +20,7 @@
   <button
     type="button"
     role="tab"
+    class="menu-tabs__tab"
     [attr.aria-selected]="isTabActive('modifiers')"
     [class.menu-tabs__tab--active]="isTabActive('modifiers')"
     (click)="selectTab('modifiers')"
@@ -30,6 +32,7 @@
   <button
     type="button"
     role="tab"
+    class="menu-tabs__tab"
     [attr.aria-selected]="isTabActive('combos')"
     [class.menu-tabs__tab--active]="isTabActive('combos')"
     (click)="selectTab('combos')"
