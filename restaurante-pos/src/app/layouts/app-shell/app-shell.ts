@@ -19,6 +19,12 @@ const NAVIGATION: readonly NavigationItem[] = [
     icon: 'pi-home',
   },
   {
+    path: '/app/caja/turno',
+    labelKey: 'nav.cashShift',
+    icon: 'pi-credit-card',
+    roles: ['CASHIER'],
+  },
+  {
     path: '/app/account',
     labelKey: 'nav.account',
     icon: 'pi-user',
