@@ -49,6 +49,7 @@ dependencies {
 	testCompileOnly 'org.projectlombok:lombok'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 	testAnnotationProcessor 'org.projectlombok:lombok'
+	implementation 'com.github.librepdf:openpdf:2.0.3'
 }
 
 //defeniendo la plataforma de pruebas a utilizar
