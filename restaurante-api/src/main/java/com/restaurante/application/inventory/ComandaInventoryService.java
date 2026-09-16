@@ -9,6 +9,7 @@ import com.restaurante.domain.model.ComandaStatus;
 import com.restaurante.domain.model.Combo;
 import com.restaurante.domain.model.ComboDetail;
 import com.restaurante.domain.model.Dish;
+import com.restaurante.domain.model.DishPreparationDelayInfo;
 import com.restaurante.domain.model.InventoryMovement;
 import com.restaurante.domain.model.Modifier;
 import com.restaurante.domain.model.ModifierRecipeDetail;
@@ -602,6 +603,30 @@ public class ComandaInventoryService {
             Long cuentaId,
             Long comandaId,
             ComandaDetailStatus status) {
+        return getDishProgress(restaurantId, mesaId, cuentaId, comandaId, status, null, null);
+    }
+
+    /**
+     * Consulta el avance de los platillos ordenados con filtros avanzados de mesero y alertas de retraso.
+     *
+     * @param restaurantId Identificador del restaurante
+     * @param mesaId Filtro opcional por mesa
+     * @param cuentaId Filtro opcional por cuenta
+     * @param comandaId Filtro opcional por comanda
+     * @param status Filtro opcional por estado de preparación
+     * @param meseroId Filtro opcional por identificador de mesero responsable
+     * @param soloRetrasados Si es true, filtra únicamente los platillos que superaron su tiempo estimado sin estar listos
+     * @return Listado de platillos con tiempos, avance y alertas visuales
+     */
+    @Transactional(readOnly = true)
+    public List<ComandaDishProgressResponse> getDishProgress(
+            Long restaurantId,
+            Long mesaId,
+            Long cuentaId,
+            Long comandaId,
+            ComandaDetailStatus status,
+            Long meseroId,
+            Boolean soloRetrasados) {
 
         Long targetRestaurantId = restaurantId != null ? restaurantId : DEFAULT_RESTAURANT_ID;
         List<ComandaDetail> details = comandaDetailRepository.findDishProgress(
@@ -609,12 +634,33 @@ public class ComandaInventoryService {
                 comandaId,
                 cuentaId,
                 mesaId,
+                meseroId,
                 status
         );
 
-        return details.stream()
+        List<ComandaDishProgressResponse> responses = details.stream()
                 .map(d -> mapToDishProgressResponse(d, null, null))
                 .toList();
+
+        if (Boolean.TRUE.equals(soloRetrasados)) {
+            return responses.stream()
+                    .filter(ComandaDishProgressResponse::timeExceeded)
+                    .toList();
+        }
+
+        return responses;
+    }
+
+    /**
+     * Consulta todos los platillos activos que han superado su tiempo estimado de preparación sin estar listos.
+     *
+     * @param restaurantId Identificador del restaurante
+     * @param meseroId Filtro opcional por mesero asignado
+     * @return Listado de platillos retrasados con alerta activa
+     */
+    @Transactional(readOnly = true)
+    public List<ComandaDishProgressResponse> getDelayedDishAlerts(Long restaurantId, Long meseroId) {
+        return getDishProgress(restaurantId, null, null, null, null, meseroId, true);
     }
 
     /**
@@ -763,6 +809,15 @@ public class ComandaInventoryService {
         }
 
         detail = comandaDetailRepository.save(detail);
+
+        // Marcar como atendida cualquier alerta de tiempo excedido previa para este platillo
+        notificationRepository.markAsReadByEntity(
+                restaurantId,
+                "TIEMPO_PREPARACION_EXCEDIDO",
+                "COMANDA_DETALLE",
+                detail.getId().toString(),
+                now
+        );
 
         // Verificar si todos los platillos activos de la comanda ya están entregados
         List<ComandaDetail> allDetails = comandaDetailRepository.findByComandaIdWithModifiers(comanda.getId());
@@ -1106,6 +1161,15 @@ public class ComandaInventoryService {
         detail = comandaDetailRepository.save(detail);
         comandaDetailRepository.flush();
 
+        // Marcar como atendida cualquier alerta de tiempo excedido previa para este platillo
+        notificationRepository.markAsReadByEntity(
+                restaurantId,
+                "TIEMPO_PREPARACION_EXCEDIDO",
+                "COMANDA_DETALLE",
+                detail.getId().toString(),
+                Instant.now()
+        );
+
         List<ComandaDetail> allDetails = comandaDetailRepository.findByComandaIdWithModifiers(comanda.getId());
         boolean allFinishedOrCancelled = allDetails.stream()
                 .allMatch(d -> d.getStatus() == ComandaDetailStatus.CANCELADO
@@ -1211,6 +1275,8 @@ public class ComandaInventoryService {
             }
         }
 
+        DishPreparationDelayInfo delayInfo = DishPreparationDelayInfo.calculate(detail, Instant.now());
+
         return new ComandaDishProgressResponse(
                 detail.getId(),
                 comandaId,
@@ -1234,7 +1300,13 @@ public class ComandaInventoryService {
                 waiterId,
                 waiterName,
                 comandaStatus,
-                message
+                message,
+                delayInfo.estimatedTimeMinutes(),
+                delayInfo.elapsedMinutes(),
+                delayInfo.deadline(),
+                delayInfo.timeExceeded(),
+                delayInfo.delayMinutes(),
+                delayInfo.alertLevel()
         );
     }
 
@@ -1417,6 +1489,7 @@ public class ComandaInventoryService {
     }
 
     private AccountRoundResponse mapToAccountRoundResponse(Comanda comanda, int totalRounds, String message) {
+        Instant now = Instant.now();
         List<ComandaItemResponse> itemResponses = new ArrayList<>();
         if (comanda.getDetails() != null) {
             for (ComandaDetail detail : comanda.getDetails()) {
@@ -1427,6 +1500,8 @@ public class ComandaInventoryService {
                     }
                 }
 
+                DishPreparationDelayInfo delayInfo = DishPreparationDelayInfo.calculate(detail, now);
+
                 itemResponses.add(new ComandaItemResponse(
                         detail.getId(),
                         detail.getDish() != null ? detail.getDish().getId() : null,
@@ -1436,7 +1511,13 @@ public class ComandaInventoryService {
                         detail.getUnitPriceSnapshot(),
                         detail.getStatus().name(),
                         detail.getSpecialNotes(),
-                        modNames
+                        modNames,
+                        delayInfo.estimatedTimeMinutes(),
+                        delayInfo.elapsedMinutes(),
+                        delayInfo.deadline(),
+                        delayInfo.timeExceeded(),
+                        delayInfo.delayMinutes(),
+                        delayInfo.alertLevel()
                 ));
             }
         }
@@ -1762,6 +1843,7 @@ public class ComandaInventoryService {
     }
 
     private ComandaResponse mapToComandaResponse(Comanda comanda) {
+        Instant now = Instant.now();
         List<ComandaItemResponse> itemResponses = new ArrayList<>();
         if (comanda.getDetails() != null) {
             for (ComandaDetail detail : comanda.getDetails()) {
@@ -1772,6 +1854,8 @@ public class ComandaInventoryService {
                     }
                 }
 
+                DishPreparationDelayInfo delayInfo = DishPreparationDelayInfo.calculate(detail, now);
+
                 itemResponses.add(new ComandaItemResponse(
                         detail.getId(),
                         detail.getDish() != null ? detail.getDish().getId() : null,
@@ -1781,7 +1865,13 @@ public class ComandaInventoryService {
                         detail.getUnitPriceSnapshot(),
                         detail.getStatus().name(),
                         detail.getSpecialNotes(),
-                        modNames
+                        modNames,
+                        delayInfo.estimatedTimeMinutes(),
+                        delayInfo.elapsedMinutes(),
+                        delayInfo.deadline(),
+                        delayInfo.timeExceeded(),
+                        delayInfo.delayMinutes(),
+                        delayInfo.alertLevel()
                 ));
             }
         }

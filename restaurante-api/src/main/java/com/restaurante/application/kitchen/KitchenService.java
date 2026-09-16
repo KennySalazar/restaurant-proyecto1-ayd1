@@ -6,6 +6,7 @@ import com.restaurante.domain.model.ComandaDetailModifier;
 import com.restaurante.domain.model.ComandaDetailStatus;
 import com.restaurante.domain.model.ComandaStatus;
 import com.restaurante.domain.model.Dish;
+import com.restaurante.domain.model.DishPreparationDelayInfo;
 import com.restaurante.domain.model.Notification;
 import com.restaurante.domain.model.RestaurantTable;
 import com.restaurante.domain.model.Role;
@@ -83,6 +84,20 @@ public class KitchenService {
      */
     @Transactional(readOnly = true)
     public List<KitchenComandaResponse> getActiveKitchenComandas(Long restaurantId, ComandaStatus statusFilter) {
+        return getActiveKitchenComandas(restaurantId, statusFilter, null);
+    }
+
+    /**
+     * Consulta las comandas activas en cocina ordenadas de la más antigua a la más reciente,
+     * permitiendo filtrar opcionalmente por comandas que superaron su tiempo estimado de preparación.
+     *
+     * @param restaurantId Identificador del restaurante
+     * @param statusFilter Filtro opcional por estado específico (por defecto RECIBIDA y EN_PREPARACION)
+     * @param soloRetrasadas Si es true, retorna únicamente las comandas con tiempo de preparación excedido
+     * @return Listado de comandas activas con información de retraso y alertas
+     */
+    @Transactional(readOnly = true)
+    public List<KitchenComandaResponse> getActiveKitchenComandas(Long restaurantId, ComandaStatus statusFilter, Boolean soloRetrasadas) {
         Long targetRestaurantId = restaurantId != null ? restaurantId : DEFAULT_RESTAURANT_ID;
 
         List<ComandaStatus> statuses = (statusFilter != null)
@@ -109,9 +124,28 @@ public class KitchenService {
                 : tableRepository.findAllById(tableIds).stream()
                 .collect(Collectors.toMap(RestaurantTable::getId, t -> t));
 
-        return comandas.stream()
+        List<KitchenComandaResponse> responses = comandas.stream()
                 .map(c -> mapToKitchenResponse(c, tableMap))
                 .toList();
+
+        if (Boolean.TRUE.equals(soloRetrasadas)) {
+            return responses.stream()
+                    .filter(KitchenComandaResponse::timeExceeded)
+                    .toList();
+        }
+
+        return responses;
+    }
+
+    /**
+     * Consulta todas las comandas en cocina que contienen platillos con tiempo estimado excedido.
+     *
+     * @param restaurantId Identificador del restaurante
+     * @return Listado de comandas retrasadas con alertas activas
+     */
+    @Transactional(readOnly = true)
+    public List<KitchenComandaResponse> getDelayedKitchenComandas(Long restaurantId) {
+        return getActiveKitchenComandas(restaurantId, null, true);
     }
 
     /**
@@ -187,6 +221,7 @@ public class KitchenService {
                 ? Math.max(0, Duration.between(referenceTime, Instant.now()).toMinutes())
                 : 0;
 
+        Instant now = Instant.now();
         List<KitchenComandaItemResponse> itemResponses = new ArrayList<>();
         short maxPrepTime = 0;
 
@@ -198,10 +233,9 @@ public class KitchenService {
                     continue;
                 }
 
-                short itemPrepTime = detail.getEstimatedTimeMinutes() > 0
-                        ? detail.getEstimatedTimeMinutes()
-                        : (short) 15;
+                DishPreparationDelayInfo delayInfo = DishPreparationDelayInfo.calculate(detail, now);
 
+                short itemPrepTime = delayInfo.estimatedTimeMinutes();
                 if (itemPrepTime > maxPrepTime) {
                     maxPrepTime = itemPrepTime;
                 }
@@ -222,12 +256,24 @@ public class KitchenService {
                         detail.getStatus().name(),
                         itemPrepTime,
                         detail.getSpecialNotes(),
-                        modNames
+                        modNames,
+                        delayInfo.startTime(),
+                        detail.getPreparationStartedAt(),
+                        delayInfo.deadline(),
+                        delayInfo.elapsedMinutes(),
+                        delayInfo.timeExceeded(),
+                        delayInfo.delayMinutes(),
+                        delayInfo.alertLevel()
                 ));
             }
         }
 
         short estimatedPreparationTimeMinutes = maxPrepTime > 0 ? maxPrepTime : (short) 15;
+        boolean comandaExceeded = itemResponses.stream().anyMatch(KitchenComandaItemResponse::timeExceeded)
+                || (elapsedMinutes > estimatedPreparationTimeMinutes);
+        int delayedCount = (int) itemResponses.stream().filter(KitchenComandaItemResponse::timeExceeded).count();
+        long maxDelay = itemResponses.stream().mapToLong(KitchenComandaItemResponse::delayMinutes).max().orElse(0L);
+        String comandaAlertLevel = comandaExceeded ? "TIEMPO_EXCEDIDO" : "NORMAL";
 
         return new KitchenComandaResponse(
                 comanda.getId(),
@@ -244,7 +290,11 @@ public class KitchenService {
                 elapsedMinutes,
                 estimatedPreparationTimeMinutes,
                 comanda.getGeneralNotes(),
-                itemResponses
+                itemResponses,
+                comandaExceeded,
+                delayedCount,
+                maxDelay,
+                comandaAlertLevel
         );
     }
 
@@ -446,6 +496,15 @@ public class KitchenService {
                     "ALTA"
             );
             notificationRepository.save(waiterNotification);
+
+            // Marcar como atendida cualquier alerta de tiempo excedido previa para este platillo
+            notificationRepository.markAsReadByEntity(
+                    restaurantId,
+                    "TIEMPO_PREPARACION_EXCEDIDO",
+                    "COMANDA_DETALLE",
+                    detail.getId().toString(),
+                    now
+            );
 
             // Verificar si todos los platillos activos de la comanda están listos o entregados
             List<ComandaDetail> allDetails = comandaDetailRepository.findByComandaIdWithModifiers(comanda.getId());
@@ -726,6 +785,15 @@ public class KitchenService {
                 "ALTA"
         );
         notificationRepository.save(adminNotification);
+
+        // Marcar como atendida cualquier alerta de tiempo excedido previa para este platillo
+        notificationRepository.markAsReadByEntity(
+                restaurantId,
+                "TIEMPO_PREPARACION_EXCEDIDO",
+                "COMANDA_DETALLE",
+                detail.getId().toString(),
+                Instant.now()
+        );
 
         // Sincronizar estado de la comanda si todos los platillos quedan listos o inactivos
         final Long currentDetailId = detail.getId();

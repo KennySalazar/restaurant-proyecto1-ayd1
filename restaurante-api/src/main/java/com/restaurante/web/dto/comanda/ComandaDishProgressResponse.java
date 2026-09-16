@@ -7,9 +7,9 @@ import java.time.Instant;
 import java.util.List;
 
 /**
- * Representación del avance y estado de servicio de un platillo u orden en la mesa.
+ * Representación del avance y estado de servicio de un platillo u orden en la mesa con alertas de tiempo.
  */
-@Schema(description = "Detalle del avance y estado de entrega de un platillo de comanda")
+@Schema(description = "Detalle del avance y estado de entrega de un platillo de comanda con tiempos y alertas")
 public record ComandaDishProgressResponse(
         @Schema(description = "Identificador del detalle de la comanda", example = "10")
         Long id,
@@ -44,10 +44,10 @@ public record ComandaDishProgressResponse(
         @Schema(description = "Precio unitario", example = "45.00")
         BigDecimal unitPrice,
 
-        @Schema(description = "Estado actual del platillo", example = "ENTREGADO")
+        @Schema(description = "Estado actual del platillo", example = "EN_PREPARACION")
         String status,
 
-        @Schema(description = "Estado previo a la última operación", example = "LISTO")
+        @Schema(description = "Estado previo a la última operación", example = "RECIBIDO")
         String previousStatus,
 
         @Schema(description = "Notas especiales de preparación", example = "Sin cebolla")
@@ -74,10 +74,57 @@ public record ComandaDishProgressResponse(
         @Schema(description = "Nombre del mesero asignado", example = "Juan Pérez")
         String waiterName,
 
-        @Schema(description = "Estado general de la comanda", example = "ENTREGADA")
+        @Schema(description = "Estado general de la comanda", example = "EN_PREPARACION")
         String comandaStatus,
 
         @Schema(description = "Mensaje informativo de la operación")
-        String message
+        String message,
+
+        @Schema(description = "Tiempo estimado de preparación en minutos", example = "15")
+        short estimatedTimeMinutes,
+
+        @Schema(description = "Minutos transcurridos desde que fue recibido o inició preparación", example = "22")
+        long elapsedMinutes,
+
+        @Schema(description = "Fecha y hora límite estimada para estar listo")
+        Instant deadline,
+
+        @Schema(description = "Indica si el platillo superó su tiempo estimado de preparación sin estar listo", example = "true")
+        boolean timeExceeded,
+
+        @Schema(description = "Minutos de retraso respecto al tiempo estimado de preparación", example = "7")
+        long delayMinutes,
+
+        @Schema(description = "Nivel de alerta visual del platillo (NORMAL, TIEMPO_EXCEDIDO)", example = "TIEMPO_EXCEDIDO")
+        String alertLevel
 ) {
+    public ComandaDishProgressResponse(
+            Long id,
+            Long comandaId,
+            Long accountId,
+            Long tableId,
+            String tableNumber,
+            short roundNumber,
+            Long dishId,
+            Long comboId,
+            String name,
+            short quantity,
+            BigDecimal unitPrice,
+            String status,
+            String previousStatus,
+            String specialNotes,
+            List<String> modifiers,
+            Instant receivedAt,
+            Instant preparationStartedAt,
+            Instant readyAt,
+            Instant deliveredAt,
+            Long waiterId,
+            String waiterName,
+            String comandaStatus,
+            String message) {
+        this(id, comandaId, accountId, tableId, tableNumber, roundNumber, dishId, comboId, name, quantity,
+                unitPrice, status, previousStatus, specialNotes, modifiers, receivedAt, preparationStartedAt,
+                readyAt, deliveredAt, waiterId, waiterName, comandaStatus, message,
+                (short) 15, 0L, null, false, 0L, "NORMAL");
+    }
 }

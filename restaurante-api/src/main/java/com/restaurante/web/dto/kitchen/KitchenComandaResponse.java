@@ -6,9 +6,9 @@ import java.time.Instant;
 import java.util.List;
 
 /**
- * Representación de una comanda activa para visualización del personal de cocina.
+ * Representación de una comanda activa para visualización del personal de cocina con alertas de retraso.
  */
-@Schema(description = "Comanda entrante o activa para visualización en cocina")
+@Schema(description = "Comanda entrante o activa para visualización en cocina con tiempos y alertas")
 public record KitchenComandaResponse(
         @Schema(description = "Identificador único de la comanda", example = "105")
         Long id,
@@ -43,16 +43,48 @@ public record KitchenComandaResponse(
         @Schema(description = "Fecha y hora de creación de la comanda")
         Instant createdAt,
 
-        @Schema(description = "Minutos transcurridos desde que se envió a cocina (antigüedad)", example = "8")
+        @Schema(description = "Minutos transcurridos desde que se envió a cocina (antigüedad)", example = "18")
         long elapsedMinutes,
 
-        @Schema(description = "Tiempo estimado total de preparación en minutos", example = "20")
+        @Schema(description = "Tiempo estimado total de preparación en minutos", example = "15")
         short estimatedPreparationTimeMinutes,
 
         @Schema(description = "Notas generales para cocina", example = "Mesa VIP, enviar todo junto")
         String generalNotes,
 
         @Schema(description = "Listado de platillos y combos de la comanda")
-        List<KitchenComandaItemResponse> items
+        List<KitchenComandaItemResponse> items,
+
+        @Schema(description = "Indica si la comanda contiene platillos que superaron su tiempo estimado sin estar listos", example = "true")
+        boolean timeExceeded,
+
+        @Schema(description = "Cantidad de platillos en la comanda con tiempo de preparación excedido", example = "1")
+        int delayedItemsCount,
+
+        @Schema(description = "Máximo retraso en minutos entre los platillos de la comanda", example = "5")
+        long maxDelayMinutes,
+
+        @Schema(description = "Nivel de alerta general de la comanda (NORMAL, TIEMPO_EXCEDIDO)", example = "TIEMPO_EXCEDIDO")
+        String alertLevel
 ) {
+    public KitchenComandaResponse(
+            Long id,
+            Long accountId,
+            String accountNumber,
+            Long tableId,
+            String tableNumber,
+            short roundNumber,
+            Long waiterId,
+            String waiterName,
+            String status,
+            Instant sentAt,
+            Instant createdAt,
+            long elapsedMinutes,
+            short estimatedPreparationTimeMinutes,
+            String generalNotes,
+            List<KitchenComandaItemResponse> items) {
+        this(id, accountId, accountNumber, tableId, tableNumber, roundNumber, waiterId, waiterName, status,
+                sentAt, createdAt, elapsedMinutes, estimatedPreparationTimeMinutes, generalNotes, items,
+                false, 0, 0L, "NORMAL");
+    }
 }
