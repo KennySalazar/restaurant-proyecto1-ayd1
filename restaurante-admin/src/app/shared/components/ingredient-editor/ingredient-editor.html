@@ -51,16 +51,15 @@
           <label class="sr-only" [for]="'ingredient-unit-' + $index">{{
             'recipes.editor.unit' | transloco
           }}</label>
-          <select
-            [id]="'ingredient-unit-' + $index"
-            class="ingredient-row__input"
-            formControlName="measurementUnitId"
-          >
-            <option [ngValue]="null">{{ 'recipes.editor.stockUnit' | transloco }}</option>
-            @for (unit of units; track unit.id) {
-              <option [ngValue]="unit.id">{{ unit.name }} ({{ unit.abbreviation }})</option>
-            }
-          </select>
+          @if (stockUnitForGroup(row)) {
+            <span class="ingredient-row__unit">
+              {{ stockUnitForGroup(row)!.name }} ({{ stockUnitForGroup(row)!.abbreviation }})
+            </span>
+          } @else {
+            <span class="ingredient-row__unit ingredient-row__unit--placeholder">
+              {{ 'recipes.editor.stockUnit' | transloco }}
+            </span>
+          }
         </div>
 
         <div class="ingredient-row__field ingredient-row__field--notes">

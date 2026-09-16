@@ -136,7 +136,21 @@ export class RecipesPageComponent implements OnInit {
     return map;
   });
 
-  readonly defineCostPreview = computed(() => {
+  readonly defineValidationErrorKey = computed(() => {
+    const ingredientsControl = this.defineForm.controls.ingredients;
+    if (ingredientsControl.hasError('ingredientsRequired')) {
+      return 'recipes.define.validation.ingredientsRequired';
+    }
+    if (ingredientsControl.hasError('duplicate')) {
+      return 'recipes.define.validation.duplicate';
+    }
+    if (ingredientsControl.hasError('incomplete')) {
+      return 'recipes.define.validation.incomplete';
+    }
+    return null;
+  });
+
+  defineCostPreview(): { total: number; hasConverted: boolean } {
     const suppliesById = this.supplyById();
     let total = 0;
     let hasConverted = false;
@@ -154,25 +168,11 @@ export class RecipesPageComponent implements OnInit {
       }
     }
     return { total, hasConverted };
-  });
-
-  readonly defineValidationErrorKey = computed(() => {
-    const ingredientsControl = this.defineForm.controls.ingredients;
-    if (ingredientsControl.hasError('ingredientsRequired')) {
-      return 'recipes.define.validation.ingredientsRequired';
-    }
-    if (ingredientsControl.hasError('duplicate')) {
-      return 'recipes.define.validation.duplicate';
-    }
-    if (ingredientsControl.hasError('incomplete')) {
-      return 'recipes.define.validation.incomplete';
-    }
-    return null;
-  });
+  }
 
   ngOnInit(): void {
     forkJoin({
-      dishes: this.recipeService.listDishes(),
+      dishes: this.recipeService.listDishes(null, null, true),
       supplies: this.supplyService.listSupplies(),
       units: this.supplyService.listMeasurementUnits(),
     })
@@ -332,7 +332,7 @@ export class RecipesPageComponent implements OnInit {
 
   private reloadDishes(): void {
     this.recipeService
-      .listDishes()
+      .listDishes(null, null, true)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (dishes) => this.dishes.set(dishes),
@@ -342,7 +342,7 @@ export class RecipesPageComponent implements OnInit {
 }
 
 function dishHasRecipe(dish: DishSummary | null | undefined): boolean {
-  if (!dish) {
+  if (!dish || !dish.active) {
     return false;
   }
   return dish.unavailabilityReason !== 'SIN_RECETA';

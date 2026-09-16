@@ -126,6 +126,18 @@ export class IngredientEditorComponent implements ControlValueAccessor, OnDestro
     return selectedUnitId == null || Number(selectedUnitId) === supply.unitId;
   }
 
+  stockUnitForGroup(group: FormGroup): { name: string; abbreviation: string } | null {
+    const supplyId = Number(group.get('supplyId')?.value ?? 0);
+    if (!supplyId) {
+      return null;
+    }
+    const supply = this.supplies.find((s) => s.id === supplyId);
+    if (!supply) {
+      return null;
+    }
+    return { name: supply.unitName, abbreviation: supply.unitAbbreviation };
+  }
+
   supplyRequiredError(index: number): boolean {
     return this.showError(index, 'supplyId');
   }
@@ -180,7 +192,12 @@ export class IngredientEditorComponent implements ControlValueAccessor, OnDestro
 
     const rowSubscription = new Subscription();
     rowSubscription.add(
-      group.get('supplyId')!.valueChanges.subscribe(() => this.syncQuantityValidators(group)),
+      group.get('supplyId')!.valueChanges.subscribe((supplyId) => {
+        const supply = this.supplies.find((s) => s.id === Number(supplyId));
+        const unitControl = group.get('measurementUnitId')!;
+        unitControl.setValue(supply?.unitId ?? null, { emitEvent: false });
+        this.syncQuantityValidators(group);
+      }),
     );
     rowSubscription.add(
       group

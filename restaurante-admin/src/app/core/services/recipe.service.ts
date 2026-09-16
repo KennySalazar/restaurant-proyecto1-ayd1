@@ -20,7 +20,11 @@ export class RecipeService {
   private readonly http = inject(HttpClient);
   private readonly dishesUrl = `${environment.apiBaseUrl}/admin/dishes`;
 
-  listDishes(categoryId?: number | null, search?: string | null): Observable<DishSummary[]> {
+  listDishes(
+    categoryId?: number | null,
+    search?: string | null,
+    active?: boolean | null,
+  ): Observable<DishSummary[]> {
     let params = new HttpParams();
 
     if (categoryId != null) {
@@ -29,6 +33,10 @@ export class RecipeService {
 
     if (search && search.trim().length > 0) {
       params = params.set('search', search.trim());
+    }
+
+    if (active != null) {
+      params = params.set('active', active);
     }
 
     return this.http.get<DishSummary[]>(this.dishesUrl, { params });
