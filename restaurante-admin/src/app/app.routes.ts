@@ -26,9 +26,7 @@ export const routes: Routes = [
       {
         path: 'login',
         loadComponent: () =>
-          import('./pages/auth/login/login').then(
-            (module) => module.LoginPageComponent,
-          ),
+          import('./pages/auth/login/login').then((module) => module.LoginPageComponent),
       },
       {
         path: 'login-verify',
@@ -40,9 +38,7 @@ export const routes: Routes = [
       {
         path: 'recovery',
         loadComponent: () =>
-          import('./pages/auth/recovery/recovery').then(
-            (module) => module.RecoveryPageComponent,
-          ),
+          import('./pages/auth/recovery/recovery').then((module) => module.RecoveryPageComponent),
       },
       {
         path: 'recovery-reset',
@@ -56,9 +52,7 @@ export const routes: Routes = [
   {
     path: 'app',
     loadComponent: () =>
-      import('./layouts/app-shell/app-shell').then(
-        (module) => module.AppShellComponent,
-      ),
+      import('./layouts/app-shell/app-shell').then((module) => module.AppShellComponent),
     canActivate: [authGuard, roleGuard],
     canActivateChild: [authChildGuard],
     data: { roles: ['ADMIN'] },
@@ -79,9 +73,7 @@ export const routes: Routes = [
       {
         path: 'tables',
         loadComponent: () =>
-          import('./pages/protected/tables/tables').then(
-            (module) => module.TablesPageComponent,
-          ),
+          import('./pages/protected/tables/tables').then((module) => module.TablesPageComponent),
       },
 
       {
@@ -101,6 +93,12 @@ export const routes: Routes = [
       },
 
       {
+        path: 'recipes',
+        loadComponent: () =>
+          import('./pages/protected/recipes/recipes').then((module) => module.RecipesPageComponent),
+      },
+
+      {
         path: 'configuration',
         loadComponent: () =>
           import('./pages/protected/configuration/configuration').then(
@@ -117,22 +115,20 @@ export const routes: Routes = [
       },
 
       {
-          path: 'reservations',
-          loadComponent: () =>
-            import(
-              './pages/protected/reservations/reservations'
-            ).then(
-              (module) => module.ReservationsPageComponent,
-            ),
-        },
+        path: 'reservations',
+        loadComponent: () =>
+          import('./pages/protected/reservations/reservations').then(
+            (module) => module.ReservationsPageComponent,
+          ),
+      },
 
-        {
-          path: 'waitlist',
-          loadComponent: () =>
-            import('./pages/protected/waitlist/waitlist').then(
-              (module) => module.WaitlistPageComponent,
-            ),
-        },
+      {
+        path: 'waitlist',
+        loadComponent: () =>
+          import('./pages/protected/waitlist/waitlist').then(
+            (module) => module.WaitlistPageComponent,
+          ),
+      },
 
       {
         path: 'employees',
@@ -151,9 +147,7 @@ export const routes: Routes = [
       {
         path: 'admin',
         loadComponent: () =>
-          import('./pages/protected/admin/admin').then(
-            (module) => module.AdminPageComponent,
-          ),
+          import('./pages/protected/admin/admin').then((module) => module.AdminPageComponent),
       },
     ],
   },

@@ -1,0 +1,115 @@
+<div class="ingredient-editor" (blur)="onBlur()">
+  <div class="ingredient-editor__rows">
+    @for (row of rows.controls; track $index) {
+      <div class="ingredient-row" [formGroup]="row">
+        <div class="ingredient-row__field ingredient-row__field--supply">
+          <label class="sr-only" [for]="'ingredient-supply-' + $index">{{
+            'recipes.editor.supply' | transloco
+          }}</label>
+          <select
+            [id]="'ingredient-supply-' + $index"
+            class="ingredient-row__input"
+            formControlName="supplyId"
+          >
+            <option [ngValue]="0">{{ 'recipes.editor.selectSupply' | transloco }}</option>
+            @for (supply of supplies; track supply.id) {
+              <option [ngValue]="supply.id">{{ supply.code }} — {{ supply.name }}</option>
+            }
+          </select>
+          @if (supplyRequiredError($index)) {
+            <small class="field-error">{{ 'recipes.editor.supplyRequired' | transloco }}</small>
+          }
+        </div>
+
+        <div class="ingredient-row__field">
+          <label class="sr-only" [for]="'ingredient-quantity-' + $index">{{
+            'recipes.editor.quantity' | transloco
+          }}</label>
+          <input
+            [id]="'ingredient-quantity-' + $index"
+            class="ingredient-row__input"
+            formControlName="quantity"
+            inputmode="decimal"
+            min="0"
+            [step]="quantityStep($index)"
+            [placeholder]="'recipes.editor.quantityPlaceholder' | transloco"
+          />
+          @switch (quantityErrorKind($index)) {
+            @case ('required') {
+              <small class="field-error">{{ 'recipes.editor.quantityRequired' | transloco }}</small>
+            }
+            @case ('positive') {
+              <small class="field-error">{{ 'recipes.editor.quantityPositive' | transloco }}</small>
+            }
+            @case ('integer') {
+              <small class="field-error">{{ 'recipes.editor.quantityInteger' | transloco }}</small>
+            }
+          }
+        </div>
+
+        <div class="ingredient-row__field">
+          <label class="sr-only" [for]="'ingredient-unit-' + $index">{{
+            'recipes.editor.unit' | transloco
+          }}</label>
+          <select
+            [id]="'ingredient-unit-' + $index"
+            class="ingredient-row__input"
+            formControlName="measurementUnitId"
+          >
+            <option [ngValue]="null">{{ 'recipes.editor.stockUnit' | transloco }}</option>
+            @for (unit of units; track unit.id) {
+              <option [ngValue]="unit.id">{{ unit.name }} ({{ unit.abbreviation }})</option>
+            }
+          </select>
+        </div>
+
+        <div class="ingredient-row__field ingredient-row__field--notes">
+          <label class="sr-only" [for]="'ingredient-notes-' + $index">{{
+            'recipes.editor.notes' | transloco
+          }}</label>
+          <input
+            [id]="'ingredient-notes-' + $index"
+            class="ingredient-row__input"
+            formControlName="notes"
+            maxlength="255"
+            [placeholder]="'recipes.editor.notesPlaceholder' | transloco"
+          />
+          @if (notesLengthError($index)) {
+            <small class="field-error">{{ 'recipes.editor.notesTooLong' | transloco }}</small>
+          }
+        </div>
+
+        <button
+          class="ingredient-row__remove"
+          type="button"
+          (click)="removeRow($index)"
+          [attr.aria-label]="'recipes.editor.removeIngredient' | transloco"
+        >
+          <i class="pi pi-times"></i>
+        </button>
+
+        @if (costIsExact($index)) {
+          @if (ingredientCost($index) != null) {
+            <small class="ingredient-row__cost">
+              {{ 'recipes.editor.partialCost' | transloco }}:
+              {{ formatCost(ingredientCost($index)!) }}
+            </small>
+          }
+        } @else if (ingredientCost($index) != null) {
+          <small class="ingredient-row__cost ingredient-row__cost--hint">{{
+            'recipes.editor.costConverted' | transloco
+          }}</small>
+        }
+      </div>
+    }
+  </div>
+
+  @if (rows.length === 0) {
+    <p class="ingredient-editor__empty">{{ 'recipes.editor.empty' | transloco }}</p>
+  }
+
+  <button class="ingredient-editor__add" type="button" (click)="addEmptyRow()">
+    <i class="pi pi-plus"></i>
+    {{ 'recipes.editor.add' | transloco }}
+  </button>
+</div>

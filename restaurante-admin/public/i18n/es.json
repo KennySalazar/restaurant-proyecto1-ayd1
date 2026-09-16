@@ -23,6 +23,7 @@
     "tables": "Mesas",
     "supplies": "Productos base",
     "supplyAlerts": "Alertas de inventario",
+    "recipes": "Recetas",
     "employees": "Empleados",
     "configuration": "Configuración",
     "reservations": "Reservas",
@@ -171,7 +172,7 @@
     }
   },
 
-"supplies": {
+  "supplies": {
     "eyebrow": "Catálogo de insumos",
     "title": "Catálogo de insumos",
     "description": "Consulta la materia prima disponible y revisa su información de compra e inventario.",
@@ -495,6 +496,128 @@
     "emptyTitle": "Sin notificaciones",
     "emptyDescription": "Cuando existan notificaciones aparecerán aquí.",
     "goToAlerts": "Ver todas las alertas"
+  },
+
+  "recipes": {
+    "eyebrow": "Producción",
+    "title": "Catálogo de recetas",
+    "description": "Define y consulta las recetas de platillos y modificadores; el costo de producción se calcula automáticamente desde el inventario.",
+    "tabs": {
+      "dishes": "Platillos",
+      "modifiers": "Modificadores",
+      "costs": "Costos de producción",
+      "history": "Historial"
+    },
+    "comingSoon": {
+      "title": "Sección próxima",
+      "description": "Esta sección se habilitará en una siguiente iteración del módulo."
+    },
+    "dishes": {
+      "summary": {
+        "total": "Platillos registrados",
+        "withRecipe": "Con receta",
+        "withoutRecipe": "Sin receta"
+      },
+      "list": {
+        "title": "Platillos registrados",
+        "description": "Selecciona un platillo para consultar su receta vigente.",
+        "searchPlaceholder": "Buscar por nombre o código",
+        "empty": "Todavía no existen platillos registrados",
+        "noResults": "Ningún platillo coincide con la búsqueda"
+      },
+      "columns": {
+        "dish": "Platillo",
+        "category": "Categoría",
+        "price": "Precio de venta",
+        "recipe": "Receta"
+      },
+      "status": {
+        "has": "Con receta",
+        "without": "Sin receta"
+      },
+      "actions": {
+        "define": "Definir receta",
+        "view": "Ver receta"
+      }
+    },
+    "detail": {
+      "eyebrow": "Receta vigente",
+      "version": "Versión {{number}}",
+      "ingredientsCount": "{{count}} insumos",
+      "selectHint": "Selecciona un platillo",
+      "selectHintDescription": "Selecciona un platillo de la lista para consultar su receta vigente.",
+      "withoutTitle": "El platillo aún no tiene una receta definida",
+      "withoutDescription": "Defina la receta indicando los insumos y cantidades exactas necesarios para preparar una porción del platillo.",
+      "columns": {
+        "supply": "Insumo",
+        "quantity": "Cantidad",
+        "unitCost": "Costo unitario",
+        "subtotal": "Subtotal",
+        "notes": "Observaciones"
+      },
+      "summary": {
+        "totalCost": "Costo de producción",
+        "salePrice": "Precio de venta",
+        "grossMargin": "Margen bruto",
+        "marginPercentage": "Margen %",
+        "changeReason": "Motivo del cambio",
+        "effectiveFrom": "Vigente desde",
+        "noValue": "—"
+      }
+    },
+    "define": {
+      "eyebrow": "Producción",
+      "title": "Definir receta de {{name}}",
+      "description": "Agrega los insumos y cantidades exactas necesarios para preparar una porción del platillo.",
+      "fields": {
+        "supplyCard": {
+          "category": "Categoría",
+          "price": "Precio de venta"
+        },
+        "ingredients": "Insumos de la receta",
+        "changeReason": "Motivo de la definición",
+        "changeReasonHint": "Opcional. Hasta 500 caracteres.",
+        "estimatedTotal": "Costo total estimado"
+      },
+      "validation": {
+        "ingredientsRequired": "Debe agregarse al menos un insumo a la receta.",
+        "incomplete": "Debe seleccionar un insumo y agregar una cantidad mayor que cero a cada fila.",
+        "duplicate": "El insumo ya forma parte de la receta; no puede repetirse."
+      },
+      "warning": {
+        "title": "Receta ya definida",
+        "alreadyDefined": "El platillo {{dish}} ya tiene una receta vigente. Use la actualización de la receta para modificarla."
+      },
+      "costConvertedHint": "Conversión de unidades pendiente: el costo exacto se calculará al guardar la receta.",
+      "actions": {
+        "save": "Definir receta",
+        "saving": "Definiendo..."
+      },
+      "success": {
+        "title": "Receta definida",
+        "message": "La receta de {{dish}} fue definida en la versión {{version}}."
+      }
+    },
+    "editor": {
+      "supply": "Insumo",
+      "selectSupply": "Selecciona un insumo",
+      "supplyRequired": "Debes seleccionar un insumo.",
+      "quantity": "Cantidad",
+      "quantityPlaceholder": "0.00",
+      "quantityRequired": "La cantidad es obligatoria.",
+      "quantityPositive": "La cantidad debe ser mayor que cero.",
+      "quantityInteger": "Debe ser un número entero.",
+      "unit": "Unidad de medida",
+      "stockUnit": "Unidad de stock",
+      "notes": "Observaciones",
+      "notesPlaceholder": "Observaciones (opcional)",
+      "notesTooLong": "Máximo 255 caracteres.",
+      "removeIngredient": "Quitar insumo",
+      "add": "Agregar insumo",
+      "empty": "Aún no hay insumos en la receta. Agrega el primero.",
+      "partialCost": "Costo",
+      "costConverted": "El costo se calculará con la conversión al guardar."
+    }
   },
 
   "reservations": {

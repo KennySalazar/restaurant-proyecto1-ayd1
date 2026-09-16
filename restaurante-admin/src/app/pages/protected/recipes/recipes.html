@@ -1,0 +1,400 @@
+<app-page-heading
+  eyebrowKey="recipes.eyebrow"
+  titleKey="recipes.title"
+  descriptionKey="recipes.description"
+/>
+
+@if (isInitialLoading()) {
+  <div class="state-panel">
+    <i class="pi pi-spin pi-spinner"></i>
+    <span>{{ 'common.loading' | transloco }}</span>
+  </div>
+} @else if (initialErrorMessage()) {
+  <app-form-feedback [message]="initialErrorMessage()" />
+} @else {
+  <div class="recipes-tabs">
+    @for (tab of tabs; track tab.id) {
+      <button
+        class="recipes-tabs__tab"
+        [class.recipes-tabs__tab--active]="activeTab() === tab.id"
+        type="button"
+        (click)="setTab(tab.id)"
+        [attr.aria-selected]="activeTab() === tab.id"
+      >
+        <i class="pi {{ tab.icon }}"></i>
+        {{ tab.labelKey | transloco }}
+      </button>
+    }
+  </div>
+
+  @if (activeTab() === 'dishes') {
+    <section class="summary-grid">
+      <article class="summary-card">
+        <span class="summary-card__icon">
+          <i class="pi pi-cutlery"></i>
+        </span>
+        <div>
+          <span>{{ 'recipes.dishes.summary.total' | transloco }}</span>
+          <strong>{{ dishTotal() }}</strong>
+        </div>
+      </article>
+
+      <article class="summary-card">
+        <span class="summary-card__icon summary-card__icon--active">
+          <i class="pi pi-check-circle"></i>
+        </span>
+        <div>
+          <span>{{ 'recipes.dishes.summary.withRecipe' | transloco }}</span>
+          <strong>{{ dishesWithRecipe() }}</strong>
+        </div>
+      </article>
+
+      <article class="summary-card">
+        <span class="summary-card__icon summary-card__icon--out-of-stock">
+          <i class="pi pi-clock"></i>
+        </span>
+        <div>
+          <span>{{ 'recipes.dishes.summary.withoutRecipe' | transloco }}</span>
+          <strong>{{ dishesWithoutRecipe() }}</strong>
+        </div>
+      </article>
+    </section>
+
+    <div class="recipes-layout">
+      <section class="recipes-panel">
+        <div class="recipes-panel__header">
+          <div>
+            <h2>{{ 'recipes.dishes.list.title' | transloco }}</h2>
+            <p>{{ 'recipes.dishes.list.description' | transloco }}</p>
+          </div>
+        </div>
+
+        <div class="filters-bar">
+          <div class="search-field">
+            <i class="pi pi-search"></i>
+            <input
+              type="search"
+              [value]="searchTerm()"
+              (input)="updateSearch($any($event.target).value)"
+              [placeholder]="'recipes.dishes.list.searchPlaceholder' | transloco"
+            />
+            @if (searchTerm()) {
+              <button
+                class="search-field__clear"
+                type="button"
+                (click)="clearSearch()"
+                aria-label="Clear search"
+              >
+                <i class="pi pi-times"></i>
+              </button>
+            }
+          </div>
+        </div>
+
+        <div class="table-wrapper">
+          <table class="restaurant-table">
+            <thead>
+              <tr>
+                <th>{{ 'recipes.dishes.columns.dish' | transloco }}</th>
+                <th>{{ 'recipes.dishes.columns.category' | transloco }}</th>
+                <th>{{ 'recipes.dishes.columns.price' | transloco }}</th>
+                <th>{{ 'recipes.dishes.columns.recipe' | transloco }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (dish of filteredDishes(); track dish.id) {
+                <tr
+                  class="restaurant-table__row"
+                  [class.restaurant-table__row--selected]="selectedDishId() === dish.id"
+                  (click)="selectDish(dish.id)"
+                >
+                  <td>
+                    <div class="dish-cell">
+                      <strong>{{ dish.name }}</strong>
+                      <small>{{ dish.code }}</small>
+                    </div>
+                  </td>
+                  <td>
+                    <span class="unit-pill">{{ dish.categoryName }}</span>
+                  </td>
+                  <td>
+                    <span class="cost-value">{{ formatCost(dish.salePrice ?? 0) }}</span>
+                  </td>
+                  <td>
+                    @if (dishHasRecipe(dish)) {
+                      <div class="recipe-cell">
+                        <span class="recipe-badge recipe-badge--has">
+                          <i class="pi pi-check"></i>
+                          {{ 'recipes.dishes.status.has' | transloco }}
+                        </span>
+                        <button
+                          class="row-action row-action--view"
+                          type="button"
+                          (click)="selectDish(dish.id)"
+                        >
+                          <i class="pi pi-eye"></i>
+                          {{ 'recipes.dishes.actions.view' | transloco }}
+                        </button>
+                      </div>
+                    } @else {
+                      <div class="recipe-cell">
+                        <span class="recipe-badge recipe-badge--without">
+                          <i class="pi pi-plus"></i>
+                          {{ 'recipes.dishes.status.without' | transloco }}
+                        </span>
+                        <button
+                          class="row-action row-action--define"
+                          type="button"
+                          (click)="openDefine(dish)"
+                        >
+                          <i class="pi pi-plus"></i>
+                          {{ 'recipes.dishes.actions.define' | transloco }}
+                        </button>
+                      </div>
+                    }
+                  </td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="4">
+                    <div class="state-panel state-panel--empty">
+                      <i class="pi pi-shopping-bag"></i>
+                      <span>{{ 'recipes.dishes.list.noResults' | transloco }}</span>
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="recipes-panel recipe-detail">
+        @if (selectedDish()) {
+          @if (isRecipeLoading()) {
+            <div class="state-panel">
+              <i class="pi pi-spin pi-spinner"></i>
+              <span>{{ 'common.loading' | transloco }}</span>
+            </div>
+          } @else if (selectedRecipe()) {
+            <div class="recipe-detail__header">
+              <div>
+                <span class="registration-dialog__eyebrow">{{
+                  'recipes.detail.eyebrow' | transloco
+                }}</span>
+                <h2>{{ selectedDish()!.name }}</h2>
+                <p>{{ selectedDish()!.code }} · {{ selectedDish()!.categoryName }}</p>
+              </div>
+              <span class="recipe-version-chip">
+                {{
+                  'recipes.detail.version' | transloco: { number: selectedRecipe()!.versionNumber }
+                }}
+              </span>
+            </div>
+
+            <div class="recipe-summary-grid">
+              <div class="recipe-summary-item">
+                <span>{{ 'recipes.detail.summary.totalCost' | transloco }}</span>
+                <strong>{{ formatCost(selectedRecipe()!.totalCost) }}</strong>
+              </div>
+              <div class="recipe-summary-item">
+                <span>{{ 'recipes.detail.summary.salePrice' | transloco }}</span>
+                <strong>{{ formatCost(selectedRecipe()!.dishSalePrice ?? 0) }}</strong>
+              </div>
+              <div class="recipe-summary-item">
+                <span>{{ 'recipes.detail.summary.grossMargin' | transloco }}</span>
+                <strong>{{ formatCost(selectedRecipe()!.grossMargin ?? 0) }}</strong>
+              </div>
+              <div class="recipe-summary-item">
+                <span>{{ 'recipes.detail.summary.marginPercentage' | transloco }}</span>
+                <strong>{{ formatQuantity(selectedRecipe()!.marginPercentage ?? 0) }}%</strong>
+              </div>
+            </div>
+
+            <dl class="recipe-meta">
+              <dt>{{ 'recipes.detail.summary.effectiveFrom' | transloco }}</dt>
+              <dd>{{ formatDate(selectedRecipe()!.effectiveFrom) }}</dd>
+              <dt>{{ 'recipes.detail.summary.changeReason' | transloco }}</dt>
+              <dd>
+                {{
+                  selectedRecipe()!.changeReason ?? ('recipes.detail.summary.noValue' | transloco)
+                }}
+              </dd>
+            </dl>
+
+            <div class="table-wrapper">
+              <table class="restaurant-table restaurant-table--sm">
+                <thead>
+                  <tr>
+                    <th>{{ 'recipes.detail.columns.supply' | transloco }}</th>
+                    <th>{{ 'recipes.detail.columns.quantity' | transloco }}</th>
+                    <th>{{ 'recipes.detail.columns.unitCost' | transloco }}</th>
+                    <th>{{ 'recipes.detail.columns.subtotal' | transloco }}</th>
+                    <th>{{ 'recipes.detail.columns.notes' | transloco }}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (ingredient of selectedRecipe()!.ingredients; track ingredient.id) {
+                    <tr>
+                      <td>
+                        <div class="supply-cell">
+                          <strong>{{ ingredient.supplyName }}</strong>
+                          <small>{{ ingredient.supplyCode }}</small>
+                        </div>
+                      </td>
+                      <td>
+                        <span class="quantity-cell">
+                          {{ formatQuantity(ingredient.quantity) }}
+                          <small>{{ ingredient.measurementUnitAbbreviation }}</small>
+                        </span>
+                      </td>
+                      <td>
+                        <span class="cost-value">{{ formatCost(ingredient.unitCost) }}</span>
+                      </td>
+                      <td>
+                        <span class="cost-value">{{ formatCost(ingredient.subtotalCost) }}</span>
+                      </td>
+                      <td>
+                        <span class="notes-cell">{{ ingredient.notes ?? '-' }}</span>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          } @else {
+            <div class="state-panel state-panel--empty recipe-detail__empty">
+              <span class="state-panel__icon">
+                <i class="pi pi-book"></i>
+              </span>
+              <strong>{{ 'recipes.detail.withoutTitle' | transloco }}</strong>
+              <p>{{ 'recipes.detail.withoutDescription' | transloco }}</p>
+              <button
+                class="primary-button primary-button--inline"
+                type="button"
+                (click)="openDefine(selectedDish()!)"
+              >
+                <i class="pi pi-plus"></i>
+                {{ 'recipes.dishes.actions.define' | transloco }}
+              </button>
+            </div>
+          }
+        } @else {
+          <div class="state-panel state-panel--empty recipe-detail__empty">
+            <span class="state-panel__icon">
+              <i class="pi pi-shopping-bag"></i>
+            </span>
+            <strong>{{ 'recipes.detail.selectHint' | transloco }}</strong>
+            <p>{{ 'recipes.detail.selectHintDescription' | transloco }}</p>
+          </div>
+        }
+      </section>
+    </div>
+  } @else {
+    <section class="recipes-panel">
+      <div class="state-panel state-panel--empty">
+        <span class="state-panel__icon">
+          <i class="pi pi-hourglass"></i>
+        </span>
+        <strong>{{ 'recipes.comingSoon.title' | transloco }}</strong>
+        <p>{{ 'recipes.comingSoon.description' | transloco }}</p>
+      </div>
+    </section>
+  }
+}
+
+@if (isDefineOpen() && defineDish()) {
+  <div class="registration-backdrop" (click)="isSavingDefine() ? null : closeDefine()">
+    <form
+      class="registration-dialog registration-dialog--wide"
+      [formGroup]="defineForm"
+      (ngSubmit)="submitDefine()"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="registration-dialog__header">
+        <div>
+          <span class="registration-dialog__eyebrow">{{
+            'recipes.define.eyebrow' | transloco
+          }}</span>
+          <h2>{{ 'recipes.define.title' | transloco: { name: defineDish()!.name } }}</h2>
+          <p>{{ 'recipes.define.description' | transloco }}</p>
+          <small class="supply-card">
+            {{ 'recipes.define.fields.supplyCard.category' | transloco }}:
+            {{ defineDish()!.categoryName }} ·
+            {{ 'recipes.define.fields.supplyCard.price' | transloco }}:
+            {{ formatCost(defineDish()!.salePrice ?? 0) }}
+          </small>
+        </div>
+
+        <button
+          class="close-button"
+          type="button"
+          (click)="closeDefine()"
+          [disabled]="isSavingDefine()"
+          aria-label="Close"
+        >
+          <i class="pi pi-times"></i>
+        </button>
+      </div>
+
+      <app-form-feedback [message]="defineServerMessage()" />
+
+      <div class="form-field form-field--span-2">
+        <label for="recipe-ingredients">
+          {{ 'recipes.define.fields.ingredients' | transloco }}
+        </label>
+        <app-ingredient-editor
+          [supplies]="supplies()"
+          [units]="measurementUnits()"
+          [submitted]="defineSubmitted()"
+          formControlName="ingredients"
+        />
+      </div>
+
+      @if (defineSubmitted() && hasIngredientsError()) {
+        <small class="field-error">{{ defineValidationErrorKey() | transloco }}</small>
+      }
+
+      <div class="form-field form-field--span-2">
+        <label for="recipe-change-reason">
+          {{ 'recipes.define.fields.changeReason' | transloco }}
+          <span class="field-hint">{{ 'recipes.define.fields.changeReasonHint' | transloco }}</span>
+        </label>
+        <textarea
+          id="recipe-change-reason"
+          formControlName="changeReason"
+          rows="2"
+          maxlength="500"
+        ></textarea>
+      </div>
+
+      <div class="define-cost-preview">
+        <span>{{ 'recipes.define.fields.estimatedTotal' | transloco }}</span>
+        <strong>{{ formatCost(defineCostPreview().total) }}</strong>
+        @if (defineCostPreview().hasConverted) {
+          <small>{{ 'recipes.define.costConvertedHint' | transloco }}</small>
+        }
+      </div>
+
+      <div class="registration-dialog__actions">
+        <button
+          class="cancel-button"
+          type="button"
+          (click)="closeDefine()"
+          [disabled]="isSavingDefine()"
+        >
+          {{ 'common.cancel' | transloco }}
+        </button>
+        <button class="save-button" type="submit" [disabled]="isSavingDefine()">
+          <i class="pi pi-check"></i>
+          @if (isSavingDefine()) {
+            <i class="pi pi-spin pi-spinner"></i>
+            {{ 'recipes.define.actions.saving' | transloco }}
+          } @else {
+            {{ 'recipes.define.actions.save' | transloco }}
+          }
+        </button>
+      </div>
+    </form>
+  </div>
+}

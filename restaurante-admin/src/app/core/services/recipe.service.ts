@@ -1,0 +1,56 @@
+import { HttpClient, HttpParams } from '@angular/common/http';
+import { inject, Injectable } from '@angular/core';
+import { Observable, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
+
+import { environment } from '../../../environments/environment';
+import {
+  DefineRecipeRequest,
+  DishSummary,
+  Recipe,
+  RecipeRegistrationResponse,
+  RecipeUpdateResponse,
+  UpdateRecipeRequest,
+} from '../models/recipe.models';
+
+@Injectable({
+  providedIn: 'root',
+})
+export class RecipeService {
+  private readonly http = inject(HttpClient);
+  private readonly dishesUrl = `${environment.apiBaseUrl}/admin/dishes`;
+
+  listDishes(categoryId?: number | null, search?: string | null): Observable<DishSummary[]> {
+    let params = new HttpParams();
+
+    if (categoryId != null) {
+      params = params.set('categoryId', categoryId);
+    }
+
+    if (search && search.trim().length > 0) {
+      params = params.set('search', search.trim());
+    }
+
+    return this.http.get<DishSummary[]>(this.dishesUrl, { params });
+  }
+
+  getDishRecipe(dishId: number): Observable<Recipe | null> {
+    return this.http
+      .get<Recipe>(`${this.dishesUrl}/${dishId}/recipe`)
+      .pipe(catchError(() => of(null)));
+  }
+
+  defineDishRecipe(
+    dishId: number,
+    request: DefineRecipeRequest,
+  ): Observable<RecipeRegistrationResponse> {
+    return this.http.post<RecipeRegistrationResponse>(
+      `${this.dishesUrl}/${dishId}/recipe`,
+      request,
+    );
+  }
+
+  updateDishRecipe(dishId: number, request: UpdateRecipeRequest): Observable<RecipeUpdateResponse> {
+    return this.http.put<RecipeUpdateResponse>(`${this.dishesUrl}/${dishId}/recipe`, request);
+  }
+}
