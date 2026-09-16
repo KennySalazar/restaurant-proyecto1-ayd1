@@ -3,6 +3,7 @@ package com.restaurante.web.operation;
 import com.restaurante.application.inventory.ComandaInventoryService;
 import com.restaurante.domain.model.ComandaDetailStatus;
 import com.restaurante.domain.model.RestaurantUserProfile;
+import com.restaurante.domain.model.RoleName;
 import com.restaurante.domain.repository.RestaurantUserProfileRepository;
 import com.restaurante.security.JwtData;
 import com.restaurante.web.dto.comanda.CancelUnsentDishResponse;
@@ -156,12 +157,53 @@ public class OperationComandaController {
             @RequestParam(required = false) Long comandaId,
             @Parameter(description = "Filtro opcional por estado del platillo (BORRADOR, RECIBIDO, EN_PREPARACION, LISTO, ENTREGADO, etc.)")
             @RequestParam(required = false) ComandaDetailStatus estado,
+            @Parameter(description = "Filtro opcional por identificador de mesero asignado")
+            @RequestParam(required = false) Long meseroId,
+            @Parameter(description = "Filtro opcional para obtener únicamente platillos que superaron su tiempo estimado sin estar listos")
+            @RequestParam(required = false) Boolean soloRetrasados,
             Authentication authentication) {
 
         Long restaurantId = resolveRestaurantId(authentication);
         List<ComandaDishProgressResponse> response = comandaInventoryService.getDishProgress(
-                restaurantId, mesaId, cuentaId, comandaId, estado
+                restaurantId, mesaId, cuentaId, comandaId, estado, meseroId, soloRetrasados
         );
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/alertas/tiempo-excedido")
+    @PreAuthorize("hasAnyRole('WAITER', 'ADMIN')")
+    @Operation(
+            summary = "Consultar alertas de platillos con tiempo de preparación excedido",
+            description = "Consulta y resalta los platillos de las mesas asignadas (o de todo el restaurante) que han superado su tiempo estimado de preparación sin haber sido marcados como listos, para priorizar su seguimiento y anticipar reclamos del cliente."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Listado de platillos con tiempo de preparación excedido",
+                    content = @Content(array = @ArraySchema(schema = @Schema(implementation = ComandaDishProgressResponse.class)))
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "No autenticado",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Acceso denegado",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            )
+    })
+    public ResponseEntity<List<ComandaDishProgressResponse>> getDelayedDishAlerts(
+            @Parameter(description = "Filtro opcional por identificador de mesero")
+            @RequestParam(required = false) Long meseroId,
+            Authentication authentication) {
+
+        Long restaurantId = resolveRestaurantId(authentication);
+        Long targetWaiterId = meseroId;
+        if (targetWaiterId == null && isWaiterUser(authentication)) {
+            targetWaiterId = resolveUserId(authentication);
+        }
+        List<ComandaDishProgressResponse> response = comandaInventoryService.getDelayedDishAlerts(restaurantId, targetWaiterId);
         return ResponseEntity.ok(response);
     }
 
@@ -338,5 +380,19 @@ public class OperationComandaController {
                     .orElse(DEFAULT_RESTAURANT_ID);
         }
         return DEFAULT_RESTAURANT_ID;
+    }
+
+    private Long resolveUserId(Authentication authentication) {
+        if (authentication != null && authentication.getDetails() instanceof JwtData jwtData) {
+            return jwtData.userId();
+        }
+        return null;
+    }
+
+    private boolean isWaiterUser(Authentication authentication) {
+        if (authentication != null && authentication.getDetails() instanceof JwtData jwtData) {
+            return jwtData.role() == RoleName.WAITER;
+        }
+        return false;
     }
 }

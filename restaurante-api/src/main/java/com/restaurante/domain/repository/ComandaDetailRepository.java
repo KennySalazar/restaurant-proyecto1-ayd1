@@ -76,6 +76,7 @@ public interface ComandaDetailRepository extends JpaRepository<ComandaDetail, Lo
              AND (:comandaId IS NULL OR c.id = :comandaId)
              AND (:cuentaId IS NULL OR a.id = :cuentaId)
              AND (:mesaId IS NULL OR a.tableId = :mesaId)
+             AND (:meseroId IS NULL OR c.waiterId = :meseroId)
              AND (:status IS NULL OR d.status = :status)
            ORDER BY c.roundNumber ASC, d.id ASC
            """)
@@ -84,7 +85,26 @@ public interface ComandaDetailRepository extends JpaRepository<ComandaDetail, Lo
             @Param("comandaId") Long comandaId,
             @Param("cuentaId") Long cuentaId,
             @Param("mesaId") Long mesaId,
+            @Param("meseroId") Long meseroId,
             @Param("status") ComandaDetailStatus status
+    );
+
+    @Query("""
+           SELECT DISTINCT d
+           FROM ComandaDetail d
+           JOIN FETCH d.comanda c
+           JOIN FETCH c.account a
+           LEFT JOIN FETCH c.waiterUser w
+           LEFT JOIN FETCH d.dish
+           LEFT JOIN FETCH d.combo
+           LEFT JOIN FETCH d.modifiers m
+           LEFT JOIN FETCH m.modifier
+           WHERE a.restaurantId = :restaurantId
+             AND d.status IN (com.restaurante.domain.model.ComandaDetailStatus.RECIBIDO, com.restaurante.domain.model.ComandaDetailStatus.EN_PREPARACION)
+           ORDER BY d.receivedAt ASC, d.id ASC
+           """)
+    List<ComandaDetail> findActiveDishesInKitchen(
+            @Param("restaurantId") Long restaurantId
     );
 
     @Query("""

@@ -85,10 +85,41 @@ public class KitchenOperationController {
     public ResponseEntity<List<KitchenComandaResponse>> getActiveKitchenComandas(
             @Parameter(description = "Filtro opcional por estado de la comanda (RECIBIDA, EN_PREPARACION)")
             @RequestParam(required = false) ComandaStatus status,
+            @Parameter(description = "Filtro opcional para obtener únicamente comandas con tiempo de preparación excedido")
+            @RequestParam(required = false) Boolean soloRetrasadas,
             Authentication authentication) {
 
         Long restaurantId = resolveRestaurantId(authentication);
-        List<KitchenComandaResponse> response = kitchenService.getActiveKitchenComandas(restaurantId, status);
+        List<KitchenComandaResponse> response = kitchenService.getActiveKitchenComandas(restaurantId, status, soloRetrasadas);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/alertas/tiempo-excedido")
+    @PreAuthorize("hasAnyRole('KITCHEN', 'ADMIN', 'WAITER')")
+    @Operation(
+            summary = "Visualizar alertas de comandas y platillos con tiempo de preparación excedido en cocina",
+            description = "Consulta las comandas activas en cocina que contienen platillos que han superado su tiempo estimado de preparación sin estar listos, permitiendo priorizar su atención para anticipar reclamos."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Listado de comandas activas con tiempo de preparación excedido",
+                    content = @Content(array = @ArraySchema(schema = @Schema(implementation = KitchenComandaResponse.class)))
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "No autenticado",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Acceso denegado",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            )
+    })
+    public ResponseEntity<List<KitchenComandaResponse>> getDelayedKitchenComandas(Authentication authentication) {
+        Long restaurantId = resolveRestaurantId(authentication);
+        List<KitchenComandaResponse> response = kitchenService.getDelayedKitchenComandas(restaurantId);
         return ResponseEntity.ok(response);
     }
 
