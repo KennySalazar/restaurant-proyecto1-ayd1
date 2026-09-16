@@ -1,0 +1,53 @@
+@if (open) {
+  <div class="confirmation-backdrop" role="presentation">
+    <section
+      class="confirmation-dialog"
+      role="dialog"
+      aria-modal="true"
+      [attr.aria-labelledby]="'confirmation-dialog-title'"
+    >
+      <header class="confirmation-dialog__header">
+        <span class="confirmation-dialog__eyebrow">
+          {{ eyebrowKey | transloco }}
+        </span>
+
+        <h2 id="confirmation-dialog-title">
+          {{ titleKey | transloco }}
+        </h2>
+
+        <p>
+          {{ descriptionKey | transloco: descriptionParams }}
+        </p>
+      </header>
+
+      <app-form-feedback [message]="serverMessage" />
+
+      <footer class="confirmation-dialog__actions">
+        <button
+          class="cancel-button"
+          type="button"
+          [disabled]="isSaving"
+          (click)="cancelled.emit()"
+        >
+          {{ cancelKey | transloco }}
+        </button>
+
+        <button
+          class="confirm-button"
+          [class.confirm-button--danger]="tone === 'danger'"
+          type="button"
+          [disabled]="isSaving"
+          (click)="confirmed.emit()"
+        >
+          @if (isSaving) {
+            <i class="pi pi-spin pi-spinner"></i>
+          } @else {
+            <i class="pi pi-check"></i>
+          }
+
+          {{ confirmKey | transloco }}
+        </button>
+      </footer>
+    </section>
+  </div>
+}

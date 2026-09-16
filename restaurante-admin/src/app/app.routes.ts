@@ -85,6 +85,12 @@ export const routes: Routes = [
       },
 
       {
+        path: 'menu',
+        loadComponent: () =>
+          import('./pages/protected/menu/menu').then((module) => module.MenuPageComponent),
+      },
+
+      {
         path: 'supply-alerts',
         loadComponent: () =>
           import('./pages/protected/supply-alerts/supply-alerts').then(

@@ -1,0 +1,334 @@
+<section class="summary-grid">
+  <article class="summary-card">
+    <span class="summary-card__icon">
+      <i class="pi pi-book"></i>
+    </span>
+
+    <div>
+      <span>{{ 'menu.summary.total' | transloco }}</span>
+      <strong>{{ totalDishes() }}</strong>
+    </div>
+  </article>
+
+  <article class="summary-card">
+    <span class="summary-card__icon summary-card__icon--available">
+      <i class="pi pi-check-circle"></i>
+    </span>
+
+    <div>
+      <span>{{ 'menu.summary.available' | transloco }}</span>
+      <strong>{{ availableDishes() }}</strong>
+    </div>
+  </article>
+
+  <article class="summary-card">
+    <span class="summary-card__icon summary-card__icon--unavailable">
+      <i class="pi pi-times-circle"></i>
+    </span>
+
+    <div>
+      <span>{{ 'menu.summary.unavailable' | transloco }}</span>
+      <strong>{{ unavailableDishes() }}</strong>
+    </div>
+  </article>
+</section>
+
+<section class="dishes-panel">
+  <header class="dishes-panel__header">
+    <div>
+      <h2>{{ 'menu.list.title' | transloco }}</h2>
+      <p>{{ 'menu.list.description' | transloco }}</p>
+    </div>
+
+    <div class="header-actions">
+      <button class="register-button" type="button" (click)="openRegistration()">
+        <i class="pi pi-plus"></i>
+        {{ 'menu.actions.register' | transloco }}
+      </button>
+
+      <button
+        class="refresh-button"
+        type="button"
+        [disabled]="isLoading() || isFiltering()"
+        (click)="loadDishes()"
+      >
+        <i class="pi pi-refresh" [class.pi-spin]="isLoading() || isFiltering()"></i>
+        {{ 'menu.list.refresh' | transloco }}
+      </button>
+    </div>
+  </header>
+
+  <div class="filters-bar">
+    <label class="search-field">
+      <i class="pi pi-search"></i>
+
+      <input
+        #searchInput
+        type="search"
+        [value]="searchTerm()"
+        [placeholder]="'menu.filters.searchPlaceholder' | transloco"
+        (input)="onSearchChange(searchInput.value)"
+      />
+    </label>
+
+    <label class="category-field">
+      <span class="sr-only">
+        {{ 'menu.filters.category' | transloco }}
+      </span>
+
+      <i class="pi pi-tag"></i>
+
+      <select
+        #categorySelect
+        [value]="selectedCategory() ?? ''"
+        (change)="onCategoryChange(categorySelect.value)"
+      >
+        <option value="">
+          {{ 'menu.filters.allCategories' | transloco }}
+        </option>
+
+        @for (category of categories(); track category.id) {
+          <option [value]="category.id">{{ category.name }}</option>
+        }
+      </select>
+    </label>
+
+    <label class="status-field">
+      <span class="sr-only">
+        {{ 'menu.filters.status' | transloco }}
+      </span>
+
+      <i class="pi pi-history"></i>
+
+      <select
+        #statusSelect
+        [value]="selectedStatus()"
+        (change)="onStatusChange(statusSelect.value)"
+      >
+        <option value="active">
+          {{ 'menu.filters.statuses.active' | transloco }}
+        </option>
+
+        <option value="retired">
+          {{ 'menu.filters.statuses.retired' | transloco }}
+        </option>
+
+        <option value="all">
+          {{ 'menu.filters.statuses.all' | transloco }}
+        </option>
+      </select>
+    </label>
+
+    @if (hasActiveFilters()) {
+      <button class="clear-filters-button" type="button" (click)="clearFilters()">
+        <i class="pi pi-filter-slash"></i>
+        {{ 'menu.filters.clear' | transloco }}
+      </button>
+    }
+  </div>
+
+  <app-form-feedback [message]="errorMessage()" />
+
+  @if (isLoading() || (isFiltering() && dishes().length === 0)) {
+    <div class="state-panel">
+      <i class="pi pi-spin pi-spinner"></i>
+      <span>{{ 'common.loading' | transloco }}</span>
+    </div>
+  } @else if (!errorMessage() && dishes().length === 0 && !hasActiveFilters()) {
+    <div class="state-panel state-panel--empty">
+      <span class="state-panel__icon">
+        <i class="pi pi-book"></i>
+      </span>
+
+      <strong>{{ 'menu.list.emptyTitle' | transloco }}</strong>
+
+      <p>
+        {{ 'menu.list.emptyDescription' | transloco }}
+      </p>
+    </div>
+  } @else if (!errorMessage() && dishes().length === 0 && hasActiveFilters()) {
+    <div class="state-panel state-panel--empty">
+      <span class="state-panel__icon">
+        <i class="pi pi-search"></i>
+      </span>
+
+      <strong>{{ 'menu.list.noResultsTitle' | transloco }}</strong>
+
+      <p>
+        {{ 'menu.list.noResultsDescription' | transloco }}
+      </p>
+    </div>
+  } @else if (dishes().length > 0) {
+    <div class="table-wrapper">
+      <table class="restaurant-table">
+        <thead>
+          <tr>
+            <th>{{ 'menu.columns.image' | transloco }}</th>
+            <th>{{ 'menu.columns.name' | transloco }}</th>
+            <th>{{ 'menu.columns.category' | transloco }}</th>
+            <th>{{ 'menu.columns.price' | transloco }}</th>
+            <th>{{ 'menu.columns.time' | transloco }}</th>
+            <th>{{ 'menu.columns.availability' | transloco }}</th>
+            <th>
+              <span class="sr-only">
+                {{ 'menu.columns.actions' | transloco }}
+              </span>
+            </th>
+          </tr>
+        </thead>
+
+        <tbody>
+          @for (dish of dishes(); track dish.id) {
+            <tr [class.restaurant-table__row--retired]="!dish.active">
+              <td>
+                @if (dish.imageUrl) {
+                  <img class="dish-thumb" [src]="dish.imageUrl" [alt]="dish.name" loading="lazy" />
+                } @else {
+                  <span class="dish-thumb dish-thumb--placeholder">
+                    <i class="pi pi-image"></i>
+                  </span>
+                }
+              </td>
+
+              <td>
+                <div class="dish-name">
+                  <small class="dish-code">{{ dish.code }}</small>
+                  <strong>{{ dish.name }}</strong>
+
+                  @if (dish.description) {
+                    <small>{{ dish.description }}</small>
+                  }
+                </div>
+              </td>
+
+              <td>
+                <span class="category-pill">
+                  {{ dish.categoryName }}
+                </span>
+              </td>
+
+              <td>
+                <span class="price-value">
+                  {{ formatCost(dish.salePrice) }}
+                </span>
+              </td>
+
+              <td>
+                @if (dish.preparationTimeMinutes != null) {
+                  <span class="time-value">
+                    {{ dish.preparationTimeMinutes }}
+                    {{ 'menu.units.minutes' | transloco }}
+                  </span>
+                } @else {
+                  <span class="time-value">—</span>
+                }
+              </td>
+
+              <td>
+                <div class="availability">
+                  <span
+                    class="availability-badge"
+                    [class.availability-badge--available]="dish.available"
+                    [class.availability-badge--unavailable]="!dish.available"
+                  >
+                    <i
+                      class="pi"
+                      [class.pi-check-circle]="dish.available"
+                      [class.pi-times-circle]="!dish.available"
+                    ></i>
+
+                    {{
+                      (dish.available
+                        ? 'menu.availability.available'
+                        : 'menu.availability.unavailable'
+                      ) | transloco
+                    }}
+                  </span>
+
+                  @if (!dish.available && reasonText(dish)) {
+                    <small class="availability-detail">
+                      {{ reasonText(dish) }}
+                    </small>
+                  }
+
+                  @if (dish.available && dish.availablePortions != null) {
+                    <small class="availability-detail">
+                      <i class="pi pi-box"></i>
+                      {{ dish.availablePortions }}
+                      {{ 'menu.availability.portions' | transloco }}
+                    </small>
+                  }
+
+                  <button
+                    class="availability-toggle"
+                    type="button"
+                    [class.availability-toggle--override]="!dish.manualAvailable"
+                    [disabled]="togglingDishId() === dish.id"
+                    [attr.aria-pressed]="!dish.manualAvailable"
+                    [title]="'menu.availability.manualHint' | transloco"
+                    (click)="toggleAvailability(dish)"
+                  >
+                    @if (togglingDishId() === dish.id) {
+                      <i class="pi pi-spin pi-spinner"></i>
+                    } @else {
+                      <i
+                        class="pi"
+                        [class.pi-ban]="!dish.manualAvailable"
+                        [class.pi-check]="dish.manualAvailable"
+                      ></i>
+                    }
+
+                    {{
+                      (dish.manualAvailable
+                        ? 'menu.availability.actions.suspend'
+                        : 'menu.availability.actions.resume'
+                      ) | transloco
+                    }}
+                  </button>
+                </div>
+              </td>
+
+              <td class="restaurant-table__actions">
+                <div class="row-actions">
+                  @if (dish.active) {
+                    <button class="edit-button" type="button" (click)="openEdit(dish)">
+                      <i class="pi pi-pencil"></i>
+                      {{ 'menu.actions.edit' | transloco }}
+                    </button>
+                  }
+
+                  <button class="retire-button" type="button" (click)="openRetirement(dish)">
+                    <i class="pi pi-ban"></i>
+                    {{ 'menu.actions.retire' | transloco }}
+                  </button>
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</section>
+
+<app-menu-dish-form-dialog
+  [categories]="categories()"
+  [dish]="editingDish()"
+  [open]="registrationOpen()"
+  (saved)="onDishSaved()"
+  (dismissed)="closeRegistration()"
+/>
+
+<app-confirmation-dialog
+  [open]="retirementCandidate() != null"
+  eyebrowKey="menu.retirement.eyebrow"
+  titleKey="menu.retirement.title"
+  descriptionKey="menu.retirement.description"
+  [descriptionParams]="{ name: retirementCandidate()?.name ?? '' }"
+  confirmKey="menu.retirement.confirm"
+  tone="danger"
+  [isSaving]="isRetiring()"
+  [serverMessage]="retirementMessage()"
+  (confirmed)="confirmRetirement()"
+  (cancelled)="cancelRetirement()"
+/>

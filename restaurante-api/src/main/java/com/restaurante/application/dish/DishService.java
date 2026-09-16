@@ -436,27 +436,28 @@ public class DishService {
      *
      * @param categoryId Identificador opcional de categoría para filtrar
      * @param search     Término opcional de búsqueda por nombre o código de platillo
+     * @param active     Filtrar por estado activo: {@code null} devuelve todos, {@code true} solo activos, {@code false} solo retirados
      * @return Listado de platillos con su disponibilidad y motivos de indisponibilidad evaluados
      */
     @Transactional(readOnly = true)
-    public List<DishResponse> listDishes(Long categoryId, String search) {
+    public List<DishResponse> listDishes(Long categoryId, String search, Boolean active) {
         String pattern = (search != null && !search.isBlank())
                 ? "%" + search.trim().toLowerCase() + "%"
                 : null;
 
         List<Dish> dishes;
         if (categoryId != null && pattern != null) {
-            dishes = dishRepository.findByRestaurantIdAndActiveTrueAndCategoryIdAndSearchPattern(
-                    DEFAULT_RESTAURANT_ID, categoryId, pattern);
+            dishes = dishRepository.findByRestaurantIdAndCategoryIdAndSearchPattern(
+                    DEFAULT_RESTAURANT_ID, categoryId, pattern, active);
         } else if (categoryId != null) {
-            dishes = dishRepository.findByRestaurantIdAndActiveTrueAndCategoryIdOrderByNameAsc(
-                    DEFAULT_RESTAURANT_ID, categoryId);
+            dishes = dishRepository.findByRestaurantIdAndCategoryIdOrderByNameAsc(
+                    DEFAULT_RESTAURANT_ID, categoryId, active);
         } else if (pattern != null) {
-            dishes = dishRepository.findByRestaurantIdAndActiveTrueAndSearchPattern(
-                    DEFAULT_RESTAURANT_ID, pattern);
+            dishes = dishRepository.findByRestaurantIdAndSearchPattern(
+                    DEFAULT_RESTAURANT_ID, pattern, active);
         } else {
-            dishes = dishRepository.findByRestaurantIdAndActiveTrueOrderByNameAsc(
-                    DEFAULT_RESTAURANT_ID);
+            dishes = dishRepository.findByRestaurantIdOrderByNameAsc(
+                    DEFAULT_RESTAURANT_ID, active);
         }
 
         if (dishes.isEmpty()) {
@@ -479,7 +480,7 @@ public class DishService {
      */
     @Transactional(readOnly = true)
     public List<DishResponse> listDishes() {
-        return listDishes(null, null);
+        return listDishes(null, null, true);
     }
 
     /**

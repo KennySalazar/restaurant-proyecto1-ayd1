@@ -212,4 +212,34 @@ public class KitchenRealtimeService {
             list.removeAll(deadEmitters);
         }
     }
+
+    /**
+     * Notifica en tiempo real una alerta por tiempo de preparación excedido a todos los suscriptores activos.
+     *
+     * @param restaurantId Identificador del restaurante
+     * @param alertData Datos del platillo o comanda en estado de alerta
+     */
+    public void notifyPreparationTimeExceeded(Long restaurantId, Object alertData) {
+        Long targetRestaurantId = restaurantId != null ? restaurantId : DEFAULT_RESTAURANT_ID;
+        CopyOnWriteArrayList<SseEmitter> list = emittersByRestaurant.get(targetRestaurantId);
+
+        if (list == null || list.isEmpty()) {
+            return;
+        }
+
+        List<SseEmitter> deadEmitters = new ArrayList<>();
+        for (SseEmitter emitter : list) {
+            try {
+                emitter.send(SseEmitter.event()
+                        .name("alerta-tiempo-excedido")
+                        .data(alertData));
+            } catch (Exception e) {
+                deadEmitters.add(emitter);
+            }
+        }
+
+        if (!deadEmitters.isEmpty()) {
+            list.removeAll(deadEmitters);
+        }
+    }
 }

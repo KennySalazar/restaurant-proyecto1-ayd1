@@ -1,0 +1,255 @@
+<section class="summary-grid">
+  <article class="summary-card">
+    <span class="summary-card__icon">
+      <i class="pi pi-th-large"></i>
+    </span>
+
+    <div>
+      <span>{{ 'menu.combos.summary.total' | transloco }}</span>
+      <strong>{{ totalCombos() }}</strong>
+    </div>
+  </article>
+
+  <article class="summary-card">
+    <span class="summary-card__icon summary-card__icon--available">
+      <i class="pi pi-check-circle"></i>
+    </span>
+
+    <div>
+      <span>{{ 'menu.combos.summary.active' | transloco }}</span>
+      <strong>{{ activeCombos() }}</strong>
+    </div>
+  </article>
+
+  <article class="summary-card">
+    <span class="summary-card__icon summary-card__icon--unavailable">
+      <i class="pi pi-times-circle"></i>
+    </span>
+
+    <div>
+      <span>{{ 'menu.combos.summary.retired' | transloco }}</span>
+      <strong>{{ retiredCombos() }}</strong>
+    </div>
+  </article>
+</section>
+
+<section class="combos-panel">
+  <header class="combos-panel__header">
+    <div>
+      <h2>{{ 'menu.combos.list.title' | transloco }}</h2>
+      <p>{{ 'menu.combos.list.description' | transloco }}</p>
+    </div>
+
+    <div class="header-actions">
+      <button class="register-button" type="button" (click)="openRegistration()">
+        <i class="pi pi-plus"></i>
+        {{ 'menu.combos.actions.register' | transloco }}
+      </button>
+
+      <button
+        class="refresh-button"
+        type="button"
+        [disabled]="isLoading() || isFiltering()"
+        (click)="loadCombos()"
+      >
+        <i class="pi pi-refresh" [class.pi-spin]="isLoading() || isFiltering()"></i>
+        {{ 'menu.combos.list.refresh' | transloco }}
+      </button>
+    </div>
+  </header>
+
+  <div class="filters-bar">
+    <label class="search-field">
+      <i class="pi pi-search"></i>
+
+      <input
+        #searchInput
+        type="search"
+        [value]="searchTerm()"
+        [placeholder]="'menu.combos.filters.searchPlaceholder' | transloco"
+        (input)="onSearchChange(searchInput.value)"
+      />
+    </label>
+
+    <label class="status-field">
+      <span class="sr-only">
+        {{ 'menu.combos.filters.status' | transloco }}
+      </span>
+
+      <i class="pi pi-filter"></i>
+
+      <select
+        #statusSelect
+        [value]="selectedStatus()"
+        (change)="onStatusChange(statusSelect.value)"
+      >
+        <option value="all">{{ 'menu.combos.filters.allStatuses' | transloco }}</option>
+        <option value="active">{{ 'menu.combos.filters.activeOnly' | transloco }}</option>
+        <option value="retired">{{ 'menu.combos.filters.retiredOnly' | transloco }}</option>
+      </select>
+    </label>
+
+    @if (hasActiveFilters()) {
+      <button class="clear-filters-button" type="button" (click)="clearFilters()">
+        <i class="pi pi-filter-slash"></i>
+        {{ 'menu.combos.filters.clear' | transloco }}
+      </button>
+    }
+  </div>
+
+  <app-form-feedback [message]="errorMessage()" />
+
+  @if (isLoading() || (isFiltering() && combos().length === 0)) {
+    <div class="state-panel">
+      <i class="pi pi-spin pi-spinner"></i>
+      <span>{{ 'common.loading' | transloco }}</span>
+    </div>
+  } @else if (!errorMessage() && combos().length === 0 && !hasActiveFilters()) {
+    <div class="state-panel state-panel--empty">
+      <span class="state-panel__icon">
+        <i class="pi pi-th-large"></i>
+      </span>
+
+      <strong>{{ 'menu.combos.list.emptyTitle' | transloco }}</strong>
+
+      <p>
+        {{ 'menu.combos.list.emptyDescription' | transloco }}
+      </p>
+    </div>
+  } @else if (!errorMessage() && combos().length === 0 && hasActiveFilters()) {
+    <div class="state-panel state-panel--empty">
+      <span class="state-panel__icon">
+        <i class="pi pi-search"></i>
+      </span>
+
+      <strong>{{ 'menu.combos.list.noResultsTitle' | transloco }}</strong>
+
+      <p>
+        {{ 'menu.combos.list.noResultsDescription' | transloco }}
+      </p>
+    </div>
+  } @else if (combos().length > 0) {
+    <div class="table-wrapper">
+      <table class="restaurant-table">
+        <thead>
+          <tr>
+            <th>{{ 'menu.combos.columns.code' | transloco }}</th>
+            <th>{{ 'menu.combos.columns.name' | transloco }}</th>
+            <th>{{ 'menu.combos.columns.price' | transloco }}</th>
+            <th>{{ 'menu.combos.columns.savings' | transloco }}</th>
+            <th>{{ 'menu.combos.columns.items' | transloco }}</th>
+            <th>{{ 'menu.combos.columns.status' | transloco }}</th>
+            <th>
+              <span class="sr-only">
+                {{ 'menu.combos.columns.actions' | transloco }}
+              </span>
+            </th>
+          </tr>
+        </thead>
+
+        <tbody>
+          @for (combo of combos(); track combo.id) {
+            <tr [class.restaurant-table__row--retired]="!combo.active">
+              <td>
+                <span class="row-code">{{ combo.code }}</span>
+              </td>
+
+              <td>
+                <div class="combo-name">
+                  <strong>{{ combo.name }}</strong>
+
+                  @if (combo.description) {
+                    <small>{{ combo.description }}</small>
+                  }
+                </div>
+              </td>
+
+              <td>
+                <span class="price-value">{{ formatPrice(combo.salePrice) }}</span>
+
+                <small class="price-value__regular">
+                  {{ 'menu.combos.list.regularHint' | transloco }}
+                  {{ formatPrice(combo.regularPriceSum) }}
+                </small>
+              </td>
+
+              <td>
+                <span class="savings-value">
+                  {{ formatPrice(combo.estimatedSavings) }}
+                </span>
+              </td>
+
+              <td>
+                <div class="item-chips">
+                  @for (item of combo.items; track item.id; let last = $last) {
+                    <span class="item-chip">
+                      {{ item.dishName }}{{ item.quantity > 1 ? ' ×' + item.quantity : '' }}
+                      {{ last ? '' : ', ' }}
+                    </span>
+                  }
+                </div>
+              </td>
+
+              <td>
+                <span
+                  class="status-badge"
+                  [class.status-badge--active]="combo.active"
+                  [class.status-badge--inactive]="!combo.active"
+                >
+                  <i
+                    class="pi"
+                    [class.pi-check-circle]="combo.active"
+                    [class.pi-times-circle]="!combo.active"
+                  ></i>
+
+                  {{
+                    (combo.active ? 'menu.combos.status.active' : 'menu.combos.status.retired')
+                      | transloco
+                  }}
+                </span>
+              </td>
+
+              <td class="restaurant-table__actions">
+                <div class="row-actions">
+                  @if (combo.active) {
+                    <button class="edit-button" type="button" (click)="openEdit(combo)">
+                      <i class="pi pi-pencil"></i>
+                      {{ 'menu.combos.actions.edit' | transloco }}
+                    </button>
+
+                    <button class="retire-button" type="button" (click)="openRetirement(combo)">
+                      <i class="pi pi-ban"></i>
+                      {{ 'menu.combos.actions.retire' | transloco }}
+                    </button>
+                  }
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</section>
+
+<app-menu-combo-form-dialog
+  [dishes]="dishes()"
+  [combo]="editingCombo()"
+  [open]="formOpen()"
+  (saved)="onComboSaved()"
+  (dismissed)="closeForm()"
+/>
+
+<app-confirmation-dialog
+  [open]="retirementCandidate() != null"
+  eyebrowKey="menu.combos.retirement.eyebrow"
+  titleKey="menu.combos.retirement.title"
+  descriptionKey="menu.combos.retirement.description"
+  [descriptionParams]="{ name: retirementCandidate()?.name ?? '' }"
+  confirmKey="menu.combos.retirement.confirm"
+  tone="danger"
+  [isSaving]="isRetiring()"
+  [serverMessage]="retirementMessage()"
+  (confirmed)="confirmRetirement()"
+  (cancelled)="cancelRetirement()"
+/>
