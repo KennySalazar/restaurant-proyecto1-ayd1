@@ -11,6 +11,8 @@ import com.restaurante.web.dto.comanda.ComandaInventoryProcessResponse;
 import com.restaurante.web.dto.comanda.ComandaResponse;
 import com.restaurante.web.dto.comanda.CreateComandaRequest;
 import com.restaurante.web.dto.comanda.DeliverDishRequest;
+import com.restaurante.web.dto.comanda.DishCancellationExceptionResponse;
+import com.restaurante.web.dto.comanda.RegisterDishCancellationRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
@@ -278,6 +280,54 @@ public class OperationComandaController {
             Authentication authentication) {
 
         CancelUnsentDishResponse response = comandaInventoryService.cancelUnsentDish(id, authentication);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/platillos/{id}/cancelar")
+    @PreAuthorize("hasAnyRole('WAITER', 'ADMIN')")
+    @Operation(
+            summary = "Registrar excepción de cancelación de platillo en preparación",
+            description = "Registra la cancelación de un platillo que ya ha sido enviado a cocina o se encuentra en preparación como una excepción autorizada. Registra el motivo, responsable solicitante, supervisor/administrador autorizador y la acción sobre el inventario (merma o reintegro)."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Cancelación excepcional registrada exitosamente",
+                    content = @Content(schema = @Schema(implementation = DishCancellationExceptionResponse.class))
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Motivo no especificado, platillo aún en borrador o datos inválidos",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "No autenticado o token JWT no provisto",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Acceso denegado (requiere rol de mesero o administrador)",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Platillo o comanda no encontrada",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "409",
+                    description = "El platillo ya fue entregado, ya está cancelado, o la cuenta está en cobro",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            )
+    })
+    public ResponseEntity<DishCancellationExceptionResponse> registerDishCancellationException(
+            @Parameter(description = "Identificador único del detalle de comanda (platillo) a cancelar como excepción", required = true)
+            @PathVariable Long id,
+            @Valid @RequestBody RegisterDishCancellationRequest request,
+            Authentication authentication) {
+
+        DishCancellationExceptionResponse response = comandaInventoryService.registerDishCancellationException(id, request, authentication);
         return ResponseEntity.ok(response);
     }
 

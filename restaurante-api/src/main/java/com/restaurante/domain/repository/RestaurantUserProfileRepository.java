@@ -35,4 +35,7 @@ public interface RestaurantUserProfileRepository
 
     @Query("SELECT u.id FROM RestaurantUserProfile u JOIN UserAccount au ON au.id = u.id WHERE u.restaurantId = :restaurantId AND au.role.name = com.restaurante.domain.model.RoleName.KITCHEN AND au.enabled = true ORDER BY u.id ASC")
     List<Long> findActiveKitchenUsersByRestaurantId(@Param("restaurantId") Long restaurantId);
+
+    @Query("SELECT u.id FROM RestaurantUserProfile u JOIN UserAccount au ON au.id = u.id WHERE u.restaurantId = :restaurantId AND au.role.name = com.restaurante.domain.model.RoleName.ADMIN AND au.enabled = true ORDER BY u.id ASC")
+    List<Long> findActiveAdminsByRestaurantId(@Param("restaurantId") Long restaurantId);
 }

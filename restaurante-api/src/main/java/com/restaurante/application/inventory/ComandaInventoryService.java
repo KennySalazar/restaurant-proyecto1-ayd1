@@ -17,13 +17,17 @@ import com.restaurante.domain.model.RecipeDetail;
 import com.restaurante.domain.model.RecipeVersion;
 import com.restaurante.domain.model.RestaurantTable;
 import com.restaurante.domain.model.RestaurantUserProfile;
+import com.restaurante.domain.model.ComandaDetailCancellation;
 import com.restaurante.domain.model.Notification;
 import com.restaurante.domain.model.Role;
 import com.restaurante.domain.model.RoleName;
 import com.restaurante.domain.model.Supply;
+import com.restaurante.domain.model.UserAccount;
 import com.restaurante.domain.repository.AccountRepository;
+import com.restaurante.domain.repository.ComandaDetailCancellationRepository;
 import com.restaurante.domain.repository.ComandaDetailRepository;
 import com.restaurante.domain.repository.ComandaRepository;
+import com.restaurante.domain.repository.UserAccountRepository;
 import com.restaurante.domain.repository.ComboDetailRepository;
 import com.restaurante.domain.repository.ComboRepository;
 import com.restaurante.domain.repository.DishRepository;
@@ -55,8 +59,10 @@ import com.restaurante.web.dto.comanda.ComandaResponse;
 import com.restaurante.web.dto.comanda.CreateComandaItemRequest;
 import com.restaurante.web.dto.comanda.CreateComandaRequest;
 import com.restaurante.web.dto.comanda.DeliverDishRequest;
+import com.restaurante.web.dto.comanda.DishCancellationExceptionResponse;
 import com.restaurante.web.dto.comanda.DishOrderDetailResponse;
 import com.restaurante.web.dto.comanda.KardexMovementResponse;
+import com.restaurante.web.dto.comanda.RegisterDishCancellationRequest;
 import com.restaurante.web.dto.comanda.RejectedDishDetailResponse;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -100,6 +106,8 @@ public class ComandaInventoryService {
     private final RoleRepository roleRepository;
     private final KitchenRealtimeService kitchenRealtimeService;
     private final KitchenService kitchenService;
+    private final ComandaDetailCancellationRepository comandaDetailCancellationRepository;
+    private final UserAccountRepository userAccountRepository;
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -121,7 +129,9 @@ public class ComandaInventoryService {
                                    NotificationRepository notificationRepository,
                                    RoleRepository roleRepository,
                                    KitchenRealtimeService kitchenRealtimeService,
-                                   KitchenService kitchenService) {
+                                   KitchenService kitchenService,
+                                   ComandaDetailCancellationRepository comandaDetailCancellationRepository,
+                                   UserAccountRepository userAccountRepository) {
         this.comandaRepository = comandaRepository;
         this.comandaDetailRepository = comandaDetailRepository;
         this.accountRepository = accountRepository;
@@ -140,6 +150,8 @@ public class ComandaInventoryService {
         this.roleRepository = roleRepository;
         this.kitchenRealtimeService = kitchenRealtimeService;
         this.kitchenService = kitchenService;
+        this.comandaDetailCancellationRepository = comandaDetailCancellationRepository;
+        this.userAccountRepository = userAccountRepository;
     }
 
     /**
@@ -888,6 +900,289 @@ public class ComandaInventoryService {
                 (int) remainingDishes,
                 message
         );
+    }
+
+    /**
+     * Registra la cancelación excepcional de un platillo que ya ha sido enviado a cocina o está en preparación.
+     * Registra el motivo, responsable solicitante, supervisor/administrador autorizador y la acción de inventario.
+     * Actualiza el estado del platillo a CANCELADO y notifica en tiempo real a cocina y meseros.
+     *
+     * @param detailId Identificador del detalle de comanda (platillo) a cancelar
+     * @param request Datos de la solicitud de cancelación excepcional (motivo, tipo, acción de inventario, supervisor)
+     * @param authentication Información de autenticación del operador (mesero o administrador)
+     * @return Confirmación y detalle del registro de la excepción de cancelación
+     */
+    @Transactional
+    public DishCancellationExceptionResponse registerDishCancellationException(
+            Long detailId,
+            RegisterDishCancellationRequest request,
+            Authentication authentication) {
+
+        if (detailId == null) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "detail_id_required",
+                    "Identificador requerido",
+                    "El identificador del platillo de la comanda es obligatorio"
+            );
+        }
+
+        if (request == null || request.motivo() == null || request.motivo().isBlank()) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "reason_required",
+                    "Motivo obligatorio",
+                    "Debe indicar el motivo detallado de la cancelación excepcional del platillo"
+            );
+        }
+
+        ComandaDetail detail = comandaDetailRepository.findByIdWithAllDetails(detailId)
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "dish_detail_not_found",
+                        "Platillo no encontrado",
+                        "No se encontró el platillo de la comanda con identificador " + detailId
+                ));
+
+        Comanda comanda = detail.getComanda();
+        if (comanda == null) {
+            throw new ApiException(
+                    HttpStatus.NOT_FOUND,
+                    "comanda_not_found",
+                    "Comanda no encontrada",
+                    "El platillo no está asociado a una comanda válida"
+            );
+        }
+
+        Account account = comanda.getAccount();
+        if (account != null) {
+            if ("LISTA_COBRO".equalsIgnoreCase(account.getStatus())) {
+                throw new ApiException(
+                        HttpStatus.CONFLICT,
+                        "account_already_in_billing",
+                        "Cuenta en proceso de cobro",
+                        "No se pueden cancelar platillos de una cuenta que ya está en proceso de cobro"
+                );
+            }
+            if (!"ABIERTA".equalsIgnoreCase(account.getStatus())) {
+                throw new ApiException(
+                        HttpStatus.CONFLICT,
+                        "account_not_open",
+                        "Cuenta no activa",
+                        "Solo se pueden cancelar platillos de cuentas en estado ABIERTA"
+                );
+            }
+        }
+
+        ComandaDetailStatus currentStatus = detail.getStatus();
+
+        if (currentStatus == ComandaDetailStatus.CANCELADO) {
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "dish_already_cancelled",
+                    "Platillo ya cancelado",
+                    "El platillo '" + detail.getNameSnapshot() + "' ya fue cancelado previamente"
+            );
+        }
+
+        if (currentStatus == ComandaDetailStatus.ENTREGADO) {
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "dish_already_delivered",
+                    "Platillo ya entregado",
+                    "El platillo ya fue entregado en la mesa y no puede cancelarse mediante excepción en preparación"
+            );
+        }
+
+        if (currentStatus == ComandaDetailStatus.BORRADOR) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "dish_not_sent_yet",
+                    "Platillo en borrador",
+                    "El platillo aún no ha sido enviado a cocina. Para corregir pedidos en borrador elimínelo directamente sin registrar excepción."
+            );
+        }
+
+        if (currentStatus == ComandaDetailStatus.NO_DISPONIBLE) {
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "dish_unavailable",
+                    "Platillo no disponible",
+                    "El platillo ya fue marcado como no disponible por cocina"
+            );
+        }
+
+        if (comandaDetailCancellationRepository.existsByComandaDetailId(detailId)) {
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "cancellation_exception_already_registered",
+                    "Excepción ya registrada",
+                    "Ya existe un registro de cancelación para el platillo con identificador " + detailId
+            );
+        }
+
+        Long restaurantId = (account != null && account.getRestaurantId() != null)
+                ? account.getRestaurantId()
+                : resolveRestaurantId(authentication);
+
+        Long operatorUserId = resolveOperatorUserId(restaurantId, authentication);
+        boolean isCallerAdmin = isUserAdmin(authentication);
+
+        Long authorizedById;
+        if (isCallerAdmin) {
+            authorizedById = operatorUserId;
+        } else if (request.autorizadoPorId() != null) {
+            UserAccount supervisor = userAccountRepository.findById(request.autorizadoPorId())
+                    .orElseThrow(() -> new ApiException(
+                            HttpStatus.BAD_REQUEST,
+                            "supervisor_not_found",
+                            "Supervisor no encontrado",
+                            "No se encontró un usuario con el identificador de supervisor " + request.autorizadoPorId()
+                    ));
+            if (supervisor.getRole() == null || supervisor.getRole().getName() != RoleName.ADMIN) {
+                throw new ApiException(
+                        HttpStatus.BAD_REQUEST,
+                        "supervisor_not_admin",
+                        "Autorización inválida",
+                        "La cancelación excepcional de un platillo en preparación requiere la autorización de un usuario con rol de Administrador"
+                );
+            }
+            authorizedById = supervisor.getId();
+        } else {
+            if (currentStatus == ComandaDetailStatus.RECIBIDO) {
+                authorizedById = operatorUserId;
+            } else {
+                List<Long> adminIds = userProfileRepository.findActiveAdminsByRestaurantId(restaurantId);
+                authorizedById = !adminIds.isEmpty() ? adminIds.get(0) : operatorUserId;
+            }
+        }
+
+        String tipo = "CLIENTE";
+        if (request.tipo() != null && !request.tipo().isBlank()) {
+            String upperTipo = request.tipo().trim().toUpperCase();
+            if (upperTipo.equals("CLIENTE") || upperTipo.equals("ERROR_MESERO") || upperTipo.equals("NO_DISPONIBLE_COCINA") || upperTipo.equals("OTRO")) {
+                tipo = upperTipo;
+            } else {
+                throw new ApiException(
+                        HttpStatus.BAD_REQUEST,
+                        "invalid_cancellation_type",
+                        "Tipo de cancelación inválido",
+                        "El tipo debe ser uno de: CLIENTE, ERROR_MESERO, NO_DISPONIBLE_COCINA, OTRO"
+                );
+            }
+        }
+
+        String accionInventario;
+        if (request.accionInventario() != null && !request.accionInventario().isBlank()) {
+            String upperAccion = request.accionInventario().trim().toUpperCase();
+            if (upperAccion.equals("REINTEGRAR") || upperAccion.equals("REGISTRAR_MERMA") || upperAccion.equals("SIN_AJUSTE")) {
+                accionInventario = upperAccion;
+            } else {
+                throw new ApiException(
+                        HttpStatus.BAD_REQUEST,
+                        "invalid_inventory_action",
+                        "Acción de inventario inválida",
+                        "La acción de inventario debe ser una de: REINTEGRAR, REGISTRAR_MERMA, SIN_AJUSTE"
+                );
+            }
+        } else {
+            accionInventario = (currentStatus == ComandaDetailStatus.EN_PREPARACION) ? "REGISTRAR_MERMA" : "REINTEGRAR";
+        }
+
+        ComandaDetailCancellation cancellation = new ComandaDetailCancellation(
+                detail,
+                tipo,
+                request.motivo().trim(),
+                "APROBADA",
+                accionInventario,
+                operatorUserId,
+                authorizedById
+        );
+        ComandaDetailCancellation savedCancellation = comandaDetailCancellationRepository.save(cancellation);
+        comandaDetailCancellationRepository.flush();
+
+        detail.setStatus(ComandaDetailStatus.CANCELADO);
+        detail.setUpdatedById(operatorUserId);
+        detail = comandaDetailRepository.save(detail);
+        comandaDetailRepository.flush();
+
+        List<ComandaDetail> allDetails = comandaDetailRepository.findByComandaIdWithModifiers(comanda.getId());
+        boolean allFinishedOrCancelled = allDetails.stream()
+                .allMatch(d -> d.getStatus() == ComandaDetailStatus.CANCELADO
+                        || d.getStatus() == ComandaDetailStatus.NO_DISPONIBLE
+                        || d.getStatus() == ComandaDetailStatus.ENTREGADO);
+
+        if (allFinishedOrCancelled) {
+            boolean allCancelled = allDetails.stream()
+                    .allMatch(d -> d.getStatus() == ComandaDetailStatus.CANCELADO
+                            || d.getStatus() == ComandaDetailStatus.NO_DISPONIBLE);
+            if (allCancelled) {
+                comanda.setStatus(ComandaStatus.CANCELADA);
+                comanda.setFinishedAt(Instant.now());
+                comandaRepository.save(comanda);
+            }
+        }
+
+        try {
+            KitchenComandaResponse kitchenPayload = kitchenService.getKitchenComandaById(comanda.getId(), restaurantId);
+            kitchenRealtimeService.notifyComandaUpdated(restaurantId, kitchenPayload);
+        } catch (Exception ignored) {
+        }
+
+        String requestedByName = resolveUserNameById(operatorUserId);
+        String authorizedByName = resolveUserNameById(authorizedById);
+        String tableNumber = resolveTableNumber(comanda);
+
+        String message = "Cancelación del platillo '" + detail.getNameSnapshot() + "' registrada como excepción exitosamente (motivo: " + request.motivo().trim() + ", acción de inventario: " + accionInventario + ").";
+
+        return new DishCancellationExceptionResponse(
+                savedCancellation.getId(),
+                detail.getId(),
+                detail.getNameSnapshot(),
+                detail.getQuantity(),
+                currentStatus.name(),
+                detail.getStatus().name(),
+                savedCancellation.getType(),
+                savedCancellation.getReason(),
+                savedCancellation.getRequestStatus(),
+                savedCancellation.getInventoryAction(),
+                operatorUserId,
+                requestedByName,
+                authorizedById,
+                authorizedByName,
+                savedCancellation.getRequestedAt(),
+                comanda.getId(),
+                account != null ? account.getId() : null,
+                tableNumber,
+                message
+        );
+    }
+
+    private Long resolveOperatorUserId(Long restaurantId, Authentication authentication) {
+        if (authentication != null && authentication.getDetails() instanceof JwtData jwtData) {
+            return jwtData.userId();
+        }
+        return resolveWaiterUserId(restaurantId, authentication);
+    }
+
+    private boolean isUserAdmin(Authentication authentication) {
+        if (authentication != null && authentication.getDetails() instanceof JwtData jwtData) {
+            return jwtData.role() == RoleName.ADMIN;
+        }
+        if (authentication != null && authentication.getAuthorities() != null) {
+            return authentication.getAuthorities().stream()
+                    .anyMatch(a -> a.getAuthority().contains("ADMIN"));
+        }
+        return false;
+    }
+
+    private String resolveUserNameById(Long userId) {
+        if (userId == null) {
+            return "No especificado";
+        }
+        return userProfileRepository.findById(userId)
+                .map(u -> (u.getFirstName() + " " + u.getLastName()).trim())
+                .orElse("Usuario #" + userId);
     }
 
     private ComandaDishProgressResponse mapToDishProgressResponse(
