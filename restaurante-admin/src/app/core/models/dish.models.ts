@@ -54,3 +54,17 @@ export interface DishUpdateResponse {
   message: string;
   dish: DishSummary;
 }
+
+export interface DishRetirementResponse {
+  message: string;
+  dish: DishSummary;
+}
+
+export interface UpdateDishAvailabilityRequest {
+  manualAvailable: boolean;
+}
+
+export interface DishAvailabilityResponse {
+  message: string;
+  dish: DishSummary;
+}

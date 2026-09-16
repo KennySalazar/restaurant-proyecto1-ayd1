@@ -706,7 +706,8 @@
     "description": "Consulta la información comercial, el tiempo de preparación y la disponibilidad de cada platillo del menú.",
     "actions": {
       "register": "Registrar platillo",
-      "edit": "Editar"
+      "edit": "Editar",
+      "retire": "Retirar"
     },
     "tabs": {
       "label": "Secciones de Platillos y Menú",
@@ -737,6 +738,12 @@
       "searchPlaceholder": "Buscar por nombre o código...",
       "category": "Categoría",
       "allCategories": "Todas las categorías",
+      "status": "Estado del platillo",
+      "statuses": {
+        "active": "Activos",
+        "retired": "Retirados",
+        "all": "Activos y retirados"
+      },
       "clear": "Limpiar filtros"
     },
     "columns": {
@@ -792,10 +799,32 @@
         "message": "El platillo «{{name}}» se actualizó correctamente."
       }
     },
+    "retirement": {
+      "eyebrow": "Retirar platillo",
+      "title": "Retirar del menú",
+      "description": "El platillo «{{name}}» dejará de estar disponible para nuevas comandas. Su información histórica, recetas y ventas se conservarán.",
+      "confirm": "Retirar platillo",
+      "success": {
+        "title": "Platillo retirado",
+        "message": "El platillo «{{name}}» se retiró del menú."
+      }
+    },
     "availability": {
       "available": "Disponible",
       "unavailable": "No disponible",
       "portions": "porciones disponibles",
+      "manualOverride": "Suspensión manual",
+      "manualHint": "Controla manualmente si el platillo se ofrece, independientemente del inventario.",
+      "actions": {
+        "suspend": "Suspender venta",
+        "resume": "Reanudar venta"
+      },
+      "success": {
+        "title": "Disponibilidad actualizada"
+      },
+      "error": {
+        "title": "No se pudo cambiar la disponibilidad"
+      },
       "reasons": {
         "MANUAL": "Indisponibilidad manual",
         "FALTA_INSUMOS": "Falta de insumos",

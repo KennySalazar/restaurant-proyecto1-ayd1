@@ -93,6 +93,32 @@
       </select>
     </label>
 
+    <label class="status-field">
+      <span class="sr-only">
+        {{ 'menu.filters.status' | transloco }}
+      </span>
+
+      <i class="pi pi-history"></i>
+
+      <select
+        #statusSelect
+        [value]="selectedStatus()"
+        (change)="onStatusChange(statusSelect.value)"
+      >
+        <option value="active">
+          {{ 'menu.filters.statuses.active' | transloco }}
+        </option>
+
+        <option value="retired">
+          {{ 'menu.filters.statuses.retired' | transloco }}
+        </option>
+
+        <option value="all">
+          {{ 'menu.filters.statuses.all' | transloco }}
+        </option>
+      </select>
+    </label>
+
     @if (hasActiveFilters()) {
       <button class="clear-filters-button" type="button" (click)="clearFilters()">
         <i class="pi pi-filter-slash"></i>
@@ -153,7 +179,7 @@
 
         <tbody>
           @for (dish of dishes(); track dish.id) {
-            <tr>
+            <tr [class.restaurant-table__row--retired]="!dish.active">
               <td>
                 @if (dish.imageUrl) {
                   <img class="dish-thumb" [src]="dish.imageUrl" [alt]="dish.name" loading="lazy" />
@@ -232,14 +258,48 @@
                       {{ 'menu.availability.portions' | transloco }}
                     </small>
                   }
+
+                  <button
+                    class="availability-toggle"
+                    type="button"
+                    [class.availability-toggle--override]="!dish.manualAvailable"
+                    [disabled]="togglingDishId() === dish.id"
+                    [attr.aria-pressed]="!dish.manualAvailable"
+                    [title]="'menu.availability.manualHint' | transloco"
+                    (click)="toggleAvailability(dish)"
+                  >
+                    @if (togglingDishId() === dish.id) {
+                      <i class="pi pi-spin pi-spinner"></i>
+                    } @else {
+                      <i
+                        class="pi"
+                        [class.pi-ban]="!dish.manualAvailable"
+                        [class.pi-check]="dish.manualAvailable"
+                      ></i>
+                    }
+
+                    {{
+                      (dish.manualAvailable
+                        ? 'menu.availability.actions.suspend'
+                        : 'menu.availability.actions.resume'
+                      ) | transloco
+                    }}
+                  </button>
                 </div>
               </td>
 
               <td class="restaurant-table__actions">
                 <div class="row-actions">
-                  <button class="edit-button" type="button" (click)="openEdit(dish)">
-                    <i class="pi pi-pencil"></i>
-                    {{ 'menu.actions.edit' | transloco }}
+                  @if (dish.active) {
+                    <button class="edit-button" type="button" (click)="openEdit(dish)">
+                      <i class="pi pi-pencil"></i>
+                      {{ 'menu.actions.edit' | transloco }}
+                    </button>
+                  }
+
+                  <button class="retire-button" type="button" (click)="openRetirement(dish)">
+                    <i class="pi pi-ban"></i>
+                    {{ 'menu.actions.retire' | transloco }}
                   </button>
                 </div>
               </td>
@@ -257,4 +317,18 @@
   [open]="registrationOpen()"
   (saved)="onDishSaved()"
   (dismissed)="closeRegistration()"
+/>
+
+<app-confirmation-dialog
+  [open]="retirementCandidate() != null"
+  eyebrowKey="menu.retirement.eyebrow"
+  titleKey="menu.retirement.title"
+  descriptionKey="menu.retirement.description"
+  [descriptionParams]="{ name: retirementCandidate()?.name ?? '' }"
+  confirmKey="menu.retirement.confirm"
+  tone="danger"
+  [isSaving]="isRetiring()"
+  [serverMessage]="retirementMessage()"
+  (confirmed)="confirmRetirement()"
+  (cancelled)="cancelRetirement()"
 />

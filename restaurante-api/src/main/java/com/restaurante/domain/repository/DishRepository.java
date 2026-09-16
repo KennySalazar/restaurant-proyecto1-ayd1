@@ -51,40 +51,55 @@ public interface DishRepository extends JpaRepository<Dish, Long> {
     @Query("""
         SELECT d FROM Dish d
         WHERE d.restaurantId = :restaurantId
-          AND d.active = true
-          AND d.category.id = :categoryId
+          AND (:active IS NULL OR d.active = :active)
         ORDER BY d.name ASC
         """)
-    List<Dish> findByRestaurantIdAndActiveTrueAndCategoryIdOrderByNameAsc(
+    List<Dish> findByRestaurantIdOrderByNameAsc(
             @Param("restaurantId") Long restaurantId,
-            @Param("categoryId") Long categoryId
+            @Param("active") Boolean active
     );
 
     @EntityGraph(attributePaths = {"category"})
     @Query("""
         SELECT d FROM Dish d
         WHERE d.restaurantId = :restaurantId
-          AND d.active = true
-          AND (LOWER(d.name) LIKE :pattern OR LOWER(d.code) LIKE :pattern)
-        ORDER BY d.name ASC
-        """)
-    List<Dish> findByRestaurantIdAndActiveTrueAndSearchPattern(
-            @Param("restaurantId") Long restaurantId,
-            @Param("pattern") String pattern
-    );
-
-    @EntityGraph(attributePaths = {"category"})
-    @Query("""
-        SELECT d FROM Dish d
-        WHERE d.restaurantId = :restaurantId
-          AND d.active = true
+          AND (:active IS NULL OR d.active = :active)
           AND d.category.id = :categoryId
-          AND (LOWER(d.name) LIKE :pattern OR LOWER(d.code) LIKE :pattern)
         ORDER BY d.name ASC
         """)
-    List<Dish> findByRestaurantIdAndActiveTrueAndCategoryIdAndSearchPattern(
+    List<Dish> findByRestaurantIdAndCategoryIdOrderByNameAsc(
             @Param("restaurantId") Long restaurantId,
             @Param("categoryId") Long categoryId,
-            @Param("pattern") String pattern
+            @Param("active") Boolean active
+    );
+
+    @EntityGraph(attributePaths = {"category"})
+    @Query("""
+        SELECT d FROM Dish d
+        WHERE d.restaurantId = :restaurantId
+          AND (:active IS NULL OR d.active = :active)
+          AND (LOWER(d.name) LIKE :pattern OR LOWER(d.code) LIKE :pattern)
+        ORDER BY d.name ASC
+        """)
+    List<Dish> findByRestaurantIdAndSearchPattern(
+            @Param("restaurantId") Long restaurantId,
+            @Param("pattern") String pattern,
+            @Param("active") Boolean active
+    );
+
+    @EntityGraph(attributePaths = {"category"})
+    @Query("""
+        SELECT d FROM Dish d
+        WHERE d.restaurantId = :restaurantId
+          AND (:active IS NULL OR d.active = :active)
+          AND d.category.id = :categoryId
+          AND (LOWER(d.name) LIKE :pattern OR LOWER(d.code) LIKE :pattern)
+        ORDER BY d.name ASC
+        """)
+    List<Dish> findByRestaurantIdAndCategoryIdAndSearchPattern(
+            @Param("restaurantId") Long restaurantId,
+            @Param("categoryId") Long categoryId,
+            @Param("pattern") String pattern,
+            @Param("active") Boolean active
     );
 }

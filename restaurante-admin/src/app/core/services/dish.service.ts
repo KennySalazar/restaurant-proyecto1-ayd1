@@ -5,8 +5,10 @@ import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import {
   CreateDishRequest,
+  DishAvailabilityResponse,
   DishCategory,
   DishRegistrationResponse,
+  DishRetirementResponse,
   DishSummary,
   DishUpdateResponse,
   UpdateDishRequest,
@@ -19,7 +21,11 @@ export class DishService {
   private readonly http = inject(HttpClient);
   private readonly dishesUrl = `${environment.apiBaseUrl}/admin/dishes`;
 
-  listDishes(categoryId?: number | null, search?: string | null): Observable<DishSummary[]> {
+  listDishes(
+    categoryId?: number | null,
+    search?: string | null,
+    active?: boolean | null,
+  ): Observable<DishSummary[]> {
     let params = new HttpParams();
 
     if (categoryId != null) {
@@ -28,6 +34,10 @@ export class DishService {
 
     if (search && search.trim().length > 0) {
       params = params.set('search', search.trim());
+    }
+
+    if (active != null) {
+      params = params.set('active', active);
     }
 
     return this.http.get<DishSummary[]>(this.dishesUrl, { params });
@@ -43,5 +53,18 @@ export class DishService {
 
   updateDish(id: number, payload: UpdateDishRequest): Observable<DishUpdateResponse> {
     return this.http.put<DishUpdateResponse>(`${this.dishesUrl}/${id}`, payload);
+  }
+
+  retireDish(id: number): Observable<DishRetirementResponse> {
+    return this.http.delete<DishRetirementResponse>(`${this.dishesUrl}/${id}`);
+  }
+
+  updateDishAvailability(
+    id: number,
+    manualAvailable: boolean,
+  ): Observable<DishAvailabilityResponse> {
+    return this.http.put<DishAvailabilityResponse>(`${this.dishesUrl}/${id}/availability`, {
+      manualAvailable,
+    });
   }
 }

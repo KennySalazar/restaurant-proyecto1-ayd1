@@ -89,7 +89,7 @@ public class AdminDishController {
     @GetMapping
     @Operation(
             summary = "Consultar el catálogo de platillos",
-            description = "Retorna el catálogo de platillos registrados con su imagen, nombre, descripción, categoría, precio de venta, tiempo estimado de preparación y disponibilidad actual (identificando indisponibilidad manual o por falta de insumos). Permite filtrar opcionalmente por categoría o término de búsqueda."
+            description = "Retorna el catálogo de platillos registrados con su imagen, nombre, descripción, categoría, precio de venta, tiempo estimado de preparación y disponibilidad actual (identificando indisponibilidad manual o por falta de insumos). Permite filtrar opcionalmente por categoría, estado o término de búsqueda."
     )
     @ApiResponses({
             @ApiResponse(
@@ -111,9 +111,11 @@ public class AdminDishController {
             @Parameter(description = "Identificador de la categoría para filtrar (opcional)")
             @RequestParam(required = false) Long categoryId,
             @Parameter(description = "Término de búsqueda por nombre o código (opcional)")
-            @RequestParam(required = false) String search
+            @RequestParam(required = false) String search,
+            @Parameter(description = "Filtrar por estado activo: true solo activos, false solo retirados, null todos (opcional)")
+            @RequestParam(required = false) Boolean active
     ) {
-        List<DishResponse> dishes = dishService.listDishes(categoryId, search);
+        List<DishResponse> dishes = dishService.listDishes(categoryId, search, active);
         if (dishes.isEmpty()) {
             return ResponseEntity.ok()
                     .header("X-Message", "Todavía no existen platillos registrados")
