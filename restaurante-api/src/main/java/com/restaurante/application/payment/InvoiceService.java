@@ -12,6 +12,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
+import com.restaurante.web.dto.invoice.InvoiceHistoryResponse;
+import jakarta.persistence.Query;
+import java.time.LocalDate;
 
 @Service
 public class InvoiceService {
@@ -180,5 +183,115 @@ public class InvoiceService {
                 details,
                 payments
         );
+    }
+
+    @Transactional(readOnly = true)
+    public List<InvoiceHistoryResponse> getInvoiceHistory(
+            LocalDate date,
+            Long tableId,
+            Long waiterId) {
+
+        StringBuilder sql = new StringBuilder("""
+            SELECT
+                f.id,
+                f.numero_documento,
+                f.emitida_en,
+                f.cuenta_id,
+                c.numero_cuenta,
+                m.id,
+                m.numero,
+                u.id,
+                u.nombres,
+                u.apellidos,
+                cl.nombres,
+                cl.apellidos,
+                f.subtotal,
+                f.descuento_total,
+                f.monto_impuesto,
+                f.monto_propina,
+                f.total,
+                f.estado
+            FROM restaurante.facturas f
+            JOIN restaurante.cuentas c
+              ON c.id = f.cuenta_id
+            LEFT JOIN restaurante.mesas m
+              ON m.id = c.mesa_id
+            JOIN restaurante.usuarios u
+              ON u.id = f.mesero_id
+            JOIN restaurante.restaurantes r
+              ON r.id = f.restaurante_id
+            LEFT JOIN restaurante.clientes cl
+              ON cl.id = f.cliente_id
+            WHERE f.estado = 'EMITIDA'
+            """);
+
+        if (date != null) {
+            sql.append("""
+            AND (f.emitida_en AT TIME ZONE r.zona_horaria)::date
+                = CAST(:date AS date)
+            """);
+        }
+
+        if (tableId != null) {
+            sql.append("""
+                AND c.mesa_id = :tableId
+                """);
+        }
+
+        if (waiterId != null) {
+            sql.append("""
+                AND f.mesero_id = :waiterId
+                """);
+        }
+
+        sql.append("""
+            ORDER BY f.emitida_en DESC, f.id DESC
+            """);
+
+        Query query = entityManager
+                .createNativeQuery(sql.toString());
+
+        if (date != null) {
+            query.setParameter("date", date.toString());
+        }
+
+        if (tableId != null) {
+            query.setParameter("tableId", tableId);
+        }
+
+        if (waiterId != null) {
+            query.setParameter("waiterId", waiterId);
+        }
+
+        List<?> rows = query.getResultList();
+
+        return rows.stream()
+                .map(value -> {
+                    Object[] row = (Object[]) value;
+
+                    return new InvoiceHistoryResponse(
+                            ((Number) row[0]).longValue(),
+                            (String) row[1],
+                            (Instant) row[2],
+                            ((Number) row[3]).longValue(),
+                            (String) row[4],
+                            row[5] == null
+                                    ? null
+                                    : ((Number) row[5]).longValue(),
+                            (String) row[6],
+                            ((Number) row[7]).longValue(),
+                            (String) row[8],
+                            (String) row[9],
+                            (String) row[10],
+                            (String) row[11],
+                            (BigDecimal) row[12],
+                            (BigDecimal) row[13],
+                            (BigDecimal) row[14],
+                            (BigDecimal) row[15],
+                            (BigDecimal) row[16],
+                            (String) row[17]
+                    );
+                })
+                .toList();
     }
 }
