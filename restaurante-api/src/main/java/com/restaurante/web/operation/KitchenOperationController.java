@@ -6,7 +6,9 @@ import com.restaurante.domain.model.RestaurantUserProfile;
 import com.restaurante.domain.repository.RestaurantUserProfileRepository;
 import com.restaurante.security.JwtData;
 import com.restaurante.web.dto.kitchen.DishPreparationStatusResponse;
+import com.restaurante.web.dto.kitchen.DishUnavailableResponse;
 import com.restaurante.web.dto.kitchen.KitchenComandaResponse;
+import com.restaurante.web.dto.kitchen.MarkDishUnavailableRequest;
 import com.restaurante.web.dto.kitchen.UpdateDishPreparationStatusRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -186,6 +188,49 @@ public class KitchenOperationController {
             Authentication authentication) {
 
         DishPreparationStatusResponse response = kitchenService.updateDishPreparationStatus(id, request, authentication);
+        return ResponseEntity.ok(response);
+    }
+
+    @RequestMapping(value = "/platillos/{id}/no-disponible", method = {RequestMethod.POST, RequestMethod.PUT})
+    @PreAuthorize("hasAnyRole('KITCHEN', 'ADMIN')")
+    @Operation(
+            summary = "Marcar platillo como no disponible por falta de insumo o discrepancia",
+            description = "Marca un platillo en curso como no disponible cuando cocina detecta falta de insumo o discrepancia de inventario al cocinar. Notifica automáticamente al mesero asignado para informar al cliente y desactiva la disponibilidad del platillo en el menú para prevenir nuevas órdenes."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Platillo marcado como no disponible exitosamente y mesero notificado",
+                    content = @Content(schema = @Schema(implementation = DishUnavailableResponse.class))
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "El platillo no puede marcarse como no disponible en su estado actual",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "No autenticado",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Acceso denegado (requiere rol de cocina o administrador)",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Platillo no encontrado",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            )
+    })
+    public ResponseEntity<DishUnavailableResponse> markDishAsUnavailable(
+            @Parameter(description = "Identificador único del detalle de la comanda (platillo)", required = true)
+            @PathVariable Long id,
+            @RequestBody(required = false) MarkDishUnavailableRequest request,
+            Authentication authentication) {
+
+        DishUnavailableResponse response = kitchenService.markDishAsUnavailable(id, request, authentication);
         return ResponseEntity.ok(response);
     }
 

@@ -1,6 +1,7 @@
 package com.restaurante.application.kitchen;
 
 import com.restaurante.web.dto.kitchen.DishPreparationStatusResponse;
+import com.restaurante.web.dto.kitchen.DishUnavailableResponse;
 import com.restaurante.web.dto.kitchen.KitchenComandaResponse;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
@@ -142,6 +143,36 @@ public class KitchenRealtimeService {
                 emitter.send(SseEmitter.event()
                         .name("comanda-actualizada")
                         .data(comanda));
+            } catch (Exception e) {
+                deadEmitters.add(emitter);
+            }
+        }
+
+        if (!deadEmitters.isEmpty()) {
+            list.removeAll(deadEmitters);
+        }
+    }
+
+    /**
+     * Notifica en tiempo real que un platillo fue marcado como no disponible por falta de insumos a todos los suscriptores activos.
+     *
+     * @param restaurantId Identificador del restaurante
+     * @param response Datos del platillo no disponible y su estado
+     */
+    public void notifyDishUnavailable(Long restaurantId, DishUnavailableResponse response) {
+        Long targetRestaurantId = restaurantId != null ? restaurantId : DEFAULT_RESTAURANT_ID;
+        CopyOnWriteArrayList<SseEmitter> list = emittersByRestaurant.get(targetRestaurantId);
+
+        if (list == null || list.isEmpty()) {
+            return;
+        }
+
+        List<SseEmitter> deadEmitters = new ArrayList<>();
+        for (SseEmitter emitter : list) {
+            try {
+                emitter.send(SseEmitter.event()
+                        .name("platillo-no-disponible")
+                        .data(response));
             } catch (Exception e) {
                 deadEmitters.add(emitter);
             }

@@ -5,12 +5,14 @@ import com.restaurante.domain.model.ComandaDetail;
 import com.restaurante.domain.model.ComandaDetailModifier;
 import com.restaurante.domain.model.ComandaDetailStatus;
 import com.restaurante.domain.model.ComandaStatus;
+import com.restaurante.domain.model.Dish;
 import com.restaurante.domain.model.Notification;
 import com.restaurante.domain.model.RestaurantTable;
 import com.restaurante.domain.model.Role;
 import com.restaurante.domain.model.RoleName;
 import com.restaurante.domain.repository.ComandaDetailRepository;
 import com.restaurante.domain.repository.ComandaRepository;
+import com.restaurante.domain.repository.DishRepository;
 import com.restaurante.domain.repository.NotificationRepository;
 import com.restaurante.domain.repository.RestaurantTableRepository;
 import com.restaurante.domain.repository.RestaurantUserProfileRepository;
@@ -18,8 +20,10 @@ import com.restaurante.domain.repository.RoleRepository;
 import com.restaurante.exception.ApiException;
 import com.restaurante.security.JwtData;
 import com.restaurante.web.dto.kitchen.DishPreparationStatusResponse;
+import com.restaurante.web.dto.kitchen.DishUnavailableResponse;
 import com.restaurante.web.dto.kitchen.KitchenComandaItemResponse;
 import com.restaurante.web.dto.kitchen.KitchenComandaResponse;
+import com.restaurante.web.dto.kitchen.MarkDishUnavailableRequest;
 import com.restaurante.web.dto.kitchen.UpdateDishPreparationStatusRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
@@ -50,6 +54,7 @@ public class KitchenService {
     private final KitchenRealtimeService kitchenRealtimeService;
     private final NotificationRepository notificationRepository;
     private final RoleRepository roleRepository;
+    private final DishRepository dishRepository;
 
     public KitchenService(ComandaRepository comandaRepository,
                           ComandaDetailRepository comandaDetailRepository,
@@ -57,7 +62,8 @@ public class KitchenService {
                           RestaurantUserProfileRepository userProfileRepository,
                           KitchenRealtimeService kitchenRealtimeService,
                           NotificationRepository notificationRepository,
-                          RoleRepository roleRepository) {
+                          RoleRepository roleRepository,
+                          DishRepository dishRepository) {
         this.comandaRepository = comandaRepository;
         this.comandaDetailRepository = comandaDetailRepository;
         this.tableRepository = tableRepository;
@@ -65,6 +71,7 @@ public class KitchenService {
         this.kitchenRealtimeService = kitchenRealtimeService;
         this.notificationRepository = notificationRepository;
         this.roleRepository = roleRepository;
+        this.dishRepository = dishRepository;
     }
 
     /**
@@ -313,6 +320,30 @@ public class KitchenService {
             );
         }
 
+        // Si se solicita marcar como no disponible, delegar a la lógica especializada
+        if (targetStatus == ComandaDetailStatus.NO_DISPONIBLE) {
+            DishUnavailableResponse unavailableResp = markDishAsUnavailable(
+                    detailId,
+                    new MarkDishUnavailableRequest("Marcado no disponible desde actualización de estado", true),
+                    authentication
+            );
+            return new DishPreparationStatusResponse(
+                    unavailableResp.id(),
+                    unavailableResp.comandaId(),
+                    unavailableResp.accountId(),
+                    unavailableResp.tableId(),
+                    unavailableResp.tableNumber(),
+                    unavailableResp.dishName(),
+                    unavailableResp.quantity(),
+                    unavailableResp.previousStatus(),
+                    unavailableResp.currentStatus(),
+                    detail.getPreparationStartedAt(),
+                    detail.getReadyAt(),
+                    unavailableResp.comandaStatus(),
+                    unavailableResp.message()
+            );
+        }
+
         // Validar transiciones permitidas según el ciclo de vida en cocina
         switch (currentStatus) {
             case BORRADOR -> throw new ApiException(
@@ -520,5 +551,247 @@ public class KitchenService {
                 comanda.getStatus().name(),
                 message
         );
+    }
+
+    /**
+     * Marca un platillo de comanda en cocina como no disponible por discrepancia o falta de insumos.
+     * Notifica de inmediato al mesero responsable para informar al cliente y actualiza opcionalmente
+     * la disponibilidad del platillo en el catálogo del menú para prevenir nuevos pedidos.
+     *
+     * @param detailId Identificador del detalle de la comanda
+     * @param request Datos de la solicitud con motivo y opción de desactivar en menú
+     * @param authentication Datos de autenticación del usuario operador de cocina
+     * @return Respuesta con los datos del platillo marcado como no disponible y las acciones ejecutadas
+     */
+    @Transactional
+    public DishUnavailableResponse markDishAsUnavailable(
+            Long detailId,
+            MarkDishUnavailableRequest request,
+            Authentication authentication) {
+
+        if (detailId == null) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "detail_id_required",
+                    "Identificador requerido",
+                    "El identificador del platillo de la comanda es obligatorio"
+            );
+        }
+
+        ComandaDetail detail = comandaDetailRepository.findByIdWithComandaAndModifiers(detailId)
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "dish_detail_not_found",
+                        "Platillo no encontrado",
+                        "No se encontró el detalle de comanda con identificador " + detailId
+                ));
+
+        Comanda comanda = detail.getComanda();
+        if (comanda == null) {
+            throw new ApiException(
+                    HttpStatus.NOT_FOUND,
+                    "comanda_not_found",
+                    "Comanda no encontrada",
+                    "El platillo no está asociado a una comanda válida"
+            );
+        }
+
+        ComandaDetailStatus currentStatus = detail.getStatus();
+
+        // Validaciones de ciclo de vida
+        if (currentStatus == ComandaDetailStatus.NO_DISPONIBLE) {
+            String tableNumber = resolveTableNumber(comanda);
+            String waiterName = resolveWaiterName(comanda);
+            Long dishId = detail.getDish() != null ? detail.getDish().getId() : null;
+            return new DishUnavailableResponse(
+                    detail.getId(),
+                    comanda.getId(),
+                    comanda.getAccount() != null ? comanda.getAccount().getId() : null,
+                    comanda.getAccount() != null ? comanda.getAccount().getTableId() : null,
+                    tableNumber,
+                    dishId,
+                    detail.getNameSnapshot(),
+                    detail.getQuantity(),
+                    currentStatus.name(),
+                    ComandaDetailStatus.NO_DISPONIBLE.name(),
+                    request != null ? request.reason() : null,
+                    detail.getDish() != null && !detail.getDish().isManualAvailable(),
+                    comanda.getWaiterId(),
+                    waiterName,
+                    comanda.getStatus().name(),
+                    Instant.now(),
+                    "El platillo ya se encontraba marcado como no disponible"
+            );
+        }
+
+        if (currentStatus == ComandaDetailStatus.BORRADOR) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "dish_in_draft_state",
+                    "Platillo en borrador",
+                    "No se puede marcar como no disponible un platillo que aún está en borrador y no ha sido enviado a cocina"
+            );
+        }
+
+        if (currentStatus == ComandaDetailStatus.LISTO) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "dish_already_ready",
+                    "Platillo ya listo",
+                    "El platillo ya fue preparado y está listo para servir; no puede marcarse como no disponible por falta de insumo"
+            );
+        }
+
+        if (currentStatus == ComandaDetailStatus.ENTREGADO) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "dish_already_delivered",
+                    "Platillo ya entregado",
+                    "El platillo ya fue entregado a la mesa y no puede modificarse desde cocina"
+            );
+        }
+
+        if (currentStatus == ComandaDetailStatus.CANCELADO) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "dish_already_cancelled",
+                    "Platillo cancelado",
+                    "El platillo ya fue cancelado previamente"
+            );
+        }
+
+        Long restaurantId = (comanda.getAccount() != null && comanda.getAccount().getRestaurantId() != null)
+                ? comanda.getAccount().getRestaurantId()
+                : DEFAULT_RESTAURANT_ID;
+
+        Long responsibleUserId = resolveKitchenUserId(restaurantId, authentication);
+        Instant now = Instant.now();
+
+        detail.setStatus(ComandaDetailStatus.NO_DISPONIBLE);
+        detail.setUpdatedById(responsibleUserId);
+
+        // Si se solicita o por defecto, actualizar disponibilidad en el menú (App1)
+        boolean menuDisabled = false;
+        boolean shouldDisableInMenu = request == null || request.disableInMenu() == null || Boolean.TRUE.equals(request.disableInMenu());
+        if (shouldDisableInMenu && detail.getDish() != null) {
+            Dish dish = detail.getDish();
+            dish.setManualAvailable(false);
+            dishRepository.save(dish);
+            menuDisabled = true;
+        }
+
+        String tableNumber = resolveTableNumber(comanda);
+        String waiterName = resolveWaiterName(comanda);
+        String mesaInfo = (tableNumber != null && !tableNumber.isBlank()) ? "Mesa " + tableNumber : "la cuenta";
+
+        String reason = (request != null && request.reason() != null && !request.reason().isBlank())
+                ? request.reason().trim()
+                : "Discrepancia o falta de insumos detectada en cocina";
+
+        // Notificar al mesero correspondiente para que informe al cliente
+        Role waiterRole = roleRepository.findByName(RoleName.WAITER).orElse(null);
+        Long waiterRoleId = waiterRole != null ? waiterRole.getId() : null;
+
+        Notification waiterNotification = new Notification(
+                restaurantId,
+                comanda.getWaiterId(),
+                waiterRoleId,
+                "PLATILLO_NO_DISPONIBLE_COCINA",
+                "Platillo no disponible - " + mesaInfo,
+                "El platillo '" + detail.getNameSnapshot() + "' de la comanda #" + comanda.getId() +
+                        " (" + mesaInfo + ") fue marcado como NO DISPONIBLE en cocina: " + reason +
+                        ". Por favor informe al cliente para seleccionar otra opción o retirar el ítem.",
+                "COMANDA_DETALLE",
+                detail.getId().toString(),
+                "ALTA"
+        );
+        notificationRepository.save(waiterNotification);
+
+        // Notificar al administrador sobre la discrepancia de inventario detectada en cocina
+        Role adminRole = roleRepository.findByName(RoleName.ADMIN).orElse(null);
+        Long adminRoleId = adminRole != null ? adminRole.getId() : null;
+
+        Notification adminNotification = new Notification(
+                restaurantId,
+                null,
+                adminRoleId,
+                "DISCREPANCIA_INVENTARIO_COCINA",
+                "Discrepancia de inventario en cocina - " + detail.getNameSnapshot(),
+                "Cocina reportó falta de insumos para preparar '" + detail.getNameSnapshot() +
+                        "' en la comanda #" + comanda.getId() + " (" + mesaInfo + "): " + reason +
+                        (menuDisabled ? ". El platillo fue desactivado temporalmente en el menú." : "") +
+                        " Se sugiere verificar el inventario físico.",
+                "COMANDA_DETALLE",
+                detail.getId().toString(),
+                "ALTA"
+        );
+        notificationRepository.save(adminNotification);
+
+        // Sincronizar estado de la comanda si todos los platillos quedan listos o inactivos
+        final Long currentDetailId = detail.getId();
+        List<ComandaDetail> allDetails = comandaDetailRepository.findByComandaIdWithModifiers(comanda.getId());
+
+        boolean allCancelledOrUnavailable = allDetails.stream()
+                .allMatch(d -> d.getId().equals(currentDetailId) || d.getStatus() == ComandaDetailStatus.CANCELADO || d.getStatus() == ComandaDetailStatus.NO_DISPONIBLE);
+
+        boolean allRemainingReadyOrDelivered = !allCancelledOrUnavailable && allDetails.stream()
+                .filter(d -> !d.getId().equals(currentDetailId) && d.getStatus() != ComandaDetailStatus.CANCELADO && d.getStatus() != ComandaDetailStatus.NO_DISPONIBLE)
+                .allMatch(d -> d.getStatus() == ComandaDetailStatus.LISTO || d.getStatus() == ComandaDetailStatus.ENTREGADO);
+
+        if (allCancelledOrUnavailable) {
+            if (comanda.getStatus() == ComandaStatus.RECIBIDA || comanda.getStatus() == ComandaStatus.EN_PREPARACION) {
+                comanda.setStatus(ComandaStatus.CANCELADA);
+                comandaRepository.save(comanda);
+            }
+        } else if (allRemainingReadyOrDelivered) {
+            comanda.setStatus(ComandaStatus.LISTA);
+            comandaRepository.save(comanda);
+        }
+
+        detail = comandaDetailRepository.save(detail);
+
+        String message = "Platillo '" + detail.getNameSnapshot() + "' marcado como no disponible. Se ha notificado al mesero para informar al cliente" +
+                (menuDisabled ? " y se deshabilitó en el menú." : ".");
+
+        DishUnavailableResponse response = new DishUnavailableResponse(
+                detail.getId(),
+                comanda.getId(),
+                comanda.getAccount() != null ? comanda.getAccount().getId() : null,
+                comanda.getAccount() != null ? comanda.getAccount().getTableId() : null,
+                tableNumber,
+                detail.getDish() != null ? detail.getDish().getId() : null,
+                detail.getNameSnapshot(),
+                detail.getQuantity(),
+                currentStatus.name(),
+                ComandaDetailStatus.NO_DISPONIBLE.name(),
+                reason,
+                menuDisabled,
+                comanda.getWaiterId(),
+                waiterName,
+                comanda.getStatus().name(),
+                now,
+                message
+        );
+
+        // Notificar en tiempo real por SSE a cocina y meseros
+        try {
+            kitchenRealtimeService.notifyDishUnavailable(restaurantId, response);
+            KitchenComandaResponse kitchenPayload = mapToKitchenResponse(comanda);
+            kitchenRealtimeService.notifyComandaUpdated(restaurantId, kitchenPayload);
+        } catch (Exception ignored) {
+        }
+
+        return response;
+    }
+
+    private String resolveWaiterName(Comanda comanda) {
+        if (comanda.getWaiterUser() != null) {
+            return (comanda.getWaiterUser().getFirstName() + " " + comanda.getWaiterUser().getLastName()).trim();
+        } else if (comanda.getWaiterId() != null) {
+            return userProfileRepository.findById(comanda.getWaiterId())
+                    .map(u -> (u.getFirstName() + " " + u.getLastName()).trim())
+                    .orElse("Mesero #" + comanda.getWaiterId());
+        }
+        return "Mesero no asignado";
     }
 }
