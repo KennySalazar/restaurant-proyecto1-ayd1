@@ -8,6 +8,11 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import com.restaurante.web.dto.invoice.InvoiceHistoryResponse;
+import org.springframework.format.annotation.DateTimeFormat;
+
+import java.time.LocalDate;
+import java.util.List;
 
 @RestController
 @RequestMapping("/caja/facturas")
@@ -23,6 +28,27 @@ public class InvoiceController {
 
         this.invoiceService = invoiceService;
         this.invoicePdfService = invoicePdfService;
+    }
+
+    @GetMapping("/historial")
+    public ResponseEntity<List<InvoiceHistoryResponse>> getInvoiceHistory(
+            @RequestParam(required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+            LocalDate fecha,
+
+            @RequestParam(required = false)
+            Long mesaId,
+
+            @RequestParam(required = false)
+            Long meseroId) {
+
+        return ResponseEntity.ok(
+                invoiceService.getInvoiceHistory(
+                        fecha,
+                        mesaId,
+                        meseroId
+                )
+        );
     }
 
     @GetMapping("/{facturaId}")
