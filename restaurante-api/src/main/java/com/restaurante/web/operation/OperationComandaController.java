@@ -5,6 +5,7 @@ import com.restaurante.domain.model.ComandaDetailStatus;
 import com.restaurante.domain.model.RestaurantUserProfile;
 import com.restaurante.domain.repository.RestaurantUserProfileRepository;
 import com.restaurante.security.JwtData;
+import com.restaurante.web.dto.comanda.CancelUnsentDishResponse;
 import com.restaurante.web.dto.comanda.ComandaDishProgressResponse;
 import com.restaurante.web.dto.comanda.ComandaInventoryProcessResponse;
 import com.restaurante.web.dto.comanda.ComandaResponse;
@@ -25,6 +26,7 @@ import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -229,6 +231,53 @@ public class OperationComandaController {
             Authentication authentication) {
 
         ComandaDishProgressResponse response = comandaInventoryService.markDishAsDelivered(id, request, authentication);
+        return ResponseEntity.ok(response);
+    }
+
+    @DeleteMapping("/platillos/{id}")
+    @PreAuthorize("hasAnyRole('WAITER', 'ADMIN')")
+    @Operation(
+            summary = "Cancelar platillo no enviado a cocina",
+            description = "Elimina un platillo de una comanda antes de enviarla a cocina para corregir errores de pedido sin afectar el inventario ni cocina. Si el platillo ya fue enviado (estado RECIBIDO o posterior), se impide la eliminación directa indicando remitirse al flujo de cancelación excepcional."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Platillo eliminado exitosamente de la comanda en borrador",
+                    content = @Content(schema = @Schema(implementation = CancelUnsentDishResponse.class))
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Identificador de platillo inválido o no especificado",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "No autenticado o token JWT no provisto",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Acceso denegado (requiere rol de mesero o administrador)",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Platillo o comanda no encontrada",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "409",
+                    description = "El platillo ya fue enviado a cocina (requiere flujo de cancelación excepcional) o la cuenta se encuentra en proceso de cobro",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            )
+    })
+    public ResponseEntity<CancelUnsentDishResponse> cancelUnsentDish(
+            @Parameter(description = "Identificador único del detalle de comanda (platillo) a cancelar", required = true)
+            @PathVariable Long id,
+            Authentication authentication) {
+
+        CancelUnsentDishResponse response = comandaInventoryService.cancelUnsentDish(id, authentication);
         return ResponseEntity.ok(response);
     }
 

@@ -94,4 +94,6 @@ public interface ComandaDetailRepository extends JpaRepository<ComandaDetail, Lo
               AND d.status NOT IN (com.restaurante.domain.model.ComandaDetailStatus.CANCELADO, com.restaurante.domain.model.ComandaDetailStatus.NO_DISPONIBLE)
            """)
     long countActiveByAccountId(@Param("accountId") Long accountId);
+
+    long countByComandaId(Long comandaId);
 }
