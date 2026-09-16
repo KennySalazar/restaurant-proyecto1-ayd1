@@ -331,6 +331,7 @@ public class SupplyService {
 
                 Supply updated = supplyRepository.save(supply);
                 syncSupplyLowStockAlert(updated);
+                syncSupplyMaxStockAlert(updated);
 
                 return new SupplyUpdateResponse(
                                 "Insumo actualizado exitosamente",
@@ -400,6 +401,7 @@ public class SupplyService {
 
                 Supply updated = supplyRepository.save(supply);
                 syncSupplyLowStockAlert(updated);
+                syncSupplyMaxStockAlert(updated);
 
                 return new SupplyStockLimitsResponse(
                                 "Límites de stock configurados exitosamente",
@@ -516,6 +518,57 @@ public class SupplyService {
                         // Si el insumo está por encima del stock mínimo, retirar la alerta activa
                         notificationRepository.markAsReadByEntity(
                                         restaurantId, "STOCK_BAJO", "INSUMO", supply.getId().toString(), Instant.now());
+                }
+        }
+
+        /**
+         * Sincroniza las notificaciones cuando el stock de un insumo supera el stock
+         * máximo configurado. Genera una notificación de tipo STOCK_MAXIMO_SUPERADO la
+         * primera vez que se excede el máximo y la retira (marca leída) cuando el stock
+         * vuelve a estar igual o por debajo del máximo.
+         *
+         * @param supply Insumo cuyo stock se verificará contra su límite máximo
+         */
+        private void syncSupplyMaxStockAlert(Supply supply) {
+                Long restaurantId = supply.getRestaurantId();
+                BigDecimal maxStock = supply.getMaximumStock();
+
+                if (maxStock == null) {
+                        return;
+                }
+
+                boolean exceedsMax = supply.getCurrentStock().compareTo(maxStock) > 0;
+
+                if (exceedsMax) {
+                        boolean exists = notificationRepository
+                                        .existsByRestaurantIdAndTypeAndEntityAndEntityIdAndReadFalse(
+                                                        restaurantId, "STOCK_MAXIMO_SUPERADO", "INSUMO",
+                                                        supply.getId().toString());
+
+                        if (!exists) {
+String message = "El insumo " + supply.getName()
+                                + " supero el stock maximo configurado (actual: "
+                                + supply.getCurrentStock().stripTrailingZeros().toPlainString()
+                                + ", maximo: "
+                                + maxStock.stripTrailingZeros().toPlainString() + ")";
+
+                                Notification notification = new Notification(
+                                                restaurantId,
+                                                null,
+                                                1L, // rol ADMIN
+                                                "STOCK_MAXIMO_SUPERADO",
+                                                "Insumo con stock sobre el máximo",
+                                                message,
+                                                "INSUMO",
+                                                supply.getId().toString(),
+                                                "ALTA");
+
+                                notificationRepository.save(notification);
+                        }
+                } else {
+                        notificationRepository.markAsReadByEntity(
+                                        restaurantId, "STOCK_MAXIMO_SUPERADO", "INSUMO",
+                                        supply.getId().toString(), Instant.now());
                 }
         }
 
@@ -765,6 +818,7 @@ public class SupplyService {
                 // Sincronizar alertas de inventario bajo por si el stock disponible superó el
                 // mínimo
                 syncSupplyLowStockAlert(supply);
+                syncSupplyMaxStockAlert(supply);
 
                 BigDecimal totalCost = savedDetail.getTotalCost() != null
                                 ? savedDetail.getTotalCost()

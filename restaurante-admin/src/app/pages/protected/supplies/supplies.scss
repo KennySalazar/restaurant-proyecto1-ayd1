@@ -337,6 +337,42 @@
   white-space: nowrap;
 }
 
+.cost-header {
+  align-items: center;
+  display: inline-flex;
+  gap: 0.35rem;
+}
+
+.cost-header__info {
+  color: #8a7f72;
+  display: inline-flex;
+  position: relative;
+}
+
+.cost-header__info:hover .cost-header__tooltip,
+.cost-header__info:focus-visible .cost-header__tooltip {
+  opacity: 1;
+  pointer-events: auto;
+  visibility: visible;
+}
+
+.cost-header__tooltip {
+  background: #2f2926;
+  border-radius: 0.5rem;
+  color: #ffffff;
+  font-size: 0.68rem;
+  left: 50%;
+  line-height: 1.45;
+  max-width: 18rem;
+  opacity: 0;
+  padding: 0.6rem 0.75rem;
+  pointer-events: none;
+  position: absolute;
+  top: 1.5rem;
+  visibility: hidden;
+  z-index: 20;
+}
+
 .stock-badge {
   align-items: center;
   background: #eaf5ea;
@@ -526,6 +562,17 @@
   justify-self: start;
   margin-top: 0.25rem;
   padding: 0.35rem 0.6rem;
+}
+
+.field-summary--danger {
+  background: #fae8e5;
+  color: #a04737;
+}
+
+.waste-previews {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
 }
 
 .entry-details {

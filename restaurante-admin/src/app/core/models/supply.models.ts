@@ -138,3 +138,47 @@ export interface SupplyEntryRegistrationResponse {
   message: string;
   entry: SupplyEntryResponse;
 }
+
+export type WasteReasonType = 'VENCIMIENTO' | 'DANO' | 'ERROR_MANEJO' | 'OTRO';
+
+export const WASTE_REASON_TYPES: readonly WasteReasonType[] = [
+  'VENCIMIENTO',
+  'DANO',
+  'ERROR_MANEJO',
+  'OTRO',
+];
+
+export interface CreateSupplyWasteRequest {
+  quantity: number;
+  reason: string | null;
+  reasonType: WasteReasonType | null;
+  batchNumber: string | null;
+  notes: string | null;
+  date: string | null;
+}
+
+export interface SupplyWasteResponse {
+  wasteId: number;
+  detailId: number;
+  documentNumber: string;
+  supplyId: number;
+  supplyCode: string;
+  supplyName: string;
+  measurementUnitName: string;
+  measurementUnitAbbreviation: string;
+  quantity: number;
+  unitCost: number;
+  totalCost: number;
+  previousStock: number;
+  resultingStock: number;
+  reasonType: string;
+  reason: string;
+  batchNumber: string | null;
+  notes: string | null;
+  registeredAt: string;
+}
+
+export interface SupplyWasteRegistrationResponse {
+  message: string;
+  waste: SupplyWasteResponse;
+}

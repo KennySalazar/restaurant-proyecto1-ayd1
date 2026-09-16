@@ -16,6 +16,8 @@ import {
   MeasurementUnit,
   Supply,
   SupplyCategory,
+  WASTE_REASON_TYPES,
+  WasteReasonType,
 } from '../../../core/models/supply.models';
 import { ApiErrorService } from '../../../core/services/api-error.service';
 import { SupplyService } from '../../../core/services/supply.service';
@@ -120,6 +122,17 @@ export class SuppliesPageComponent implements OnInit {
     return null;
   };
 
+  private readonly notInteger = (control: AbstractControl): ValidationErrors | null => {
+    const value: number | null = control.value;
+    const numeric = Number(value);
+
+    if (value == null || Number.isNaN(numeric)) {
+      return null;
+    }
+
+    return Number.isInteger(numeric) ? null : { notInteger: true };
+  };
+
   readonly entryForm = this.formBuilder.group(
     {
       supplyId: [0 as number, [Validators.required, Validators.min(1)]],
@@ -135,10 +148,31 @@ export class SuppliesPageComponent implements OnInit {
     { validators: [this.entryDateConsistency] },
   );
 
+  readonly wasteCandidate = signal<Supply | null>(null);
+  readonly isWasteOpen = signal(false);
+  readonly isSavingWaste = signal(false);
+  readonly submittedWaste = signal(false);
+  readonly wasteServerMessage = signal<string | null>(null);
+  readonly wasteDetailsOpen = signal(false);
+
+  readonly wasteForm = this.formBuilder.group({
+    supplyId: [0 as number, [Validators.required, Validators.min(1)]],
+    quantity: [null as number | null, [Validators.required, Validators.min(0.0001)]],
+    reasonType: ['' as WasteReasonType | '', [Validators.required]],
+    reason: ['', [Validators.maxLength(500)]],
+    batchNumber: ['', [Validators.maxLength(80)]],
+    notes: ['', [Validators.maxLength(255)]],
+    wasteDate: [this.todayIso()],
+  });
+
   ngOnInit(): void {
     this.searchSubject
       .pipe(debounceTime(300), distinctUntilChanged(), takeUntilDestroyed(this.destroyRef))
       .subscribe(() => this.loadSupplies());
+
+    this.registrationForm.controls.unitId.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((unitId) => this.applyStockUnitValidators(unitId));
 
     forkJoin({
       supplies: this.supplyService.listSupplies(),
@@ -312,6 +346,19 @@ export class SuppliesPageComponent implements OnInit {
       minimumStock: supply.minimumStock,
       maximumStock: supply.maximumStock,
     });
+
+    const integerValidator = this.isConteoUnit(supply.unitId) ? [this.notInteger] : [];
+    this.stockLimitsForm.controls.minimumStock.setValidators([
+      Validators.required,
+      Validators.min(0),
+      ...integerValidator,
+    ]);
+    this.stockLimitsForm.controls.maximumStock.setValidators([
+      Validators.min(0),
+      ...integerValidator,
+    ]);
+    this.stockLimitsForm.controls.minimumStock.updateValueAndValidity();
+    this.stockLimitsForm.controls.maximumStock.updateValueAndValidity();
   }
 
   closeStockLimits(): void {
@@ -411,6 +458,14 @@ export class SuppliesPageComponent implements OnInit {
       notes: '',
     });
 
+    const integerValidator = this.isConteoUnit(supply.unitId) ? [this.notInteger] : [];
+    this.entryForm.controls.quantity.setValidators([
+      Validators.required,
+      Validators.min(0.0001),
+      ...integerValidator,
+    ]);
+    this.entryForm.controls.quantity.updateValueAndValidity();
+
     this.isEntryOpen.set(true);
   }
 
@@ -486,6 +541,167 @@ export class SuppliesPageComponent implements OnInit {
     return control.invalid && (control.touched || this.submittedEntry());
   }
 
+  openWaste(supply: Supply): void {
+    this.submittedWaste.set(false);
+    this.wasteServerMessage.set(null);
+    this.wasteDetailsOpen.set(false);
+    this.wasteCandidate.set(supply);
+    this.wasteForm.controls.supplyId.setValue(supply.id);
+
+    this.wasteForm.patchValue({
+      quantity: null,
+      reasonType: '',
+      reason: '',
+      batchNumber: '',
+      notes: '',
+      wasteDate: this.todayIso(),
+    });
+
+    const integerValidator = this.isConteoUnit(supply.unitId) ? [this.notInteger] : [];
+    this.wasteForm.controls.quantity.setValidators([
+      Validators.required,
+      Validators.min(0.0001),
+      ...integerValidator,
+    ]);
+    this.wasteForm.controls.quantity.updateValueAndValidity();
+
+    this.isWasteOpen.set(true);
+  }
+
+  closeWaste(): void {
+    if (this.isSavingWaste()) {
+      return;
+    }
+
+    this.wasteDetailsOpen.set(false);
+    this.isWasteOpen.set(false);
+  }
+
+  toggleWasteDetails(): void {
+    this.wasteDetailsOpen.update((open) => !open);
+  }
+
+  submitWaste(): void {
+    this.submittedWaste.set(true);
+    this.wasteServerMessage.set(null);
+
+    if (this.wasteForm.invalid) {
+      this.wasteForm.markAllAsTouched();
+      return;
+    }
+
+    const supply = this.wasteCandidate();
+
+    if (!supply) {
+      return;
+    }
+
+    const raw = this.wasteForm.getRawValue();
+    this.isSavingWaste.set(true);
+
+    this.supplyService
+      .registerSupplyWaste(supply.id, {
+        quantity: raw.quantity!,
+        reasonType: raw.reasonType ? (raw.reasonType as WasteReasonType) : null,
+        reason: raw.reason?.trim() || null,
+        batchNumber: raw.batchNumber?.trim() || null,
+        notes: raw.notes?.trim() || null,
+        date: raw.wasteDate || null,
+      })
+      .pipe(finalize(() => this.isSavingWaste.set(false)))
+      .subscribe({
+        next: (response) => {
+          const waste = response.waste;
+          const alertGenerated =
+            supply.minimumStock != null && waste.resultingStock <= supply.minimumStock;
+
+          this.messages.add({
+            severity: 'success',
+            summary: this.transloco.translate('supplyWastes.success.title'),
+            detail:
+              this.transloco.translate('supplyWastes.success.message', {
+                quantity: this.formatStock(waste.quantity),
+                unit: waste.measurementUnitAbbreviation,
+                name: waste.supplyName,
+                stock: this.formatStock(waste.resultingStock),
+              }) +
+              (alertGenerated
+                ? ' ' + this.transloco.translate('supplyWastes.success.alertNote')
+                : ''),
+            life: 7000,
+          });
+
+          this.loadSupplies();
+          this.isWasteOpen.set(false);
+          this.submittedWaste.set(false);
+          this.wasteServerMessage.set(null);
+          this.wasteDetailsOpen.set(false);
+          this.wasteCandidate.set(null);
+          this.wasteForm.reset();
+        },
+        error: (error: unknown) => {
+          this.wasteServerMessage.set(this.errors.getMessage(error));
+        },
+      });
+  }
+
+  invalidWaste(
+    controlName: 'quantity' | 'reasonType' | 'reason' | 'batchNumber' | 'notes',
+  ): boolean {
+    const control = this.wasteForm.controls[controlName];
+
+    return control.invalid && (control.touched || this.submittedWaste());
+  }
+
+  reasonTypeKey(reasonType: WasteReasonType): string {
+    return `supplyWastes.fields.reasonTypes.${reasonType}`;
+  }
+
+  reasonTypes(): ReadonlyArray<WasteReasonType> {
+    return WASTE_REASON_TYPES;
+  }
+
+  private isConteoUnit(unitId: number | null | undefined): boolean {
+    if (!unitId) {
+      return false;
+    }
+
+    return this.measurementUnits().some(
+      (unit) => unit.id === unitId && unit.dimension === 'CONTEO',
+    );
+  }
+
+  private applyStockUnitValidators(unitId: number | null): void {
+    const integerValidator = this.isConteoUnit(unitId) ? [this.notInteger] : [];
+
+    this.registrationForm.controls.minimumStock.setValidators([
+      Validators.min(0),
+      ...integerValidator,
+    ]);
+    this.registrationForm.controls.maximumStock.setValidators([
+      Validators.min(0),
+      ...integerValidator,
+    ]);
+    this.registrationForm.controls.minimumStock.updateValueAndValidity();
+    this.registrationForm.controls.maximumStock.updateValueAndValidity();
+  }
+
+  registrationMinMaxStep(): string {
+    return this.isConteoUnit(this.registrationForm.controls.unitId.value) ? '1' : '0.01';
+  }
+
+  stockLimitsStep(): string {
+    return this.isConteoUnit(this.stockLimitsCandidate()?.unitId) ? '1' : '0.01';
+  }
+
+  entryQuantityStep(): string {
+    return this.isConteoUnit(this.entryCandidate()?.unitId) ? '1' : '0.01';
+  }
+
+  wasteQuantityStep(): string {
+    return this.isConteoUnit(this.wasteCandidate()?.unitId) ? '1' : '0.01';
+  }
+
   private todayIso(): string {
     const now = new Date();
     const year = now.getFullYear();
@@ -518,5 +734,32 @@ export class SuppliesPageComponent implements OnInit {
     }
 
     return this.formatCost(quantity * unitCost);
+  }
+
+  estimatedWasteLoss(): string | null {
+    const quantity = this.wasteForm.getRawValue().quantity;
+    const supply = this.wasteCandidate();
+
+    if (!quantity || quantity <= 0 || !supply) {
+      return null;
+    }
+
+    return this.formatCost(quantity * supply.unitCost);
+  }
+
+  wasteStockPreview(): { remaining: number; overStock: boolean } | null {
+    const quantity = this.wasteForm.getRawValue().quantity;
+    const supply = this.wasteCandidate();
+
+    if (!quantity || quantity <= 0 || !supply) {
+      return null;
+    }
+
+    const remaining = supply.currentStock - quantity;
+
+    return {
+      remaining: Math.max(0, remaining),
+      overStock: remaining < 0,
+    };
   }
 }

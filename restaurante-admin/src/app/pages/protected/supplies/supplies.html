@@ -147,7 +147,25 @@
             <th>{{ 'supplies.columns.name' | transloco }}</th>
             <th>{{ 'supplies.columns.unit' | transloco }}</th>
             <th>{{ 'supplies.columns.category' | transloco }}</th>
-            <th>{{ 'supplies.columns.unitCost' | transloco }}</th>
+            <th>
+              <span class="cost-header">
+                <span>{{ 'supplies.columns.unitCost' | transloco }}</span>
+
+                <span
+                  class="cost-header__info"
+                  tabindex="0"
+                  role="note"
+                  [attr.title]="'supplies.columns.unitCostHintTitle' | transloco"
+                  [attr.aria-label]="'supplies.columns.unitCostHintTitle' | transloco"
+                >
+                  <i class="pi pi-info-circle" aria-hidden="true"></i>
+
+                  <span class="cost-header__tooltip">
+                    {{ 'supplies.columns.unitCostHint' | transloco }}
+                  </span>
+                </span>
+              </span>
+            </th>
             <th>{{ 'supplies.columns.stock' | transloco }}</th>
             <th>
               <span class="sr-only">
@@ -205,6 +223,11 @@
 
               <td class="restaurant-table__actions">
                 <div class="row-actions">
+                  <button class="limits-button" type="button" (click)="openWaste(supply)">
+                    <i class="pi pi-trash"></i>
+                    {{ 'supplyWastes.actions.row' | transloco }}
+                  </button>
+
                   <button class="limits-button" type="button" (click)="openEntry(supply)">
                     <i class="pi pi-cart-arrow-down"></i>
                     {{ 'supplyEntries.actions.row' | transloco }}
@@ -409,7 +432,7 @@
               type="number"
               formControlName="minimumStock"
               min="0"
-              step="0.01"
+              [step]="registrationMinMaxStep()"
             />
 
             @if (
@@ -417,6 +440,13 @@
             ) {
               <small class="field-error">
                 {{ 'supplies.registration.validation.stockMin' | transloco }}
+              </small>
+            } @else if (
+              invalid('minimumStock') &&
+              registrationForm.controls.minimumStock.hasError('notInteger')
+            ) {
+              <small class="field-error">
+                {{ 'supplies.registration.validation.stockInteger' | transloco }}
               </small>
             }
           </div>
@@ -431,7 +461,7 @@
               type="number"
               formControlName="maximumStock"
               min="0"
-              step="0.01"
+              [step]="registrationMinMaxStep()"
             />
 
             @if (
@@ -439,6 +469,13 @@
             ) {
               <small class="field-error">
                 {{ 'supplies.registration.validation.stockMin' | transloco }}
+              </small>
+            } @else if (
+              invalid('maximumStock') &&
+              registrationForm.controls.maximumStock.hasError('notInteger')
+            ) {
+              <small class="field-error">
+                {{ 'supplies.registration.validation.stockInteger' | transloco }}
               </small>
             }
           </div>
@@ -532,7 +569,7 @@
               type="number"
               formControlName="minimumStock"
               min="0"
-              step="0.01"
+              [step]="stockLimitsStep()"
             />
 
             @if (
@@ -547,6 +584,13 @@
             ) {
               <small class="field-error">
                 {{ 'supplies.stockLimits.validation.negative' | transloco }}
+              </small>
+            } @else if (
+              invalidLimits('minimumStock') &&
+              stockLimitsForm.controls.minimumStock.hasError('notInteger')
+            ) {
+              <small class="field-error">
+                {{ 'supplies.stockLimits.validation.integer' | transloco }}
               </small>
             }
           </div>
@@ -564,7 +608,7 @@
               type="number"
               formControlName="maximumStock"
               min="0"
-              step="0.01"
+              [step]="stockLimitsStep()"
             />
 
             @if (
@@ -572,6 +616,13 @@
             ) {
               <small class="field-error">
                 {{ 'supplies.stockLimits.validation.negative' | transloco }}
+              </small>
+            } @else if (
+              invalidLimits('maximumStock') &&
+              stockLimitsForm.controls.maximumStock.hasError('notInteger')
+            ) {
+              <small class="field-error">
+                {{ 'supplies.stockLimits.validation.integer' | transloco }}
               </small>
             } @else if (maxBelowMin()) {
               <small class="field-error">
@@ -683,7 +734,7 @@
               type="number"
               formControlName="quantity"
               min="0"
-              step="0.01"
+              [step]="entryQuantityStep()"
             />
 
             @if (invalidEntry('quantity') && entryForm.controls.quantity.hasError('required')) {
@@ -693,6 +744,12 @@
             } @else if (invalidEntry('quantity') && entryForm.controls.quantity.hasError('min')) {
               <small class="field-error">
                 {{ 'supplyEntries.validation.quantityPositive' | transloco }}
+              </small>
+            } @else if (
+              invalidEntry('quantity') && entryForm.controls.quantity.hasError('notInteger')
+            ) {
+              <small class="field-error">
+                {{ 'supplyEntries.validation.quantityInteger' | transloco }}
               </small>
             }
           </div>
@@ -883,6 +940,272 @@
             } @else {
               <i class="pi pi-check"></i>
               {{ 'supplyEntries.actions.save' | transloco }}
+            }
+          </button>
+        </footer>
+      </form>
+    </section>
+  </div>
+}
+
+@if (isWasteOpen()) {
+  <div class="registration-backdrop" role="presentation">
+    <section
+      class="registration-dialog"
+      role="dialog"
+      aria-modal="true"
+      [attr.aria-labelledby]="'waste-dialog-title'"
+    >
+      <header class="registration-dialog__header">
+        <div>
+          <span class="registration-dialog__eyebrow">
+            {{ 'supplyWastes.eyebrow' | transloco }}
+          </span>
+
+          <h2 id="waste-dialog-title">
+            {{ 'supplyWastes.title' | transloco }}
+          </h2>
+
+          <p>
+            {{ 'supplyWastes.description' | transloco }}
+          </p>
+        </div>
+
+        <button
+          class="close-button"
+          type="button"
+          [attr.aria-label]="'common.cancel' | transloco"
+          [disabled]="isSavingWaste()"
+          (click)="closeWaste()"
+        >
+          <i class="pi pi-times"></i>
+        </button>
+      </header>
+
+      <app-form-feedback [message]="wasteServerMessage()" />
+
+      <form class="registration-form" [formGroup]="wasteForm" (ngSubmit)="submitWaste()" novalidate>
+        <div class="form-grid">
+          @if (wasteCandidate(); as supply) {
+            <div class="form-field form-field--span-2">
+              <label>
+                {{ 'supplyWastes.fields.supply' | transloco }}
+              </label>
+
+              <div class="entry-supply-selected">
+                <span class="entry-supply-selected__icon">
+                  <i class="pi pi-box"></i>
+                </span>
+
+                <div class="entry-supply-selected__info">
+                  <span class="entry-supply-selected__code">
+                    {{ supply.code }}
+                  </span>
+
+                  <strong>{{ supply.name }}</strong>
+
+                  <small>
+                    <i class="pi pi-warehouse"></i>
+                    {{ 'supplyWastes.fields.currentStock' | transloco }}:
+                    {{ formatStock(supply.currentStock) }}
+                    {{ supply.unitAbbreviation }}
+                  </small>
+                </div>
+              </div>
+            </div>
+          }
+
+          <div class="form-field">
+            <label for="waste-quantity">
+              {{ 'supplyWastes.fields.quantity' | transloco }}
+            </label>
+
+            <input
+              id="waste-quantity"
+              type="number"
+              formControlName="quantity"
+              min="0"
+              [step]="wasteQuantityStep()"
+            />
+
+            @if (invalidWaste('quantity') && wasteForm.controls.quantity.hasError('required')) {
+              <small class="field-error">
+                {{ 'supplyWastes.validation.quantityRequired' | transloco }}
+              </small>
+            } @else if (invalidWaste('quantity') && wasteForm.controls.quantity.hasError('min')) {
+              <small class="field-error">
+                {{ 'supplyWastes.validation.quantityPositive' | transloco }}
+              </small>
+            } @else if (
+              invalidWaste('quantity') && wasteForm.controls.quantity.hasError('notInteger')
+            ) {
+              <small class="field-error">
+                {{ 'supplyWastes.validation.quantityInteger' | transloco }}
+              </small>
+            }
+
+            <div class="waste-previews">
+              @if (estimatedWasteLoss(); as loss) {
+                <small class="field-summary">
+                  <i class="pi pi-calculator"></i>
+                  {{ 'supplyWastes.fields.estimatedLoss' | transloco }}:
+                  {{ loss }}
+                </small>
+              }
+
+              @if (wasteStockPreview(); as preview) {
+                @if (preview.overStock) {
+                  <small class="field-summary field-summary--danger">
+                    <i class="pi pi-exclamation-triangle"></i>
+                    {{ 'supplyWastes.fields.overStock' | transloco }}
+                  </small>
+                } @else {
+                  <small class="field-summary">
+                    <i class="pi pi-arrow-down"></i>
+                    {{ 'supplyWastes.fields.resultingStock' | transloco }}:
+                    {{ formatStock(preview.remaining) }} {{ wasteCandidate()?.unitAbbreviation }}
+                  </small>
+                }
+              }
+            </div>
+          </div>
+
+          <div class="form-field">
+            <label for="waste-reason-type">
+              {{ 'supplyWastes.fields.reasonType' | transloco }}
+            </label>
+
+            <select id="waste-reason-type" formControlName="reasonType">
+              <option value="">
+                {{ 'supplyWastes.fields.reasonTypePlaceholder' | transloco }}
+              </option>
+
+              @for (reasonType of reasonTypes(); track reasonType) {
+                <option [value]="reasonType">
+                  {{ reasonTypeKey(reasonType) | transloco }}
+                </option>
+              }
+            </select>
+
+            @if (invalidWaste('reasonType')) {
+              <small class="field-error">
+                {{ 'supplyWastes.validation.reasonTypeRequired' | transloco }}
+              </small>
+            }
+          </div>
+
+          <div class="form-field form-field--span-2">
+            <label for="waste-reason">
+              {{ 'supplyWastes.fields.reason' | transloco }}
+
+              <small class="field-hint">
+                {{ 'supplyWastes.fields.optionalHint' | transloco }}
+              </small>
+            </label>
+
+            <textarea
+              id="waste-reason"
+              formControlName="reason"
+              maxlength="500"
+              rows="2"
+            ></textarea>
+
+            @if (invalidWaste('reason')) {
+              <small class="field-error">
+                {{ 'supplyWastes.validation.reasonTooLong' | transloco }}
+              </small>
+            }
+          </div>
+
+          <div class="entry-details form-field--span-2">
+            <button
+              class="entry-details__toggle"
+              type="button"
+              [attr.aria-expanded]="wasteDetailsOpen()"
+              (click)="toggleWasteDetails()"
+            >
+              <i
+                class="pi"
+                [class.pi-chevron-down]="!wasteDetailsOpen()"
+                [class.pi-chevron-up]="wasteDetailsOpen()"
+              ></i>
+              {{
+                (wasteDetailsOpen()
+                  ? 'supplyWastes.fields.detailsHide'
+                  : 'supplyWastes.fields.detailsShow'
+                ) | transloco
+              }}
+            </button>
+
+            @if (wasteDetailsOpen()) {
+              <div class="form-grid entry-details__grid">
+                <div class="form-field">
+                  <label for="waste-date">
+                    {{ 'supplyWastes.fields.date' | transloco }}
+                  </label>
+
+                  <input id="waste-date" type="date" formControlName="wasteDate" />
+                </div>
+
+                <div class="form-field">
+                  <label for="waste-batch">
+                    {{ 'supplyWastes.fields.batch' | transloco }}
+                  </label>
+
+                  <input
+                    id="waste-batch"
+                    type="text"
+                    formControlName="batchNumber"
+                    maxlength="80"
+                  />
+
+                  @if (invalidWaste('batchNumber')) {
+                    <small class="field-error">
+                      {{ 'supplyWastes.validation.batchTooLong' | transloco }}
+                    </small>
+                  }
+                </div>
+
+                <div class="form-field form-field--span-2">
+                  <label for="waste-notes">
+                    {{ 'supplyWastes.fields.notes' | transloco }}
+                  </label>
+
+                  <textarea
+                    id="waste-notes"
+                    formControlName="notes"
+                    maxlength="255"
+                    rows="2"
+                  ></textarea>
+
+                  @if (invalidWaste('notes')) {
+                    <small class="field-error">
+                      {{ 'supplyWastes.validation.notesTooLong' | transloco }}
+                    </small>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+
+        <footer class="registration-dialog__actions">
+          <button
+            class="cancel-button"
+            type="button"
+            [disabled]="isSavingWaste()"
+            (click)="closeWaste()"
+          >
+            {{ 'common.cancel' | transloco }}
+          </button>
+
+          <button class="save-button" type="submit" [disabled]="isSavingWaste()">
+            @if (isSavingWaste()) {
+              <i class="pi pi-spin pi-spinner"></i>
+              {{ 'supplyWastes.actions.saving' | transloco }}
+            } @else {
+              <i class="pi pi-check"></i>
+              {{ 'supplyWastes.actions.save' | transloco }}
             }
           </button>
         </footer>

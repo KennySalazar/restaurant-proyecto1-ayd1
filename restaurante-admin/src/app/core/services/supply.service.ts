@@ -7,6 +7,7 @@ import {
   ConfigureStockLimitsRequest,
   CreateSupplyEntryRequest,
   CreateSupplyRequest,
+  CreateSupplyWasteRequest,
   MeasurementUnit,
   SingleSupplyAlertStatusResponse,
   Supply,
@@ -17,6 +18,7 @@ import {
   SupplyRegistrationResponse,
   SupplyStockLimitsResponse,
   SupplyUpdateResponse,
+  SupplyWasteRegistrationResponse,
   UpdateSupplyRequest,
 } from '../models/supply.models';
 
@@ -97,5 +99,15 @@ export class SupplyService {
     payload: CreateSupplyEntryRequest,
   ): Observable<SupplyEntryRegistrationResponse> {
     return this.http.post<SupplyEntryRegistrationResponse>(`${this.suppliesUrl}/entries`, payload);
+  }
+
+  registerSupplyWaste(
+    supplyId: number,
+    payload: CreateSupplyWasteRequest,
+  ): Observable<SupplyWasteRegistrationResponse> {
+    return this.http.post<SupplyWasteRegistrationResponse>(
+      `${this.suppliesUrl}/${supplyId}/wastes`,
+      payload,
+    );
   }
 }
