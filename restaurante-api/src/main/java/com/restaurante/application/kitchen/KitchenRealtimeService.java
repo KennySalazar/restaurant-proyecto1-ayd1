@@ -182,4 +182,34 @@ public class KitchenRealtimeService {
             list.removeAll(deadEmitters);
         }
     }
+
+    /**
+     * Notifica en tiempo real que un platillo fue servido y entregado en la mesa a todos los suscriptores activos.
+     *
+     * @param restaurantId Identificador del restaurante
+     * @param response Datos del platillo entregado
+     */
+    public void notifyDishDelivered(Long restaurantId, Object response) {
+        Long targetRestaurantId = restaurantId != null ? restaurantId : DEFAULT_RESTAURANT_ID;
+        CopyOnWriteArrayList<SseEmitter> list = emittersByRestaurant.get(targetRestaurantId);
+
+        if (list == null || list.isEmpty()) {
+            return;
+        }
+
+        List<SseEmitter> deadEmitters = new ArrayList<>();
+        for (SseEmitter emitter : list) {
+            try {
+                emitter.send(SseEmitter.event()
+                        .name("platillo-entregado")
+                        .data(response));
+            } catch (Exception e) {
+                deadEmitters.add(emitter);
+            }
+        }
+
+        if (!deadEmitters.isEmpty()) {
+            list.removeAll(deadEmitters);
+        }
+    }
 }
