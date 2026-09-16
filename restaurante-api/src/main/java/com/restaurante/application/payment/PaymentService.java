@@ -109,7 +109,20 @@ public class PaymentService {
                                 "El restaurante no tiene una configuracion vigente"
                         ));
 
-        BigDecimal invoiceTotal = money(calculation.total());
+        long pointsToRedeem =
+                request.puntosRedimidos() == null
+                        ? 0L
+                        : request.puntosRedimidos();
+
+        LoyaltyCalculation loyalty =
+                calculateLoyalty(
+                        account,
+                        configuration,
+                        calculation,
+                        pointsToRedeem
+                );
+
+        BigDecimal invoiceTotal = loyalty.total();
 
         if (invoiceTotal.compareTo(BigDecimal.ZERO) <= 0) {
             throw new ApiException(
@@ -152,9 +165,11 @@ public class PaymentService {
                 shift,
                 configuration,
                 calculation,
+                loyalty,
                 series,
                 sequence,
                 documentNumber,
+                pointsToRedeem,
                 pointsGranted
         );
 
@@ -212,8 +227,40 @@ public class PaymentService {
                 shift.getId(),
                 invoiceId,
                 shift.getCashierId(),
-                calculation.montoPropina()
+                loyalty.tipAmount()
         );
+
+        entityManager.flush();
+
+        if (pointsToRedeem > 0) {
+
+            cashTransactionService.registerPointsRedemption(
+                    shift.getId(),
+                    invoiceId,
+                    shift.getCashierId(),
+                    loyalty.pointsDiscount(),
+                    pointsToRedeem
+            );
+
+            entityManager.flush();
+
+            insertPointsRedemption(
+                    account.getClientId(),
+                    invoiceId,
+                    pointsToRedeem,
+                    loyalty.pointsDiscount(),
+                    shift.getCashierId()
+            );
+        }
+
+        if (pointsGranted > 0) {
+            insertPointsGrant(
+                    account.getClientId(),
+                    invoiceId,
+                    pointsGranted,
+                    shift.getCashierId()
+            );
+        }
 
         entityManager.flush();
 
@@ -252,11 +299,25 @@ public class PaymentService {
                         ))
                         .toList();
 
+        Long resultingPointsBalance =
+                account.getClientId() == null
+                        ? null
+                        : findCustomerPointsBalance(account.getClientId());
+
         return new ChargeResponse(
                 invoiceId,
                 documentNumber,
                 account.getId(),
+                calculation.subtotal(),
+                pointsToRedeem,
+                loyalty.pointsDiscount(),
+                calculation.porcentajeImpuesto(),
+                loyalty.taxAmount(),
+                calculation.porcentajePropina(),
+                loyalty.tipAmount(),
                 invoiceTotal,
+                pointsGranted,
+                resultingPointsBalance,
                 totalPaid,
                 pending,
                 account.getStatus(),
@@ -445,9 +506,11 @@ public class PaymentService {
             CashShift shift,
             RestaurantConfiguration configuration,
             BillingCalculationResponse calculation,
+            LoyaltyCalculation loyalty,
             String series,
             Long sequence,
             String documentNumber,
+            long pointsRedeemed,
             long pointsGranted) {
 
         Number result = (Number) entityManager
@@ -491,16 +554,16 @@ public class PaymentService {
                             :sequence,
                             :documentNumber,
                             'EMITIDA',
-                            :subtotal,
-                            0,
-                            0,
-                            :taxPercentage,
-                            :taxAmount,
-                            :tipPercentage,
-                            :tipAmount,
-                            :total,
-                            0,
-                            :pointsGranted
+                        :subtotal,
+                        :totalDiscount,
+                        :pointsDiscount,
+                        :taxPercentage,
+                        :taxAmount,
+                        :tipPercentage,
+                        :tipAmount,
+                        :total,
+                        :pointsRedeemed,
+                        :pointsGranted
                         )
                         RETURNING id
                         """)
@@ -558,7 +621,7 @@ public class PaymentService {
                 )
                 .setParameter(
                         "taxAmount",
-                        calculation.montoImpuesto()
+                        loyalty.taxAmount()
                 )
                 .setParameter(
                         "tipPercentage",
@@ -566,16 +629,29 @@ public class PaymentService {
                 )
                 .setParameter(
                         "tipAmount",
-                        calculation.montoPropina()
+                        loyalty.tipAmount()
                 )
                 .setParameter(
-                        "total",
-                        calculation.total()
+                        "totalDiscount",
+                        loyalty.pointsDiscount()
+                )
+                .setParameter(
+                        "pointsDiscount",
+                        loyalty.pointsDiscount()
                 )
                 .setParameter(
                         "pointsGranted",
                         pointsGranted
                 )
+                .setParameter(
+                        "total",
+                        loyalty.total()
+                )
+                .setParameter(
+                        "pointsRedeemed",
+                        pointsRedeemed
+                )
+
                 .getSingleResult();
 
         return result.longValue();
@@ -696,6 +772,147 @@ public class PaymentService {
                 .executeUpdate();
     }
 
+    private LoyaltyCalculation calculateLoyalty(
+            Account account,
+            RestaurantConfiguration configuration,
+            BillingCalculationResponse calculation,
+            long pointsToRedeem) {
+
+        BigDecimal subtotal =
+                money(calculation.subtotal());
+
+        if (pointsToRedeem < 0) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "invalid_points_redemption",
+                    "Cantidad de puntos invalida",
+                    "Los puntos a redimir no pueden ser negativos"
+            );
+        }
+
+        if (pointsToRedeem > 0 && account.getClientId() == null) {
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "customer_required_for_points",
+                    "Cliente requerido",
+                    "La cuenta debe estar asociada a un cliente para redimir puntos"
+            );
+        }
+
+        long availablePoints = 0L;
+
+        if (account.getClientId() != null) {
+            availablePoints =
+                    findAndLockCustomerPoints(
+                            account.getClientId(),
+                            account.getRestaurantId()
+                    );
+        }
+
+        if (pointsToRedeem > availablePoints) {
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "insufficient_loyalty_points",
+                    "Puntos insuficientes",
+                    "El cliente posee "
+                            + availablePoints
+                            + " puntos disponibles"
+            );
+        }
+
+        BigDecimal pointsDiscount = money(
+                configuration
+                        .getPointMonetaryValue()
+                        .multiply(
+                                BigDecimal.valueOf(pointsToRedeem)
+                        )
+        );
+
+        if (pointsDiscount.compareTo(subtotal) > 0) {
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "points_discount_exceeds_subtotal",
+                    "Redencion excedida",
+                    "El valor de los puntos redimidos supera el subtotal de la cuenta"
+            );
+        }
+
+        BigDecimal taxableBase =
+                money(
+                        subtotal.subtract(pointsDiscount)
+                );
+
+        BigDecimal taxAmount =
+                money(
+                        taxableBase
+                                .multiply(
+                                        calculation.porcentajeImpuesto()
+                                )
+                                .divide(
+                                        BigDecimal.valueOf(100),
+                                        10,
+                                        RoundingMode.HALF_UP
+                                )
+                );
+
+        BigDecimal tipAmount =
+                money(
+                        taxableBase
+                                .multiply(
+                                        calculation.porcentajePropina()
+                                )
+                                .divide(
+                                        BigDecimal.valueOf(100),
+                                        10,
+                                        RoundingMode.HALF_UP
+                                )
+                );
+
+        BigDecimal total =
+                money(
+                        taxableBase
+                                .add(taxAmount)
+                                .add(tipAmount)
+                );
+
+        return new LoyaltyCalculation(
+                availablePoints,
+                pointsDiscount,
+                taxAmount,
+                tipAmount,
+                total
+        );
+    }
+
+    private long findAndLockCustomerPoints(
+            Long customerId,
+            Long restaurantId) {
+
+        List<?> results = entityManager
+                .createNativeQuery("""
+                    SELECT saldo_puntos
+                    FROM restaurante.clientes
+                    WHERE id = :customerId
+                      AND restaurante_id = :restaurantId
+                      AND activo = TRUE
+                    FOR UPDATE
+                    """)
+                .setParameter("customerId", customerId)
+                .setParameter("restaurantId", restaurantId)
+                .getResultList();
+
+        if (results.isEmpty()) {
+            throw new ApiException(
+                    HttpStatus.NOT_FOUND,
+                    "customer_not_found",
+                    "Cliente no encontrado",
+                    "El cliente asociado a la cuenta no existe o no se encuentra activo"
+            );
+        }
+
+        return ((Number) results.get(0)).longValue();
+    }
+
     private BigDecimal money(BigDecimal value) {
 
         if (value == null) {
@@ -716,8 +933,100 @@ public class PaymentService {
             PaymentMethod method) {
     }
 
+    private record LoyaltyCalculation(
+            long availablePoints,
+            BigDecimal pointsDiscount,
+            BigDecimal taxAmount,
+            BigDecimal tipAmount,
+            BigDecimal total) {
+    }
+
     private record PaymentResult(
             Payment payment,
             String methodCode) {
+    }
+
+    private void insertPointsRedemption(
+            Long customerId,
+            Long invoiceId,
+            long points,
+            BigDecimal monetaryValue,
+            Long cashierId) {
+
+        entityManager
+                .createNativeQuery("""
+                    INSERT INTO restaurante.movimientos_puntos (
+                        cliente_id,
+                        factura_id,
+                        tipo,
+                        cantidad_puntos,
+                        valor_monetario,
+                        motivo,
+                        registrado_por_id
+                    )
+                    VALUES (
+                        :customerId,
+                        :invoiceId,
+                        'REDENCION',
+                        :points,
+                        :monetaryValue,
+                        'Redencion de puntos aplicada durante el cobro',
+                        :cashierId
+                    )
+                    """)
+                .setParameter("customerId", customerId)
+                .setParameter("invoiceId", invoiceId)
+                .setParameter("points", -points)
+                .setParameter("monetaryValue", monetaryValue)
+                .setParameter("cashierId", cashierId)
+                .executeUpdate();
+    }
+
+    private void insertPointsGrant(
+            Long customerId,
+            Long invoiceId,
+            long points,
+            Long cashierId) {
+
+        entityManager
+                .createNativeQuery("""
+                    INSERT INTO restaurante.movimientos_puntos (
+                        cliente_id,
+                        factura_id,
+                        tipo,
+                        cantidad_puntos,
+                        valor_monetario,
+                        motivo,
+                        registrado_por_id
+                    )
+                    VALUES (
+                        :customerId,
+                        :invoiceId,
+                        'OTORGAMIENTO',
+                        :points,
+                        0,
+                        'Puntos otorgados por compra',
+                        :cashierId
+                    )
+                    """)
+                .setParameter("customerId", customerId)
+                .setParameter("invoiceId", invoiceId)
+                .setParameter("points", points)
+                .setParameter("cashierId", cashierId)
+                .executeUpdate();
+    }
+
+    private Long findCustomerPointsBalance(Long customerId) {
+
+        Number result = (Number) entityManager
+                .createNativeQuery("""
+                    SELECT saldo_puntos
+                    FROM restaurante.clientes
+                    WHERE id = :customerId
+                    """)
+                .setParameter("customerId", customerId)
+                .getSingleResult();
+
+        return result.longValue();
     }
 }
