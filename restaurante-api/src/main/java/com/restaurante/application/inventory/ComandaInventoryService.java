@@ -46,6 +46,7 @@ import com.restaurante.web.dto.account.CreateAccountRoundRequest;
 import com.restaurante.web.dto.comanda.AddDishItemRequest;
 import com.restaurante.web.dto.comanda.AddDishResponse;
 import com.restaurante.web.dto.comanda.AddDishToAccountRequest;
+import com.restaurante.web.dto.comanda.CancelUnsentDishResponse;
 import com.restaurante.web.dto.comanda.ComandaDishProgressResponse;
 import com.restaurante.web.dto.comanda.ComandaInventoryProcessResponse;
 import com.restaurante.web.dto.kitchen.KitchenComandaResponse;
@@ -781,6 +782,112 @@ public class ComandaInventoryService {
         }
 
         return response;
+    }
+
+    /**
+     * Elimina un platillo de una comanda antes de enviarla a cocina para corregir errores de pedido sin afectar el inventario ni cocina.
+     * Si el platillo ya fue enviado a cocina (estado RECIBIDO o posterior), se rechaza la operación remitiendo al flujo de cancelación excepcional.
+     *
+     * @param detailId Identificador del detalle de comanda (platillo) a cancelar/eliminar
+     * @param authentication Información de autenticación del operador
+     * @return Confirmación de la eliminación del platillo
+     */
+    @Transactional
+    public CancelUnsentDishResponse cancelUnsentDish(Long detailId, Authentication authentication) {
+        if (detailId == null) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "detail_id_required",
+                    "Identificador requerido",
+                    "El identificador del platillo de la comanda es obligatorio"
+            );
+        }
+
+        ComandaDetail detail = comandaDetailRepository.findByIdWithAllDetails(detailId)
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "dish_detail_not_found",
+                        "Platillo no encontrado",
+                        "No se encontró el platillo de la comanda con identificador " + detailId
+                ));
+
+        Comanda comanda = detail.getComanda();
+        if (comanda == null) {
+            throw new ApiException(
+                    HttpStatus.NOT_FOUND,
+                    "comanda_not_found",
+                    "Comanda no encontrada",
+                    "El platillo no está asociado a una comanda válida"
+            );
+        }
+
+        Account account = comanda.getAccount();
+        if (account != null) {
+            if ("LISTA_COBRO".equalsIgnoreCase(account.getStatus())) {
+                throw new ApiException(
+                        HttpStatus.CONFLICT,
+                        "account_already_in_billing",
+                        "Cuenta en proceso de cobro",
+                        "No se pueden modificar o eliminar platillos de una cuenta que ya está en proceso de cobro"
+                );
+            }
+            if (!"ABIERTA".equalsIgnoreCase(account.getStatus())) {
+                throw new ApiException(
+                        HttpStatus.CONFLICT,
+                        "account_not_open",
+                        "Cuenta no activa",
+                        "Solo se pueden eliminar platillos de cuentas en estado ABIERTA"
+                );
+            }
+        }
+
+        ComandaDetailStatus currentStatus = detail.getStatus();
+
+        // Si el platillo o la comanda ya fueron enviados a cocina (RECIBIDO o posterior), impedir eliminación directa
+        if (currentStatus != ComandaDetailStatus.BORRADOR || comanda.getStatus() != ComandaStatus.BORRADOR) {
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "dish_already_sent_requires_exceptional_cancellation",
+                    "Platillo ya enviado a cocina",
+                    "El platillo '" + detail.getNameSnapshot() + "' ya fue enviado a cocina (estado: " + currentStatus + "). Para cancelarlo debe utilizar el flujo de cancelación excepcional con autorización de supervisor."
+            );
+        }
+
+        Long dishDetailId = detail.getId();
+        String dishName = detail.getNameSnapshot();
+        short quantity = detail.getQuantity();
+        Long comandaId = comanda.getId();
+        Long accountId = account != null ? account.getId() : null;
+        short roundNumber = comanda.getRoundNumber();
+
+        // Eliminar el detalle de la comanda y base de datos (sin alterar inventario porque no fue enviada)
+        comanda.getDetails().remove(detail);
+        comandaDetailRepository.delete(detail);
+        comandaDetailRepository.flush();
+
+        long remainingDishes = comandaDetailRepository.countByComandaId(comandaId);
+        boolean comandaDeleted = false;
+
+        // Si la comanda en borrador queda sin ítems, se elimina para evitar comandas vacías en la cuenta
+        if (remainingDishes == 0) {
+            comandaRepository.delete(comanda);
+            comandaRepository.flush();
+            comandaDeleted = true;
+        }
+
+        String message = "Platillo '" + dishName + "' eliminado exitosamente de la comanda antes del envío a cocina. El inventario no fue afectado.";
+
+        return new CancelUnsentDishResponse(
+                dishDetailId,
+                dishName,
+                quantity,
+                comandaId,
+                accountId,
+                roundNumber,
+                comandaDeleted,
+                (int) remainingDishes,
+                message
+        );
     }
 
     private ComandaDishProgressResponse mapToDishProgressResponse(
