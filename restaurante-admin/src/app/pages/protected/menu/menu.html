@@ -1,0 +1,58 @@
+<app-page-heading
+  eyebrowKey="menu.eyebrow"
+  titleKey="menu.title"
+  descriptionKey="menu.description"
+/>
+
+<nav class="menu-tabs" role="tablist" [attr.aria-label]="'menu.tabs.label' | transloco">
+  <button
+    type="button"
+    role="tab"
+    [attr.aria-selected]="isTabActive('dishes')"
+    [class.menu-tabs__tab--active]="isTabActive('dishes')"
+    (click)="selectTab('dishes')"
+  >
+    <i class="pi pi-book"></i>
+    {{ 'menu.tabs.dishes' | transloco }}
+  </button>
+
+  <button
+    type="button"
+    role="tab"
+    [attr.aria-selected]="isTabActive('modifiers')"
+    [class.menu-tabs__tab--active]="isTabActive('modifiers')"
+    (click)="selectTab('modifiers')"
+  >
+    <i class="pi pi-sliders-h"></i>
+    {{ 'menu.tabs.modifiers' | transloco }}
+  </button>
+
+  <button
+    type="button"
+    role="tab"
+    [attr.aria-selected]="isTabActive('combos')"
+    [class.menu-tabs__tab--active]="isTabActive('combos')"
+    (click)="selectTab('combos')"
+  >
+    <i class="pi pi-gift"></i>
+    {{ 'menu.tabs.combos' | transloco }}
+  </button>
+</nav>
+
+@if (isTabActive('dishes')) {
+  <app-menu-dishes-tab />
+} @else {
+  <section class="menu-panel">
+    <div class="state-panel state-panel--empty">
+      <span class="state-panel__icon">
+        <i class="pi pi-clock"></i>
+      </span>
+
+      <strong>{{ 'menu.tabs.soon' | transloco }}</strong>
+
+      <p>
+        {{ 'menu.tabs.soonDescription' | transloco }}
+      </p>
+    </div>
+  </section>
+}

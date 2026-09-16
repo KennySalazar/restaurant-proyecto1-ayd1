@@ -22,6 +22,7 @@
     "dashboard": "Resumen",
     "tables": "Mesas",
     "supplies": "Productos base",
+    "menu": "Platillos y Menú",
     "supplyAlerts": "Alertas de inventario",
     "employees": "Empleados",
     "configuration": "Configuración",
@@ -171,7 +172,7 @@
     }
   },
 
-"supplies": {
+  "supplies": {
     "eyebrow": "Catálogo de insumos",
     "title": "Catálogo de insumos",
     "description": "Consulta la materia prima disponible y revisa su información de compra e inventario.",
@@ -697,6 +698,61 @@
     "error": {
       "title": "No fue posible consultar el panel",
       "description": "Verifica la conexión e intenta nuevamente."
+    }
+  },
+  "menu": {
+    "eyebrow": "Platillos y Menú",
+    "title": "Catálogo de platillos",
+    "description": "Consulta la información comercial, el tiempo de preparación y la disponibilidad de cada platillo del menú.",
+    "tabs": {
+      "label": "Secciones de Platillos y Menú",
+      "dishes": "Platillos",
+      "modifiers": "Modificadores",
+      "combos": "Combos",
+      "soon": "Disponible próximamente",
+      "soonDescription": "Esta sección se habilitará en una próxima versión del módulo."
+    },
+    "units": {
+      "minutes": "min"
+    },
+    "summary": {
+      "total": "Total de platillos",
+      "available": "Disponibles",
+      "unavailable": "No disponibles"
+    },
+    "list": {
+      "title": "Catálogo de platillos",
+      "description": "Platillos registrados en el menú con su información comercial y disponibilidad actual.",
+      "refresh": "Actualizar",
+      "emptyTitle": "No hay platillos registrados",
+      "emptyDescription": "Todavía no existen platillos registrados. Cuando se registren, aparecerán aquí.",
+      "noResultsTitle": "Sin resultados",
+      "noResultsDescription": "No se encontraron platillos con los filtros aplicados."
+    },
+    "filters": {
+      "searchPlaceholder": "Buscar por nombre o código...",
+      "category": "Categoría",
+      "allCategories": "Todas las categorías",
+      "clear": "Limpiar filtros"
+    },
+    "columns": {
+      "image": "Imagen",
+      "name": "Platillo",
+      "category": "Categoría",
+      "price": "Precio de venta",
+      "time": "Tiempo",
+      "availability": "Disponibilidad"
+    },
+    "availability": {
+      "available": "Disponible",
+      "unavailable": "No disponible",
+      "portions": "porciones disponibles",
+      "reasons": {
+        "MANUAL": "Indisponibilidad manual",
+        "FALTA_INSUMOS": "Falta de insumos",
+        "SIN_RECETA": "Sin receta definida",
+        "INACTIVO": "Platillo retirado del menú"
+      }
     }
   },
   "security": {

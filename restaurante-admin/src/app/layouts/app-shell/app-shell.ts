@@ -25,6 +25,12 @@ const NAVIGATION: readonly NavigationItem[] = [
     roles: ['ADMIN'],
   },
   {
+    path: '/app/menu',
+    labelKey: 'nav.menu',
+    icon: 'pi-book',
+    roles: ['ADMIN'],
+  },
+  {
     path: '/app/supply-alerts',
     labelKey: 'nav.supplyAlerts',
     icon: 'pi-exclamation-triangle',
