@@ -97,3 +97,44 @@ export interface SingleSupplyAlertStatusResponse {
   hasAlert: boolean;
   alert: SupplyAlert | null;
 }
+
+export interface CreateSupplyEntryRequest {
+  supplyId: number;
+  quantity: number;
+  date: string;
+  unitCost: number;
+  supplierName: string | null;
+  purchaseReference: string | null;
+  batchNumber: string | null;
+  expirationDate: string | null;
+  notes: string | null;
+}
+
+export interface SupplyEntryResponse {
+  entryId: number;
+  detailId: number;
+  documentNumber: string;
+  supplyId: number;
+  supplyCode: string;
+  supplyName: string;
+  measurementUnit: string;
+  unitAbbreviation: string;
+  quantity: number;
+  unitCost: number;
+  totalCost: number;
+  previousStock: number;
+  currentStock: number;
+  currentUnitCost: number;
+  date: string;
+  supplierName: string | null;
+  purchaseReference: string | null;
+  batchNumber: string | null;
+  expirationDate: string | null;
+  notes: string | null;
+  createdAt: string;
+}
+
+export interface SupplyEntryRegistrationResponse {
+  message: string;
+  entry: SupplyEntryResponse;
+}

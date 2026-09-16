@@ -326,6 +326,51 @@
     }
   },
 
+  "supplyEntries": {
+    "eyebrow": "Inventario",
+    "title": "Registrar entrada de inventario",
+    "description": "Registra la mercadería recibida; el stock disponible y el costo promedio del insumo se actualizarán automáticamente.",
+    "fields": {
+      "supply": "Insumo",
+      "currentStock": "Stock disponible",
+      "quantity": "Cantidad recibida",
+      "date": "Fecha de recepción o compra",
+      "unitCost": "Costo de compra",
+      "supplier": "Proveedor",
+      "purchaseReference": "Comprobante o factura",
+      "batch": "Número de lote",
+      "expirationDate": "Fecha de vencimiento",
+      "notes": "Observaciones",
+      "currentUnitCost": "Costo unitario de compra",
+      "estimatedTotal": "Costo total estimado",
+      "detailsShow": "Detalles de compra (opcional)",
+      "detailsHide": "Ocultar detalles de compra"
+    },
+    "validation": {
+      "quantityRequired": "La cantidad es obligatoria",
+      "quantityPositive": "La cantidad debe ser mayor a cero",
+      "dateRequired": "La fecha es obligatoria",
+      "dateFuture": "La fecha no puede ser futura",
+      "unitCostRequired": "El costo unitario de compra es obligatorio",
+      "unitCostNegative": "El costo unitario no puede ser negativo",
+      "expirationBeforeDate": "La fecha de vencimiento no puede ser anterior a la fecha de recepción",
+      "supplierTooLong": "El proveedor no puede exceder 150 caracteres",
+      "referenceTooLong": "La referencia no puede exceder 100 caracteres",
+      "batchTooLong": "El lote no puede exceder 80 caracteres",
+      "notesTooLong": "Las observaciones no pueden exceder 500 caracteres"
+    },
+    "actions": {
+      "register": "Registrar entrada",
+      "row": "Entrada",
+      "save": "Registrar entrada",
+      "saving": "Registrando..."
+    },
+    "success": {
+      "title": "Entrada de inventario registrada",
+      "message": "Se registraron {{quantity}} {{unit}} de {{name}}. El stock disponible ahora es {{stock}} {{unit}}."
+    }
+  },
+
   "notifications": {
     "bellLabel": "Notificaciones",
     "headerEyebrow": "Centro de notificaciones",

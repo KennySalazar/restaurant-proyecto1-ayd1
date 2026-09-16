@@ -205,6 +205,11 @@
 
               <td class="restaurant-table__actions">
                 <div class="row-actions">
+                  <button class="limits-button" type="button" (click)="openEntry(supply)">
+                    <i class="pi pi-cart-arrow-down"></i>
+                    {{ 'supplyEntries.actions.row' | transloco }}
+                  </button>
+
                   <button class="limits-button" type="button" (click)="openStockLimits(supply)">
                     <i class="pi pi-sliders-h"></i>
                     {{ 'supplies.actions.limits' | transloco }}
@@ -593,6 +598,291 @@
             } @else {
               <i class="pi pi-check"></i>
               {{ 'supplies.stockLimits.actions.save' | transloco }}
+            }
+          </button>
+        </footer>
+      </form>
+    </section>
+  </div>
+}
+
+@if (isEntryOpen()) {
+  <div class="registration-backdrop" role="presentation">
+    <section
+      class="registration-dialog entry-dialog"
+      role="dialog"
+      aria-modal="true"
+      [attr.aria-labelledby]="'entry-dialog-title'"
+    >
+      <header class="registration-dialog__header">
+        <div>
+          <span class="registration-dialog__eyebrow">
+            {{ 'supplyEntries.eyebrow' | transloco }}
+          </span>
+
+          <h2 id="entry-dialog-title">
+            {{ 'supplyEntries.title' | transloco }}
+          </h2>
+
+          <p>
+            {{ 'supplyEntries.description' | transloco }}
+          </p>
+        </div>
+
+        <button
+          class="close-button"
+          type="button"
+          [attr.aria-label]="'common.cancel' | transloco"
+          [disabled]="isSavingEntry()"
+          (click)="closeEntry()"
+        >
+          <i class="pi pi-times"></i>
+        </button>
+      </header>
+
+      <app-form-feedback [message]="entryServerMessage()" />
+
+      <form class="registration-form" [formGroup]="entryForm" (ngSubmit)="submitEntry()" novalidate>
+        <div class="form-grid">
+          @if (entryCandidate(); as supply) {
+            <div class="form-field form-field--span-2">
+              <label>
+                {{ 'supplyEntries.fields.supply' | transloco }}
+              </label>
+
+              <div class="entry-supply-selected">
+                <span class="entry-supply-selected__icon">
+                  <i class="pi pi-box"></i>
+                </span>
+
+                <div class="entry-supply-selected__info">
+                  <span class="entry-supply-selected__code">
+                    {{ supply.code }}
+                  </span>
+
+                  <strong>{{ supply.name }}</strong>
+
+                  <small>
+                    <i class="pi pi-warehouse"></i>
+                    {{ 'supplyEntries.fields.currentStock' | transloco }}:
+                    {{ formatStock(supply.currentStock) }}
+                    {{ supply.unitAbbreviation }}
+                  </small>
+                </div>
+              </div>
+            </div>
+          }
+
+          <div class="form-field">
+            <label for="entry-quantity">
+              {{ 'supplyEntries.fields.quantity' | transloco }}
+            </label>
+
+            <input
+              id="entry-quantity"
+              type="number"
+              formControlName="quantity"
+              min="0"
+              step="0.01"
+            />
+
+            @if (invalidEntry('quantity') && entryForm.controls.quantity.hasError('required')) {
+              <small class="field-error">
+                {{ 'supplyEntries.validation.quantityRequired' | transloco }}
+              </small>
+            } @else if (invalidEntry('quantity') && entryForm.controls.quantity.hasError('min')) {
+              <small class="field-error">
+                {{ 'supplyEntries.validation.quantityPositive' | transloco }}
+              </small>
+            }
+          </div>
+
+          <div class="form-field">
+            <label for="entry-date">
+              {{ 'supplyEntries.fields.date' | transloco }}
+            </label>
+
+            <input id="entry-date" type="date" formControlName="date" />
+
+            @if (invalidEntry('date') && entryForm.controls.date.hasError('required')) {
+              <small class="field-error">
+                {{ 'supplyEntries.validation.dateRequired' | transloco }}
+              </small>
+            } @else if (invalidEntry('date') && entryForm.controls.date.hasError('futureDate')) {
+              <small class="field-error">
+                {{ 'supplyEntries.validation.dateFuture' | transloco }}
+              </small>
+            }
+          </div>
+
+          <div class="form-field">
+            <label for="entry-unit-cost">
+              {{ 'supplyEntries.fields.currentUnitCost' | transloco }}
+            </label>
+
+            <input
+              id="entry-unit-cost"
+              type="number"
+              formControlName="unitCost"
+              min="0"
+              step="0.01"
+            />
+
+            @if (invalidEntry('unitCost') && entryForm.controls.unitCost.hasError('required')) {
+              <small class="field-error">
+                {{ 'supplyEntries.validation.unitCostRequired' | transloco }}
+              </small>
+            } @else if (invalidEntry('unitCost') && entryForm.controls.unitCost.hasError('min')) {
+              <small class="field-error">
+                {{ 'supplyEntries.validation.unitCostNegative' | transloco }}
+              </small>
+            }
+
+            @if (estimatedTotalCost(); as total) {
+              <small class="field-summary">
+                <i class="pi pi-calculator"></i>
+                {{ 'supplyEntries.fields.estimatedTotal' | transloco }}:
+                {{ total }}
+              </small>
+            }
+          </div>
+
+          <div class="entry-details form-field--span-2">
+            <button
+              class="entry-details__toggle"
+              type="button"
+              [attr.aria-expanded]="entryDetailsOpen()"
+              (click)="toggleEntryDetails()"
+            >
+              <i
+                class="pi"
+                [class.pi-chevron-down]="!entryDetailsOpen()"
+                [class.pi-chevron-up]="entryDetailsOpen()"
+              ></i>
+              {{
+                (entryDetailsOpen()
+                  ? 'supplyEntries.fields.detailsHide'
+                  : 'supplyEntries.fields.detailsShow'
+                ) | transloco
+              }}
+            </button>
+
+            @if (entryDetailsOpen()) {
+              <div class="form-grid entry-details__grid">
+                <div class="form-field">
+                  <label for="entry-supplier">
+                    {{ 'supplyEntries.fields.supplier' | transloco }}
+                  </label>
+
+                  <input
+                    id="entry-supplier"
+                    type="text"
+                    formControlName="supplierName"
+                    maxlength="150"
+                  />
+
+                  @if (invalidEntry('supplierName')) {
+                    <small class="field-error">
+                      {{ 'supplyEntries.validation.supplierTooLong' | transloco }}
+                    </small>
+                  }
+                </div>
+
+                <div class="form-field">
+                  <label for="entry-reference">
+                    {{ 'supplyEntries.fields.purchaseReference' | transloco }}
+                  </label>
+
+                  <input
+                    id="entry-reference"
+                    type="text"
+                    formControlName="purchaseReference"
+                    maxlength="100"
+                  />
+
+                  @if (invalidEntry('purchaseReference')) {
+                    <small class="field-error">
+                      {{ 'supplyEntries.validation.referenceTooLong' | transloco }}
+                    </small>
+                  }
+                </div>
+
+                <div class="form-field">
+                  <label for="entry-batch">
+                    {{ 'supplyEntries.fields.batch' | transloco }}
+                  </label>
+
+                  <input
+                    id="entry-batch"
+                    type="text"
+                    formControlName="batchNumber"
+                    maxlength="80"
+                  />
+
+                  @if (invalidEntry('batchNumber')) {
+                    <small class="field-error">
+                      {{ 'supplyEntries.validation.batchTooLong' | transloco }}
+                    </small>
+                  }
+                </div>
+
+                <div class="form-field">
+                  <label for="entry-expiration">
+                    {{ 'supplyEntries.fields.expirationDate' | transloco }}
+                  </label>
+
+                  <input id="entry-expiration" type="date" formControlName="expirationDate" />
+
+                  @if (
+                    entryForm.hasError('expirationBeforeDate') &&
+                    (entryForm.controls.expirationDate.dirty || submittedEntry())
+                  ) {
+                    <small class="field-error">
+                      {{ 'supplyEntries.validation.expirationBeforeDate' | transloco }}
+                    </small>
+                  }
+                </div>
+
+                <div class="form-field form-field--span-2">
+                  <label for="entry-notes">
+                    {{ 'supplyEntries.fields.notes' | transloco }}
+                  </label>
+
+                  <textarea
+                    id="entry-notes"
+                    formControlName="notes"
+                    maxlength="500"
+                    rows="3"
+                  ></textarea>
+
+                  @if (invalidEntry('notes')) {
+                    <small class="field-error">
+                      {{ 'supplyEntries.validation.notesTooLong' | transloco }}
+                    </small>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+
+        <footer class="registration-dialog__actions">
+          <button
+            class="cancel-button"
+            type="button"
+            [disabled]="isSavingEntry()"
+            (click)="closeEntry()"
+          >
+            {{ 'common.cancel' | transloco }}
+          </button>
+
+          <button class="save-button" type="submit" [disabled]="isSavingEntry()">
+            @if (isSavingEntry()) {
+              <i class="pi pi-spin pi-spinner"></i>
+              {{ 'supplyEntries.actions.saving' | transloco }}
+            } @else {
+              <i class="pi pi-check"></i>
+              {{ 'supplyEntries.actions.save' | transloco }}
             }
           </button>
         </footer>

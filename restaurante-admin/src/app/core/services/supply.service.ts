@@ -5,6 +5,7 @@ import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import {
   ConfigureStockLimitsRequest,
+  CreateSupplyEntryRequest,
   CreateSupplyRequest,
   MeasurementUnit,
   SingleSupplyAlertStatusResponse,
@@ -12,6 +13,7 @@ import {
   SupplyAlert,
   SupplyAlertSummary,
   SupplyCategory,
+  SupplyEntryRegistrationResponse,
   SupplyRegistrationResponse,
   SupplyStockLimitsResponse,
   SupplyUpdateResponse,
@@ -89,5 +91,11 @@ export class SupplyService {
 
   getSupplyAlert(id: number): Observable<SingleSupplyAlertStatusResponse> {
     return this.http.get<SingleSupplyAlertStatusResponse>(`${this.suppliesUrl}/${id}/alert`);
+  }
+
+  registerSupplyEntry(
+    payload: CreateSupplyEntryRequest,
+  ): Observable<SupplyEntryRegistrationResponse> {
+    return this.http.post<SupplyEntryRegistrationResponse>(`${this.suppliesUrl}/entries`, payload);
   }
 }

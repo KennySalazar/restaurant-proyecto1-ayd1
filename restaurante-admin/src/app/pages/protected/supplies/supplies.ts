@@ -92,6 +92,49 @@ export class SuppliesPageComponent implements OnInit {
     { validators: [this.stockLimitsValidator] },
   );
 
+  readonly entryCandidate = signal<Supply | null>(null);
+  readonly isEntryOpen = signal(false);
+  readonly isSavingEntry = signal(false);
+  readonly submittedEntry = signal(false);
+  readonly entryServerMessage = signal<string | null>(null);
+  readonly entryDetailsOpen = signal(false);
+
+  private readonly pastOrPresentDate = (control: AbstractControl): ValidationErrors | null => {
+    const value: string | null = control.value;
+
+    if (!value) {
+      return null;
+    }
+
+    return value > this.todayIso() ? { futureDate: true } : null;
+  };
+
+  private readonly entryDateConsistency = (control: AbstractControl): ValidationErrors | null => {
+    const date: string | null = control.get('date')?.value;
+    const expirationDate: string | null = control.get('expirationDate')?.value;
+
+    if (date && expirationDate && expirationDate < date) {
+      return { expirationBeforeDate: true };
+    }
+
+    return null;
+  };
+
+  readonly entryForm = this.formBuilder.group(
+    {
+      supplyId: [0 as number, [Validators.required, Validators.min(1)]],
+      quantity: [null as number | null, [Validators.required, Validators.min(0.0001)]],
+      date: [this.todayIso(), [Validators.required, this.pastOrPresentDate]],
+      unitCost: [null as number | null, [Validators.required, Validators.min(0)]],
+      supplierName: ['', [Validators.maxLength(150)]],
+      purchaseReference: ['', [Validators.maxLength(100)]],
+      batchNumber: ['', [Validators.maxLength(80)]],
+      expirationDate: [''],
+      notes: ['', [Validators.maxLength(500)]],
+    },
+    { validators: [this.entryDateConsistency] },
+  );
+
   ngOnInit(): void {
     this.searchSubject
       .pipe(debounceTime(300), distinctUntilChanged(), takeUntilDestroyed(this.destroyRef))
@@ -350,6 +393,108 @@ export class SuppliesPageComponent implements OnInit {
     return null;
   }
 
+  openEntry(supply: Supply): void {
+    this.submittedEntry.set(false);
+    this.entryServerMessage.set(null);
+    this.entryDetailsOpen.set(false);
+    this.entryCandidate.set(supply);
+    this.entryForm.controls.supplyId.setValue(supply.id);
+
+    this.entryForm.patchValue({
+      quantity: null,
+      date: this.todayIso(),
+      unitCost: supply.unitCost,
+      supplierName: '',
+      purchaseReference: '',
+      batchNumber: '',
+      expirationDate: '',
+      notes: '',
+    });
+
+    this.isEntryOpen.set(true);
+  }
+
+  closeEntry(): void {
+    if (this.isSavingEntry()) {
+      return;
+    }
+
+    this.entryDetailsOpen.set(false);
+    this.isEntryOpen.set(false);
+  }
+
+  toggleEntryDetails(): void {
+    this.entryDetailsOpen.update((open) => !open);
+  }
+
+  submitEntry(): void {
+    this.submittedEntry.set(true);
+    this.entryServerMessage.set(null);
+
+    if (this.entryForm.invalid) {
+      this.entryForm.markAllAsTouched();
+      return;
+    }
+
+    const raw = this.entryForm.getRawValue();
+    this.isSavingEntry.set(true);
+
+    this.supplyService
+      .registerSupplyEntry({
+        supplyId: raw.supplyId!,
+        quantity: raw.quantity!,
+        date: raw.date!,
+        unitCost: raw.unitCost!,
+        supplierName: raw.supplierName?.trim() || null,
+        purchaseReference: raw.purchaseReference?.trim() || null,
+        batchNumber: raw.batchNumber?.trim() || null,
+        expirationDate: raw.expirationDate || null,
+        notes: raw.notes?.trim() || null,
+      })
+      .pipe(finalize(() => this.isSavingEntry.set(false)))
+      .subscribe({
+        next: (response) => {
+          this.messages.add({
+            severity: 'success',
+            summary: this.transloco.translate('supplyEntries.success.title'),
+            detail: this.transloco.translate('supplyEntries.success.message', {
+              quantity: this.formatStock(response.entry.quantity),
+              unit: response.entry.unitAbbreviation,
+              name: response.entry.supplyName,
+              stock: this.formatStock(response.entry.currentStock),
+            }),
+            life: 7000,
+          });
+
+          this.loadSupplies();
+          this.isEntryOpen.set(false);
+          this.submittedEntry.set(false);
+          this.entryServerMessage.set(null);
+          this.entryDetailsOpen.set(false);
+          this.entryCandidate.set(null);
+          this.entryForm.reset();
+        },
+        error: (error: unknown) => {
+          this.entryServerMessage.set(this.errors.getMessage(error));
+        },
+      });
+  }
+
+  invalidEntry(controlName: keyof typeof this.entryForm.controls): boolean {
+    const control = this.entryForm.controls[controlName];
+
+    return control.invalid && (control.touched || this.submittedEntry());
+  }
+
+  private todayIso(): string {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+
+    return `${year}-${month}-${day}`;
+  }
+
   formatCost(value: number): string {
     return new Intl.NumberFormat('es-GT', {
       style: 'currency',
@@ -361,5 +506,17 @@ export class SuppliesPageComponent implements OnInit {
     return new Intl.NumberFormat('es-GT', {
       maximumFractionDigits: 2,
     }).format(value);
+  }
+
+  estimatedTotalCost(): string | null {
+    const raw = this.entryForm.getRawValue();
+    const quantity = raw.quantity;
+    const unitCost = raw.unitCost;
+
+    if (!quantity || unitCost == null || unitCost < 0) {
+      return null;
+    }
+
+    return this.formatCost(quantity * unitCost);
   }
 }
