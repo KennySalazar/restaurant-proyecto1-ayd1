@@ -87,13 +87,29 @@
 }
 
 .refresh-button,
-.clear-filters-button {
+.clear-filters-button,
+.register-button {
   align-items: center;
   border: 0;
   cursor: pointer;
   display: inline-flex;
   font: inherit;
   justify-content: center;
+}
+
+.register-button {
+  background: #a54838;
+  border-radius: 0.7rem;
+  color: #ffffff;
+  font-size: 0.74rem;
+  font-weight: 700;
+  gap: 0.45rem;
+  min-height: 2.5rem;
+  padding: 0.6rem 0.85rem;
+}
+
+.register-button:hover {
+  background: #93402f;
 }
 
 .refresh-button {
@@ -390,6 +406,10 @@
   }
 
   .refresh-button {
+    flex: 1;
+  }
+
+  .register-button {
     flex: 1;
   }
 

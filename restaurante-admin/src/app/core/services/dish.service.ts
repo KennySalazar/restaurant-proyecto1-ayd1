@@ -3,7 +3,12 @@ import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
-import { DishCategory, DishSummary } from '../models/dish.models';
+import {
+  CreateDishRequest,
+  DishCategory,
+  DishRegistrationResponse,
+  DishSummary,
+} from '../models/dish.models';
 
 @Injectable({
   providedIn: 'root',
@@ -28,5 +33,9 @@ export class DishService {
 
   listCategories(): Observable<DishCategory[]> {
     return this.http.get<DishCategory[]>(`${this.dishesUrl}/categories`);
+  }
+
+  registerDish(payload: CreateDishRequest): Observable<DishRegistrationResponse> {
+    return this.http.post<DishRegistrationResponse>(this.dishesUrl, payload);
   }
 }

@@ -26,3 +26,17 @@ export interface DishSummary {
   createdAt: string;
   updatedAt: string;
 }
+
+export interface CreateDishRequest {
+  code?: string | null;
+  name: string;
+  description?: string | null;
+  categoryId: number;
+  salePrice: number;
+  preparationTimeMinutes: number;
+}
+
+export interface DishRegistrationResponse {
+  message: string;
+  dish: DishSummary;
+}

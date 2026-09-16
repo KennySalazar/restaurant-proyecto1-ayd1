@@ -704,6 +704,9 @@
     "eyebrow": "Platillos y Menú",
     "title": "Catálogo de platillos",
     "description": "Consulta la información comercial, el tiempo de preparación y la disponibilidad de cada platillo del menú.",
+    "actions": {
+      "register": "Registrar platillo"
+    },
     "tabs": {
       "label": "Secciones de Platillos y Menú",
       "dishes": "Platillos",
@@ -742,6 +745,38 @@
       "price": "Precio de venta",
       "time": "Tiempo",
       "availability": "Disponibilidad"
+    },
+    "registration": {
+      "eyebrow": "Nuevo platillo",
+      "title": "Registrar platillo",
+      "description": "Ingresa la información comercial y el tiempo estimado de preparación del platillo.",
+      "actions": {
+        "save": "Registrar platillo",
+        "saving": "Registrando..."
+      },
+      "fields": {
+        "name": "Nombre",
+        "code": "Código",
+        "codeHint": "Opcional. Se autogenera si no se indica.",
+        "description": "Descripción",
+        "category": "Categoría",
+        "selectCategory": "Selecciona una categoría",
+        "salePrice": "Precio de venta",
+        "currency": "(GTQ)",
+        "preparationTime": "Tiempo estimado de preparación"
+      },
+      "validation": {
+        "name": "El nombre del platillo es obligatorio.",
+        "code": "El código no puede exceder 30 caracteres.",
+        "description": "La descripción no puede exceder 500 caracteres.",
+        "category": "Selecciona una categoría para el platillo.",
+        "salePrice": "El precio de venta debe ser mayor que cero.",
+        "preparationTime": "El tiempo de preparación debe ser mayor que cero."
+      },
+      "success": {
+        "title": "Platillo registrado",
+        "message": "El platillo «{{name}}» se registró e incorporó al catálogo."
+      }
     },
     "availability": {
       "available": "Disponible",

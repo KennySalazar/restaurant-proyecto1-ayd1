@@ -1,0 +1,186 @@
+@if (open) {
+  <div class="registration-backdrop" role="presentation">
+    <section
+      class="registration-dialog"
+      role="dialog"
+      aria-modal="true"
+      [attr.aria-labelledby]="'dish-form-dialog-title'"
+    >
+      <header class="registration-dialog__header">
+        <div>
+          <span class="registration-dialog__eyebrow">
+            {{ 'menu.registration.eyebrow' | transloco }}
+          </span>
+
+          <h2 id="dish-form-dialog-title">
+            {{ 'menu.registration.title' | transloco }}
+          </h2>
+
+          <p>
+            {{ 'menu.registration.description' | transloco }}
+          </p>
+        </div>
+
+        <button
+          class="close-button"
+          type="button"
+          [attr.aria-label]="'common.cancel' | transloco"
+          [disabled]="isSaving()"
+          (click)="close()"
+        >
+          <i class="pi pi-times"></i>
+        </button>
+      </header>
+
+      <app-form-feedback [message]="serverMessage()" />
+
+      <form
+        class="registration-form"
+        [formGroup]="registrationForm"
+        (ngSubmit)="submit()"
+        novalidate
+      >
+        <div class="form-grid">
+          <div class="form-field">
+            <label for="dish-name">
+              {{ 'menu.registration.fields.name' | transloco }}
+            </label>
+
+            <input id="dish-name" type="text" formControlName="name" maxlength="120" />
+
+            @if (invalid('name')) {
+              <small class="field-error">
+                {{ 'menu.registration.validation.name' | transloco }}
+              </small>
+            }
+          </div>
+
+          <div class="form-field">
+            <label for="dish-code">
+              {{ 'menu.registration.fields.code' | transloco }}
+
+              <small class="field-hint">
+                {{ 'menu.registration.fields.codeHint' | transloco }}
+              </small>
+            </label>
+
+            <input id="dish-code" type="text" formControlName="code" maxlength="30" />
+
+            @if (invalid('code')) {
+              <small class="field-error">
+                {{ 'menu.registration.validation.code' | transloco }}
+              </small>
+            }
+          </div>
+
+          <div class="form-field form-field--span-2">
+            <label for="dish-description">
+              {{ 'menu.registration.fields.description' | transloco }}
+            </label>
+
+            <textarea
+              id="dish-description"
+              formControlName="description"
+              maxlength="500"
+              rows="3"
+            ></textarea>
+
+            @if (invalid('description')) {
+              <small class="field-error">
+                {{ 'menu.registration.validation.description' | transloco }}
+              </small>
+            }
+          </div>
+
+          <div class="form-field">
+            <label for="dish-category">
+              {{ 'menu.registration.fields.category' | transloco }}
+            </label>
+
+            <select id="dish-category" formControlName="categoryId">
+              <option [ngValue]="0">
+                {{ 'menu.registration.fields.selectCategory' | transloco }}
+              </option>
+
+              @for (category of categories; track category.id) {
+                <option [ngValue]="category.id">{{ category.name }}</option>
+              }
+            </select>
+
+            @if (invalid('categoryId')) {
+              <small class="field-error">
+                {{ 'menu.registration.validation.category' | transloco }}
+              </small>
+            }
+          </div>
+
+          <div class="form-field">
+            <label for="dish-price">
+              {{ 'menu.registration.fields.salePrice' | transloco }}
+
+              <small class="field-hint">
+                {{ 'menu.registration.fields.currency' | transloco }}
+              </small>
+            </label>
+
+            <input
+              id="dish-price"
+              type="number"
+              formControlName="salePrice"
+              min="0.01"
+              step="0.01"
+            />
+
+            @if (invalid('salePrice')) {
+              <small class="field-error">
+                {{ 'menu.registration.validation.salePrice' | transloco }}
+              </small>
+            }
+          </div>
+
+          <div class="form-field">
+            <label for="dish-preparation-time">
+              {{ 'menu.registration.fields.preparationTime' | transloco }}
+            </label>
+
+            <div class="input-with-suffix">
+              <input
+                id="dish-preparation-time"
+                type="number"
+                formControlName="preparationTimeMinutes"
+                min="1"
+                step="1"
+              />
+
+              <span class="input-with-suffix__label">
+                {{ 'menu.units.minutes' | transloco }}
+              </span>
+            </div>
+
+            @if (invalid('preparationTimeMinutes')) {
+              <small class="field-error">
+                {{ 'menu.registration.validation.preparationTime' | transloco }}
+              </small>
+            }
+          </div>
+        </div>
+
+        <footer class="registration-dialog__actions">
+          <button class="cancel-button" type="button" [disabled]="isSaving()" (click)="close()">
+            {{ 'common.cancel' | transloco }}
+          </button>
+
+          <button class="save-button" type="submit" [disabled]="isSaving()">
+            @if (isSaving()) {
+              <i class="pi pi-spin pi-spinner"></i>
+              {{ 'menu.registration.actions.saving' | transloco }}
+            } @else {
+              <i class="pi pi-check"></i>
+              {{ 'menu.registration.actions.save' | transloco }}
+            }
+          </button>
+        </footer>
+      </form>
+    </section>
+  </div>
+}

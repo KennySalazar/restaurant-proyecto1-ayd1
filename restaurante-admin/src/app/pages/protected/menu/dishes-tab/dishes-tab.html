@@ -41,6 +41,11 @@
     </div>
 
     <div class="header-actions">
+      <button class="register-button" type="button" (click)="openRegistration()">
+        <i class="pi pi-plus"></i>
+        {{ 'menu.actions.register' | transloco }}
+      </button>
+
       <button
         class="refresh-button"
         type="button"
@@ -231,3 +236,10 @@
     </div>
   }
 </section>
+
+<app-menu-dish-form-dialog
+  [categories]="categories()"
+  [open]="registrationOpen()"
+  (saved)="onDishRegistered()"
+  (dismissed)="closeRegistration()"
+/>

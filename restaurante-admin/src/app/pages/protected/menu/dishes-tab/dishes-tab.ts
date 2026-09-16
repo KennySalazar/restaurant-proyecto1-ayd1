@@ -7,10 +7,11 @@ import { DishCategory, DishSummary } from '../../../../core/models/dish.models';
 import { ApiErrorService } from '../../../../core/services/api-error.service';
 import { DishService } from '../../../../core/services/dish.service';
 import { FormFeedbackComponent } from '../../../../shared/components/form-feedback/form-feedback';
+import { DishFormDialogComponent } from '../dish-form-dialog/dish-form-dialog';
 
 @Component({
   selector: 'app-menu-dishes-tab',
-  imports: [FormFeedbackComponent, TranslocoPipe],
+  imports: [DishFormDialogComponent, FormFeedbackComponent, TranslocoPipe],
   templateUrl: './dishes-tab.html',
   styleUrl: './dishes-tab.scss',
 })
@@ -90,6 +91,21 @@ export class DishesTabComponent implements OnInit {
   clearFilters(): void {
     this.searchTerm.set('');
     this.selectedCategory.set(null);
+    this.loadDishes();
+  }
+
+  readonly registrationOpen = signal(false);
+
+  openRegistration(): void {
+    this.registrationOpen.set(true);
+  }
+
+  closeRegistration(): void {
+    this.registrationOpen.set(false);
+  }
+
+  onDishRegistered(): void {
+    this.registrationOpen.set(false);
     this.loadDishes();
   }
 
