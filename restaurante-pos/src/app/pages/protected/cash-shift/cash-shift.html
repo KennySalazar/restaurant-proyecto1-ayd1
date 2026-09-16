@@ -1,0 +1,293 @@
+<app-page-heading
+  eyebrowKey="cashShift.eyebrow"
+  titleKey="cashShift.title"
+  descriptionKey="cashShift.description"
+/>
+
+@if (openedShift(); as shift) {
+  <section class="shift-success">
+    <span class="shift-success__icon">
+      <i class="pi pi-check"></i>
+    </span>
+
+    <div class="shift-success__content">
+      <span class="shift-success__eyebrow">
+        {{ 'cashShift.successTitle' | transloco }}
+      </span>
+
+      <h2>
+        {{ shift.codigoCaja }} - {{ shift.nombreCaja }}
+      </h2>
+
+      <p>
+        {{ 'cashShift.successDescription' | transloco }}
+      </p>
+
+      <div class="shift-success__details">
+        <div>
+          <span>{{ 'cashShift.shift' | transloco }}</span>
+          <strong>#{{ shift.id }}</strong>
+        </div>
+
+        <div>
+          <span>{{ 'cashShift.status' | transloco }}</span>
+          <strong>{{ shift.estado }}</strong>
+        </div>
+
+        <div>
+          <span>
+            {{ 'cashShift.initialAmount' | transloco }}
+          </span>
+          <strong>
+            Q {{ shift.montoInicialEfectivo | number: '1.2-2' }}
+          </strong>
+        </div>
+
+        <div>
+          <span>{{ 'cashShift.openedAt' | transloco }}</span>
+          <strong>
+            {{ shift.abiertaEn | date: 'dd/MM/yyyy HH:mm' }}
+          </strong>
+        </div>
+      </div>
+    </div>
+  </section>
+} @else {
+  <div class="cash-shift-layout">
+    <section class="cash-shift-card">
+      <app-form-feedback [message]="loadError()" />
+      <app-form-feedback [message]="errorMessage()" />
+
+      @if (loadingRegisters()) {
+        <div class="cash-shift-state">
+          <i class="pi pi-spin pi-spinner"></i>
+
+          <span>
+            {{ 'cashShift.loadingRegisters' | transloco }}
+          </span>
+        </div>
+      } @else {
+        @if (cashRegisters().length === 0) {
+          <div class="cash-shift-state cash-shift-state--warning">
+            <i class="pi pi-info-circle"></i>
+
+            <span>
+              {{ 'cashShift.noRegisters' | transloco }}
+            </span>
+          </div>
+        } @else {
+          <div class="register-list">
+            @for (
+                cashRegister of cashRegisters();
+              track cashRegister.cajaId
+              ) {
+              <article
+                class="register-card"
+                [class.register-card--occupied]="
+                  !cashRegister.disponible
+                "
+              >
+                <span class="register-card__icon">
+                  <i class="pi pi-credit-card"></i>
+                </span>
+
+                <div class="register-card__body">
+                  <div class="register-card__heading">
+                    <div>
+                      <strong>
+                        {{ cashRegister.nombre }}
+                      </strong>
+
+                      <span>
+                        {{ cashRegister.codigo }}
+                      </span>
+                    </div>
+
+                    <span
+                      class="register-status"
+                      [class.register-status--occupied]="
+                        !cashRegister.disponible
+                      "
+                    >
+                      {{
+                        (
+                          cashRegister.disponible
+                            ? 'cashShift.available'
+                            : 'cashShift.occupied'
+                        ) | transloco
+                      }}
+                    </span>
+                  </div>
+
+                  @if (cashRegister.ubicacion) {
+                    <small>
+                      <i class="pi pi-map-marker"></i>
+                      {{ cashRegister.ubicacion }}
+                    </small>
+                  }
+                </div>
+              </article>
+            }
+          </div>
+
+          @if (!hasAvailableRegisters()) {
+            <div class="cash-shift-state cash-shift-state--warning">
+              <i class="pi pi-lock"></i>
+
+              <span>
+                {{
+                  'cashShift.noAvailableRegisters'
+                    | transloco
+                }}
+              </span>
+            </div>
+          } @else {
+            <form
+              class="cash-shift-form"
+              [formGroup]="form"
+              (ngSubmit)="submit()"
+              novalidate
+            >
+              <div class="form-field">
+                <label for="cash-register">
+                  {{ 'cashShift.register' | transloco }}
+                </label>
+
+                <select
+                  id="cash-register"
+                  formControlName="cajaId"
+                >
+                  <option [ngValue]="null">
+                    {{
+                      'cashShift.registerPlaceholder'
+                        | transloco
+                    }}
+                  </option>
+
+                  @for (
+                      cashRegister of cashRegisters();
+                    track cashRegister.cajaId
+                    ) {
+                    <option
+                      [ngValue]="cashRegister.cajaId"
+                      [disabled]="!cashRegister.disponible"
+                    >
+                      {{ cashRegister.codigo }} -
+                      {{ cashRegister.nombre }}
+
+                      @if (!cashRegister.disponible) {
+                        ({{ 'cashShift.occupied' | transloco }})
+                      }
+                    </option>
+                  }
+                </select>
+
+                @if (
+                  (submitted() ||
+                    form.controls.cajaId.touched) &&
+                  form.controls.cajaId.hasError('required')
+                  ) {
+                  <small class="field-error">
+                    {{
+                      'cashShift.validation.registerRequired'
+                        | transloco
+                    }}
+                  </small>
+                }
+              </div>
+
+              <div class="form-field">
+                <label for="initial-amount">
+                  {{ 'cashShift.initialAmount' | transloco }}
+                </label>
+
+                <div class="currency-input">
+                  <span>Q</span>
+
+                  <input
+                    id="initial-amount"
+                    pInputText
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    formControlName="montoInicialEfectivo"
+                    [placeholder]="
+                      'cashShift.initialAmountPlaceholder'
+                        | transloco
+                    "
+                  />
+                </div>
+
+                @if (
+                  (submitted() ||
+                    form.controls.montoInicialEfectivo.touched) &&
+                  form.controls.montoInicialEfectivo.hasError(
+                    'required'
+                  )
+                  ) {
+                  <small class="field-error">
+                    {{
+                      'cashShift.validation.amountRequired'
+                        | transloco
+                    }}
+                  </small>
+                }
+
+                @if (
+                  (submitted() ||
+                    form.controls.montoInicialEfectivo.touched) &&
+                  form.controls.montoInicialEfectivo.hasError(
+                    'min'
+                  )
+                  ) {
+                  <small class="field-error">
+                    {{
+                      'cashShift.validation.amountMinimum'
+                        | transloco
+                    }}
+                  </small>
+                }
+              </div>
+
+              <div class="form-field">
+                <label for="opening-notes">
+                  {{ 'cashShift.notes' | transloco }}
+                </label>
+
+                <textarea
+                  id="opening-notes"
+                  rows="4"
+                  formControlName="observaciones"
+                  [placeholder]="
+                    'cashShift.notesPlaceholder'
+                      | transloco
+                  "
+                ></textarea>
+              </div>
+
+              <button
+                class="primary-button"
+                type="submit"
+                [disabled]="submitting()"
+              >
+                @if (submitting()) {
+                  <i class="pi pi-spin pi-spinner"></i>
+
+                  <span>
+                    {{ 'cashShift.opening' | transloco }}
+                  </span>
+                } @else {
+                  <i class="pi pi-play"></i>
+
+                  <span>
+                    {{ 'cashShift.submit' | transloco }}
+                  </span>
+                }
+              </button>
+            </form>
+          }
+        }
+      }
+    </section>
+  </div>
+}

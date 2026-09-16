@@ -77,6 +77,18 @@ export const routes: Routes = [
             (module) => module.DashboardPageComponent,
           ),
       },
+
+      {
+        path: 'caja/turno',
+        loadComponent: () =>
+          import('./pages/protected/cash-shift/cash-shift').then(
+            (module) => module.CashShiftPageComponent,
+          ),
+        canActivate: [roleGuard],
+        data: {
+          roles: ['CASHIER'],
+        },
+      },
       {
         path: 'account',
         loadComponent: () =>
