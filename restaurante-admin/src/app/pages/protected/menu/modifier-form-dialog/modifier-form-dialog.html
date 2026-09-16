@@ -1,0 +1,180 @@
+@if (open) {
+  <div class="registration-backdrop" role="presentation">
+    <section
+      class="registration-dialog"
+      role="dialog"
+      aria-modal="true"
+      [attr.aria-labelledby]="'modifier-form-dialog-title'"
+    >
+      <header class="registration-dialog__header">
+        <div>
+          <span class="registration-dialog__eyebrow">
+            {{
+              (modifier ? 'menu.modifiers.update.eyebrow' : 'menu.modifiers.registration.eyebrow')
+                | transloco
+            }}
+          </span>
+
+          <h2 id="modifier-form-dialog-title">
+            {{
+              (modifier ? 'menu.modifiers.update.title' : 'menu.modifiers.registration.title')
+                | transloco
+            }}
+          </h2>
+
+          <p>
+            {{
+              (modifier
+                ? 'menu.modifiers.update.description'
+                : 'menu.modifiers.registration.description'
+              ) | transloco
+            }}
+          </p>
+        </div>
+
+        <button
+          class="close-button"
+          type="button"
+          [attr.aria-label]="'common.cancel' | transloco"
+          [disabled]="isSaving()"
+          (click)="close()"
+        >
+          <i class="pi pi-times"></i>
+        </button>
+      </header>
+
+      <app-form-feedback [message]="serverMessage()" />
+
+      <form class="registration-form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+        <div class="form-grid">
+          <div class="form-field">
+            <label for="modifier-name">
+              {{ 'menu.modifiers.registration.fields.name' | transloco }}
+            </label>
+
+            <input id="modifier-name" type="text" formControlName="name" maxlength="100" />
+
+            @if (invalid('name')) {
+              <small class="field-error">
+                {{ 'menu.modifiers.registration.validation.name' | transloco }}
+              </small>
+            }
+          </div>
+
+          <div class="form-field">
+            <label for="modifier-code">
+              {{ 'menu.modifiers.registration.fields.code' | transloco }}
+
+              <small class="field-hint">
+                {{ 'menu.modifiers.registration.fields.codeHint' | transloco }}
+              </small>
+            </label>
+
+            <input id="modifier-code" type="text" formControlName="code" maxlength="30" />
+
+            @if (invalid('code')) {
+              <small class="field-error">
+                {{ 'menu.modifiers.registration.validation.code' | transloco }}
+              </small>
+            }
+          </div>
+
+          <div class="form-field form-field--span-2">
+            <label for="modifier-description">
+              {{ 'menu.modifiers.registration.fields.description' | transloco }}
+            </label>
+
+            <textarea
+              id="modifier-description"
+              formControlName="description"
+              maxlength="255"
+              rows="2"
+            ></textarea>
+
+            @if (invalid('description')) {
+              <small class="field-error">
+                {{ 'menu.modifiers.registration.validation.description' | transloco }}
+              </small>
+            }
+          </div>
+
+          <div class="form-field">
+            <label for="modifier-price">
+              {{ 'menu.modifiers.registration.fields.additionalPrice' | transloco }}
+
+              <small class="field-hint">
+                {{ 'menu.modifiers.registration.fields.currency' | transloco }}
+              </small>
+            </label>
+
+            <input
+              id="modifier-price"
+              type="number"
+              formControlName="additionalPrice"
+              min="0"
+              step="0.01"
+            />
+
+            @if (invalid('additionalPrice')) {
+              <small class="field-error">
+                {{ 'menu.modifiers.registration.validation.additionalPrice' | transloco }}
+              </small>
+            }
+          </div>
+
+          <div class="form-field form-field--span-2">
+            <label>
+              {{ 'menu.modifiers.registration.fields.dishes' | transloco }}
+
+              <small class="field-hint">
+                {{ 'menu.modifiers.registration.fields.dishesHint' | transloco }}
+              </small>
+            </label>
+
+            <div class="checkbox-grid" formArrayName="dishIds">
+              @for (dish of dishes; track dish.id; let index = $index) {
+                <label class="checkbox-label">
+                  <input type="checkbox" [formControlName]="index" />
+
+                  <span>{{ dish.name }}</span>
+                </label>
+              }
+            </div>
+
+            @if (dishIdInvalid()) {
+              <small class="field-error">
+                {{ 'menu.modifiers.registration.validation.dishes' | transloco }}
+              </small>
+            }
+          </div>
+        </div>
+
+        <footer class="registration-dialog__actions">
+          <button class="cancel-button" type="button" [disabled]="isSaving()" (click)="close()">
+            {{ 'common.cancel' | transloco }}
+          </button>
+
+          <button class="save-button" type="submit" [disabled]="isSaving()">
+            @if (isSaving()) {
+              <i class="pi pi-spin pi-spinner"></i>
+              {{
+                (modifier
+                  ? 'menu.modifiers.update.actions.saving'
+                  : 'menu.modifiers.registration.actions.saving'
+                ) | transloco
+              }}
+            } @else {
+              <i class="pi pi-check"></i>
+              {{
+                (modifier
+                  ? 'menu.modifiers.update.actions.save'
+                  : 'menu.modifiers.registration.actions.save'
+                ) | transloco
+              }}
+            }
+          </button>
+        </footer>
+      </form>
+    </section>
+  </div>
+}

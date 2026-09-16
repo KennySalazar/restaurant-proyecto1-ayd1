@@ -1,0 +1,256 @@
+<section class="summary-grid">
+  <article class="summary-card">
+    <span class="summary-card__icon">
+      <i class="pi pi-sliders-h"></i>
+    </span>
+
+    <div>
+      <span>{{ 'menu.modifiers.summary.total' | transloco }}</span>
+      <strong>{{ totalModifiers() }}</strong>
+    </div>
+  </article>
+
+  <article class="summary-card">
+    <span class="summary-card__icon summary-card__icon--available">
+      <i class="pi pi-check-circle"></i>
+    </span>
+
+    <div>
+      <span>{{ 'menu.modifiers.summary.active' | transloco }}</span>
+      <strong>{{ activeModifiers() }}</strong>
+    </div>
+  </article>
+
+  <article class="summary-card">
+    <span class="summary-card__icon summary-card__icon--unavailable">
+      <i class="pi pi-times-circle"></i>
+    </span>
+
+    <div>
+      <span>{{ 'menu.modifiers.summary.inactive' | transloco }}</span>
+      <strong>{{ inactiveModifiers() }}</strong>
+    </div>
+  </article>
+</section>
+
+<section class="modifiers-panel">
+  <header class="modifiers-panel__header">
+    <div>
+      <h2>{{ 'menu.modifiers.list.title' | transloco }}</h2>
+      <p>{{ 'menu.modifiers.list.description' | transloco }}</p>
+    </div>
+
+    <div class="header-actions">
+      <button class="register-button" type="button" (click)="openRegistration()">
+        <i class="pi pi-plus"></i>
+        {{ 'menu.modifiers.actions.register' | transloco }}
+      </button>
+
+      <button
+        class="refresh-button"
+        type="button"
+        [disabled]="isLoading() || isFiltering()"
+        (click)="loadModifiers()"
+      >
+        <i class="pi pi-refresh" [class.pi-spin]="isLoading() || isFiltering()"></i>
+        {{ 'menu.modifiers.list.refresh' | transloco }}
+      </button>
+    </div>
+  </header>
+
+  <div class="filters-bar">
+    <label class="search-field">
+      <i class="pi pi-search"></i>
+
+      <input
+        #searchInput
+        type="search"
+        [value]="searchTerm()"
+        [placeholder]="'menu.modifiers.filters.searchPlaceholder' | transloco"
+        (input)="onSearchChange(searchInput.value)"
+      />
+    </label>
+
+    <label class="dish-field">
+      <span class="sr-only">
+        {{ 'menu.modifiers.filters.dish' | transloco }}
+      </span>
+
+      <i class="pi pi-book"></i>
+
+      <select
+        #dishSelect
+        [value]="selectedDishId() ?? ''"
+        (change)="onDishChange(dishSelect.value)"
+      >
+        <option value="">
+          {{ 'menu.modifiers.filters.allDishes' | transloco }}
+        </option>
+
+        @for (dish of dishes(); track dish.id) {
+          <option [value]="dish.id">{{ dish.name }}</option>
+        }
+      </select>
+    </label>
+
+    @if (hasActiveFilters()) {
+      <button class="clear-filters-button" type="button" (click)="clearFilters()">
+        <i class="pi pi-filter-slash"></i>
+        {{ 'menu.modifiers.filters.clear' | transloco }}
+      </button>
+    }
+  </div>
+
+  <app-form-feedback [message]="errorMessage()" />
+
+  @if (isLoading() || (isFiltering() && modifiers().length === 0)) {
+    <div class="state-panel">
+      <i class="pi pi-spin pi-spinner"></i>
+      <span>{{ 'common.loading' | transloco }}</span>
+    </div>
+  } @else if (!errorMessage() && modifiers().length === 0 && !hasActiveFilters()) {
+    <div class="state-panel state-panel--empty">
+      <span class="state-panel__icon">
+        <i class="pi pi-sliders-h"></i>
+      </span>
+
+      <strong>{{ 'menu.modifiers.list.emptyTitle' | transloco }}</strong>
+
+      <p>
+        {{ 'menu.modifiers.list.emptyDescription' | transloco }}
+      </p>
+    </div>
+  } @else if (!errorMessage() && modifiers().length === 0 && hasActiveFilters()) {
+    <div class="state-panel state-panel--empty">
+      <span class="state-panel__icon">
+        <i class="pi pi-search"></i>
+      </span>
+
+      <strong>{{ 'menu.modifiers.list.noResultsTitle' | transloco }}</strong>
+
+      <p>
+        {{ 'menu.modifiers.list.noResultsDescription' | transloco }}
+      </p>
+    </div>
+  } @else if (modifiers().length > 0) {
+    <div class="table-wrapper">
+      <table class="restaurant-table">
+        <thead>
+          <tr>
+            <th>{{ 'menu.modifiers.columns.code' | transloco }}</th>
+            <th>{{ 'menu.modifiers.columns.name' | transloco }}</th>
+            <th>{{ 'menu.modifiers.columns.price' | transloco }}</th>
+            <th>{{ 'menu.modifiers.columns.dishes' | transloco }}</th>
+            <th>{{ 'menu.modifiers.columns.status' | transloco }}</th>
+            <th>
+              <span class="sr-only">
+                {{ 'menu.modifiers.columns.actions' | transloco }}
+              </span>
+            </th>
+          </tr>
+        </thead>
+
+        <tbody>
+          @for (modifier of modifiers(); track modifier.id) {
+            <tr>
+              <td>
+                <span class="row-code">{{ modifier.code }}</span>
+              </td>
+
+              <td>
+                <div class="modifier-name">
+                  <strong>{{ modifier.name }}</strong>
+
+                  @if (modifier.description) {
+                    <small>{{ modifier.description }}</small>
+                  }
+                </div>
+              </td>
+
+              <td>
+                <span class="price-value">{{ formatPrice(modifier.additionalPrice) }}</span>
+              </td>
+
+              <td>
+                <div class="dish-chips">
+                  @for (dish of modifier.associatedDishes; track dish.id; let last = $last) {
+                    <span class="dish-chip">{{ dish.name }}{{ last ? '' : ', ' }}</span>
+                  }
+
+                  @if (modifier.associatedDishes.length === 0) {
+                    <span class="dish-chip dish-chip--empty">
+                      {{ 'menu.modifiers.list.noDishes' | transloco }}
+                    </span>
+                  }
+                </div>
+              </td>
+
+              <td>
+                <span
+                  class="status-badge"
+                  [class.status-badge--active]="modifier.active"
+                  [class.status-badge--inactive]="!modifier.active"
+                >
+                  <i
+                    class="pi"
+                    [class.pi-check-circle]="modifier.active"
+                    [class.pi-times-circle]="!modifier.active"
+                  ></i>
+
+                  {{
+                    (modifier.active
+                      ? 'menu.modifiers.status.active'
+                      : 'menu.modifiers.status.inactive'
+                    ) | transloco
+                  }}
+                </span>
+              </td>
+
+              <td class="restaurant-table__actions">
+                <div class="row-actions">
+                  @if (modifier.active) {
+                    <button class="edit-button" type="button" (click)="openEdit(modifier)">
+                      <i class="pi pi-pencil"></i>
+                      {{ 'menu.modifiers.actions.edit' | transloco }}
+                    </button>
+
+                    <button
+                      class="retire-button"
+                      type="button"
+                      (click)="openDeactivation(modifier)"
+                    >
+                      <i class="pi pi-ban"></i>
+                      {{ 'menu.modifiers.actions.deactivate' | transloco }}
+                    </button>
+                  }
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</section>
+
+<app-menu-modifier-form-dialog
+  [dishes]="dishes()"
+  [modifier]="editingModifier()"
+  [open]="formOpen()"
+  (saved)="onModifierSaved()"
+  (dismissed)="closeForm()"
+/>
+
+<app-confirmation-dialog
+  [open]="deactivationCandidate() != null"
+  eyebrowKey="menu.modifiers.deactivation.eyebrow"
+  titleKey="menu.modifiers.deactivation.title"
+  descriptionKey="menu.modifiers.deactivation.description"
+  [descriptionParams]="{ name: deactivationCandidate()?.name ?? '' }"
+  confirmKey="menu.modifiers.deactivation.confirm"
+  tone="danger"
+  [isSaving]="isDeactivating()"
+  [serverMessage]="deactivationMessage()"
+  (confirmed)="confirmDeactivation()"
+  (cancelled)="cancelDeactivation()"
+/>

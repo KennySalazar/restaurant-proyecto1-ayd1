@@ -1,0 +1,287 @@
+@if (open) {
+  <div class="registration-backdrop" role="presentation">
+    <section
+      class="registration-dialog"
+      role="dialog"
+      aria-modal="true"
+      [attr.aria-labelledby]="'combo-form-dialog-title'"
+    >
+      <header class="registration-dialog__header">
+        <div>
+          <span class="registration-dialog__eyebrow">
+            {{
+              (combo ? 'menu.combos.update.eyebrow' : 'menu.combos.registration.eyebrow')
+                | transloco
+            }}
+          </span>
+
+          <h2 id="combo-form-dialog-title">
+            {{
+              (combo ? 'menu.combos.update.title' : 'menu.combos.registration.title') | transloco
+            }}
+          </h2>
+
+          <p>
+            {{
+              (combo ? 'menu.combos.update.description' : 'menu.combos.registration.description')
+                | transloco
+            }}
+          </p>
+        </div>
+
+        <button
+          class="close-button"
+          type="button"
+          [attr.aria-label]="'common.cancel' | transloco"
+          [disabled]="isSaving()"
+          (click)="close()"
+        >
+          <i class="pi pi-times"></i>
+        </button>
+      </header>
+
+      <app-form-feedback [message]="serverMessage()" />
+
+      <form class="registration-form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+        <div class="form-grid">
+          <div class="form-field">
+            <label for="combo-name">
+              {{ 'menu.combos.registration.fields.name' | transloco }}
+            </label>
+
+            <input id="combo-name" type="text" formControlName="name" maxlength="120" />
+
+            @if (invalid('name')) {
+              <small class="field-error">
+                {{ 'menu.combos.registration.validation.name' | transloco }}
+              </small>
+            }
+          </div>
+
+          <div class="form-field">
+            <label for="combo-code">
+              {{ 'menu.combos.registration.fields.code' | transloco }}
+
+              <small class="field-hint">
+                {{ 'menu.combos.registration.fields.codeHint' | transloco }}
+              </small>
+            </label>
+
+            <input id="combo-code" type="text" formControlName="code" maxlength="30" />
+
+            @if (invalid('code')) {
+              <small class="field-error">
+                {{ 'menu.combos.registration.validation.code' | transloco }}
+              </small>
+            }
+          </div>
+
+          <div class="form-field form-field--span-2">
+            <label for="combo-description">
+              {{ 'menu.combos.registration.fields.description' | transloco }}
+            </label>
+
+            <textarea
+              id="combo-description"
+              formControlName="description"
+              maxlength="500"
+              rows="2"
+            ></textarea>
+
+            @if (invalid('description')) {
+              <small class="field-error">
+                {{ 'menu.combos.registration.validation.description' | transloco }}
+              </small>
+            }
+          </div>
+
+          <div class="form-field">
+            <label for="combo-sale-price">
+              {{ 'menu.combos.registration.fields.salePrice' | transloco }}
+
+              <small class="field-hint">
+                {{ 'menu.combos.registration.fields.currency' | transloco }}
+              </small>
+            </label>
+
+            <input
+              id="combo-sale-price"
+              type="number"
+              formControlName="salePrice"
+              min="0.01"
+              step="0.01"
+            />
+
+            @if (invalid('salePrice')) {
+              <small class="field-error">
+                {{ 'menu.combos.registration.validation.salePrice' | transloco }}
+              </small>
+            }
+          </div>
+
+          <div class="form-field">
+            <label for="combo-prep-time">
+              {{ 'menu.combos.registration.fields.preparationTime' | transloco }}
+
+              <small class="field-hint">
+                {{ 'menu.combos.registration.fields.minutes' | transloco }}
+              </small>
+            </label>
+
+            <input
+              id="combo-prep-time"
+              type="number"
+              formControlName="preparationTimeMinutes"
+              min="1"
+              step="1"
+            />
+
+            @if (invalid('preparationTimeMinutes')) {
+              <small class="field-error">
+                {{ 'menu.combos.registration.validation.preparationTime' | transloco }}
+              </small>
+            }
+          </div>
+
+          <div class="form-field">
+            <label for="combo-start-date">
+              {{ 'menu.combos.registration.fields.startDate' | transloco }}
+
+              <small class="field-hint">
+                {{ 'menu.combos.registration.fields.optional' | transloco }}
+              </small>
+            </label>
+
+            <input id="combo-start-date" type="datetime-local" formControlName="startDate" />
+          </div>
+
+          <div class="form-field">
+            <label for="combo-end-date">
+              {{ 'menu.combos.registration.fields.endDate' | transloco }}
+
+              <small class="field-hint">
+                {{ 'menu.combos.registration.fields.optional' | transloco }}
+              </small>
+            </label>
+
+            <input id="combo-end-date" type="datetime-local" formControlName="endDate" />
+          </div>
+        </div>
+
+        <div class="items-section">
+          <div class="items-section__header">
+            <div>
+              <span class="items-section__label">
+                {{ 'menu.combos.registration.fields.items' | transloco }}
+              </span>
+
+              <small class="field-hint">
+                {{ 'menu.combos.registration.fields.itemsHint' | transloco }}
+              </small>
+            </div>
+
+            <button
+              class="add-item-button"
+              type="button"
+              [disabled]="isSaving()"
+              (click)="addItem()"
+            >
+              <i class="pi pi-plus"></i>
+              {{ 'menu.combos.registration.actions.addItem' | transloco }}
+            </button>
+          </div>
+
+          <div class="items-list" formArrayName="items">
+            @for (item of itemsArray.controls; track $index; let index = $index) {
+              <div class="items-list__row" [formGroupName]="index">
+                <div class="item-field item-field--dish">
+                  <label>
+                    {{ 'menu.combos.registration.fields.dish' | transloco }}
+                  </label>
+
+                  <select formControlName="dishId">
+                    <option [ngValue]="0" disabled>
+                      {{ 'menu.combos.registration.fields.dishPlaceholder' | transloco }}
+                    </option>
+
+                    @for (dish of dishes; track dish.id) {
+                      <option [ngValue]="dish.id">{{ dish.code }} — {{ dish.name }}</option>
+                    }
+                  </select>
+
+                  @if (itemFieldInvalid(index, 'dishId')) {
+                    <small class="field-error">
+                      {{ 'menu.combos.registration.validation.dish' | transloco }}
+                    </small>
+                  }
+                </div>
+
+                <div class="item-field item-field--quantity">
+                  <label for="combo-quantity-{{ index }}">
+                    {{ 'menu.combos.registration.fields.quantity' | transloco }}
+                  </label>
+
+                  <input
+                    id="combo-quantity-{{ index }}"
+                    type="number"
+                    formControlName="quantity"
+                    min="1"
+                    step="1"
+                  />
+
+                  @if (itemFieldInvalid(index, 'quantity')) {
+                    <small class="field-error">
+                      {{ 'menu.combos.registration.validation.quantity' | transloco }}
+                    </small>
+                  }
+                </div>
+
+                <button
+                  class="remove-item-button"
+                  type="button"
+                  [attr.aria-label]="'menu.combos.registration.actions.removeItem' | transloco"
+                  [disabled]="isSaving()"
+                  (click)="removeItem(index)"
+                >
+                  <i class="pi pi-trash"></i>
+                </button>
+              </div>
+            }
+          </div>
+
+          @if (itemsInvalid()) {
+            <small class="field-error">
+              {{ 'menu.combos.registration.validation.items' | transloco }}
+            </small>
+          }
+        </div>
+
+        <footer class="registration-dialog__actions">
+          <button class="cancel-button" type="button" [disabled]="isSaving()" (click)="close()">
+            {{ 'common.cancel' | transloco }}
+          </button>
+
+          <button class="save-button" type="submit" [disabled]="isSaving()">
+            @if (isSaving()) {
+              <i class="pi pi-spin pi-spinner"></i>
+              {{
+                (combo
+                  ? 'menu.combos.update.actions.saving'
+                  : 'menu.combos.registration.actions.saving'
+                ) | transloco
+              }}
+            } @else {
+              <i class="pi pi-check"></i>
+              {{
+                (combo
+                  ? 'menu.combos.update.actions.save'
+                  : 'menu.combos.registration.actions.save'
+                ) | transloco
+              }}
+            }
+          </button>
+        </footer>
+      </form>
+    </section>
+  </div>
+}

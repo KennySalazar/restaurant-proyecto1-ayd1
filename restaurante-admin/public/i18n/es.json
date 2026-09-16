@@ -22,6 +22,7 @@
     "dashboard": "Resumen",
     "tables": "Mesas",
     "supplies": "Productos base",
+    "menu": "Platillos y Menú",
     "supplyAlerts": "Alertas de inventario",
     "employees": "Empleados",
     "configuration": "Configuración",
@@ -171,7 +172,7 @@
     }
   },
 
-"supplies": {
+  "supplies": {
     "eyebrow": "Catálogo de insumos",
     "title": "Catálogo de insumos",
     "description": "Consulta la materia prima disponible y revisa su información de compra e inventario.",
@@ -697,6 +698,356 @@
     "error": {
       "title": "No fue posible consultar el panel",
       "description": "Verifica la conexión e intenta nuevamente."
+    }
+  },
+  "menu": {
+    "eyebrow": "Platillos y Menú",
+    "title": "Catálogo de platillos",
+    "description": "Consulta la información comercial, el tiempo de preparación y la disponibilidad de cada platillo del menú.",
+    "actions": {
+      "register": "Registrar platillo",
+      "edit": "Editar",
+      "retire": "Retirar"
+    },
+    "tabs": {
+      "label": "Secciones de Platillos y Menú",
+      "dishes": "Platillos",
+      "modifiers": "Modificadores",
+      "combos": "Combos"
+    },
+    "units": {
+      "minutes": "min"
+    },
+    "summary": {
+      "total": "Total de platillos",
+      "available": "Disponibles",
+      "unavailable": "No disponibles"
+    },
+    "list": {
+      "title": "Catálogo de platillos",
+      "description": "Platillos registrados en el menú con su información comercial y disponibilidad actual.",
+      "refresh": "Actualizar",
+      "emptyTitle": "No hay platillos registrados",
+      "emptyDescription": "Todavía no existen platillos registrados. Cuando se registren, aparecerán aquí.",
+      "noResultsTitle": "Sin resultados",
+      "noResultsDescription": "No se encontraron platillos con los filtros aplicados."
+    },
+    "filters": {
+      "searchPlaceholder": "Buscar por nombre o código...",
+      "category": "Categoría",
+      "allCategories": "Todas las categorías",
+      "status": "Estado del platillo",
+      "statuses": {
+        "active": "Activos",
+        "retired": "Retirados",
+        "all": "Activos y retirados"
+      },
+      "clear": "Limpiar filtros"
+    },
+    "columns": {
+      "image": "Imagen",
+      "name": "Platillo",
+      "category": "Categoría",
+      "price": "Precio de venta",
+      "time": "Tiempo",
+      "availability": "Disponibilidad"
+    },
+    "registration": {
+      "eyebrow": "Nuevo platillo",
+      "title": "Registrar platillo",
+      "description": "Ingresa la información comercial y el tiempo estimado de preparación del platillo.",
+      "actions": {
+        "save": "Registrar platillo",
+        "saving": "Registrando..."
+      },
+      "fields": {
+        "name": "Nombre",
+        "code": "Código",
+        "codeHint": "Opcional. Se autogenera si no se indica.",
+        "description": "Descripción",
+        "category": "Categoría",
+        "selectCategory": "Selecciona una categoría",
+        "salePrice": "Precio de venta",
+        "currency": "(GTQ)",
+        "preparationTime": "Tiempo estimado de preparación"
+      },
+      "validation": {
+        "name": "El nombre del platillo es obligatorio.",
+        "code": "El código no puede exceder 30 caracteres.",
+        "description": "La descripción no puede exceder 500 caracteres.",
+        "category": "Selecciona una categoría para el platillo.",
+        "salePrice": "El precio de venta debe ser mayor que cero.",
+        "preparationTime": "El tiempo de preparación debe ser mayor que cero."
+      },
+      "success": {
+        "title": "Platillo registrado",
+        "message": "El platillo «{{name}}» se registró e incorporó al catálogo."
+      }
+    },
+    "update": {
+      "eyebrow": "Editar platillo",
+      "title": "Actualizar platillo",
+      "description": "Modifica la información comercial y el tiempo estimado de preparación del platillo.",
+      "actions": {
+        "save": "Guardar cambios",
+        "saving": "Guardando..."
+      },
+      "success": {
+        "title": "Platillo actualizado",
+        "message": "El platillo «{{name}}» se actualizó correctamente."
+      }
+    },
+    "retirement": {
+      "eyebrow": "Retirar platillo",
+      "title": "Retirar del menú",
+      "description": "El platillo «{{name}}» dejará de estar disponible para nuevas comandas. Su información histórica, recetas y ventas se conservarán.",
+      "confirm": "Retirar platillo",
+      "success": {
+        "title": "Platillo retirado",
+        "message": "El platillo «{{name}}» se retiró del menú."
+      }
+    },
+    "availability": {
+      "available": "Disponible",
+      "unavailable": "No disponible",
+      "portions": "porciones disponibles",
+      "manualOverride": "Suspensión manual",
+      "manualHint": "Controla manualmente si el platillo se ofrece, independientemente del inventario.",
+      "actions": {
+        "suspend": "Suspender venta",
+        "resume": "Reanudar venta"
+      },
+      "success": {
+        "title": "Disponibilidad actualizada"
+      },
+      "error": {
+        "title": "No se pudo cambiar la disponibilidad"
+      },
+      "reasons": {
+        "MANUAL": "Indisponibilidad manual",
+        "FALTA_INSUMOS": "Falta de insumos",
+        "SIN_RECETA": "Sin receta definida",
+        "INACTIVO": "Platillo retirado del menú"
+      }
+    },
+    "modifiers": {
+      "summary": {
+        "total": "Modificadores registrados",
+        "active": "Activos",
+        "inactive": "Inactivos"
+      },
+      "actions": {
+        "register": "Registrar modificador",
+        "edit": "Editar",
+        "deactivate": "Desactivar"
+      },
+      "list": {
+        "title": "Catálogo de modificadores",
+        "description": "Modificadores registrados, sus costos y los platillos a los que están asociados.",
+        "refresh": "Actualizar",
+        "emptyTitle": "Todavía no existen modificadores",
+        "emptyDescription": "Crea el primer modificador para ofrecer opciones de personalización a los platillos del menú.",
+        "noResultsTitle": "Sin resultados",
+        "noResultsDescription": "No se encontraron modificadores que coincidan con los filtros aplicados.",
+        "noDishes": "Sin platillos asociados"
+      },
+      "filters": {
+        "searchPlaceholder": "Buscar por nombre o código...",
+        "dish": "Platillo",
+        "allDishes": "Todos los platillos",
+        "clear": "Limpiar filtros"
+      },
+      "columns": {
+        "code": "Código",
+        "name": "Modificador",
+        "price": "Costo adicional",
+        "dishes": "Platillos asociados",
+        "status": "Estado",
+        "actions": "Acciones"
+      },
+      "status": {
+        "active": "Activo",
+        "inactive": "Inactivo"
+      },
+      "registration": {
+        "eyebrow": "Registrar modificador",
+        "title": "Nuevo modificador",
+        "description": "Define el modificador y asocia al menos un platillo al que se podrá aplicar.",
+        "fields": {
+          "name": "Nombre",
+          "code": "Código",
+          "codeHint": "Opcional. Se autogenera si no se indica.",
+          "description": "Descripción",
+          "additionalPrice": "Costo adicional",
+          "currency": "(GTQ). Usa 0 si no tiene costo.",
+          "dishes": "Platillos asociados",
+          "dishesHint": "Selecciona al menos un platillo."
+        },
+        "validation": {
+          "name": "El nombre del modificador es obligatorio.",
+          "code": "El código no puede exceder 30 caracteres.",
+          "description": "La descripción no puede exceder 255 caracteres.",
+          "additionalPrice": "El costo adicional no puede ser negativo.",
+          "dishes": "Debes asociar el modificador con al menos un platillo."
+        },
+        "actions": {
+          "save": "Registrar modificador",
+          "saving": "Guardando..."
+        },
+        "success": {
+          "title": "Modificador registrado",
+          "message": "El modificador «{{name}}» se registró correctamente."
+        }
+      },
+      "update": {
+        "eyebrow": "Editar modificador",
+        "title": "Actualizar modificador",
+        "description": "Modifica los datos del modificador y ajusta los platillos a los que está asociado.",
+        "fields": {
+          "name": "Nombre",
+          "code": "Código",
+          "codeHint": "Opcional. Se autogenera si no se indica.",
+          "description": "Descripción",
+          "additionalPrice": "Costo adicional",
+          "currency": "(GTQ). Usa 0 si no tiene costo.",
+          "dishes": "Platillos asociados",
+          "dishesHint": "Selecciona al menos un platillo."
+        },
+        "validation": {
+          "name": "El nombre del modificador es obligatorio.",
+          "code": "El código no puede exceder 30 caracteres.",
+          "description": "La descripción no puede exceder 255 caracteres.",
+          "additionalPrice": "El costo adicional no puede ser negativo.",
+          "dishes": "Debes asociar el modificador con al menos un platillo."
+        },
+        "actions": {
+          "save": "Guardar cambios",
+          "saving": "Guardando..."
+        },
+        "success": {
+          "title": "Modificador actualizado",
+          "message": "El modificador «{{name}}» se actualizó correctamente."
+        }
+      },
+      "deactivation": {
+        "eyebrow": "Desactivar modificador",
+        "title": "Desactivar modificador",
+        "description": "El modificador «{{name}}» dejará de estar disponible para nuevas comandas. Su información y ventas históricas se conservarán.",
+        "confirm": "Desactivar modificador",
+        "success": {
+          "title": "Modificador desactivado",
+          "message": "El modificador «{{name}}» se desactivó correctamente."
+        }
+      }
+    },
+    "combos": {
+      "summary": {
+        "total": "Combos registrados",
+        "active": "Activos",
+        "retired": "Retirados"
+      },
+      "actions": {
+        "register": "Registrar combo",
+        "edit": "Editar",
+        "retire": "Retirar"
+      },
+      "list": {
+        "title": "Combos y promociones",
+        "description": "Combos y promociones registrados con su precio especial, ahorro estimado y platillos incluidos.",
+        "refresh": "Actualizar",
+        "emptyTitle": "Todavía no existen combos registrados",
+        "emptyDescription": "Crea el primer combo o promoción para ofrecer alternativas comerciales atractivas a tus clientes.",
+        "noResultsTitle": "Sin resultados",
+        "noResultsDescription": "No se encontraron combos que coincidan con los filtros aplicados.",
+        "regularHint": "Individual:"
+      },
+      "filters": {
+        "searchPlaceholder": "Buscar por nombre o código...",
+        "status": "Estado del combo",
+        "allStatuses": "Activos y retirados",
+        "activeOnly": "Activos",
+        "retiredOnly": "Retirados",
+        "clear": "Limpiar filtros"
+      },
+      "columns": {
+        "code": "Código",
+        "name": "Combo",
+        "price": "Precio especial",
+        "savings": "Ahorro",
+        "items": "Platillos incluidos",
+        "status": "Estado",
+        "actions": "Acciones"
+      },
+      "status": {
+        "active": "Activo",
+        "retired": "Retirado"
+      },
+      "registration": {
+        "eyebrow": "Nuevo combo",
+        "title": "Registrar combo o promoción",
+        "description": "Agrupa al menos dos platillos con cantidades válidas y fija un precio especial de venta.",
+        "fields": {
+          "name": "Nombre",
+          "code": "Código",
+          "codeHint": "Opcional. Se autogenera si no se indica.",
+          "description": "Descripción",
+          "salePrice": "Precio especial",
+          "currency": "(GTQ)",
+          "preparationTime": "Tiempo estimado de preparación",
+          "minutes": "min",
+          "startDate": "Inicio de vigencia",
+          "endDate": "Fin de vigencia",
+          "optional": "Opcional",
+          "items": "Platillos del combo",
+          "itemsHint": "Agrega al menos dos platillos distintos con cantidad mayor que cero.",
+          "dish": "Platillo",
+          "dishPlaceholder": "Selecciona un platillo",
+          "quantity": "Cantidad"
+        },
+        "validation": {
+          "name": "El nombre del combo es obligatorio.",
+          "code": "El código no puede exceder 30 caracteres.",
+          "description": "La descripción no puede exceder 500 caracteres.",
+          "salePrice": "El precio especial debe ser mayor que cero.",
+          "preparationTime": "El tiempo de preparación debe ser mayor que cero.",
+          "dish": "Selecciona un platillo activo.",
+          "quantity": "La cantidad debe ser mayor que cero.",
+          "items": "El combo debe incluir al menos dos platillos."
+        },
+        "actions": {
+          "save": "Registrar combo",
+          "saving": "Registrando...",
+          "addItem": "Agregar platillo",
+          "removeItem": "Quitar platillo"
+        },
+        "success": {
+          "title": "Combo registrado",
+          "message": "El combo «{{name}}» se registró con su precio especial."
+        }
+      },
+      "update": {
+        "eyebrow": "Editar combo",
+        "title": "Actualizar combo",
+        "description": "Modifica el nombre, los platillos, las cantidades o el precio especial del combo. Los precios individuales de cada platillo no se alteran.",
+        "actions": {
+          "save": "Guardar cambios",
+          "saving": "Guardando..."
+        },
+        "success": {
+          "title": "Combo actualizado",
+          "message": "El combo «{{name}}» se actualizó correctamente."
+        }
+      },
+      "retirement": {
+        "eyebrow": "Retirar combo",
+        "title": "Retirar del menú",
+        "description": "El combo «{{name}}» dejará de estar disponible para nuevas comandas. Su composición y precio aplicados en ventas anteriores se conservarán.",
+        "confirm": "Retirar combo",
+        "success": {
+          "title": "Combo retirado",
+          "message": "El combo «{{name}}» se retiró del menú."
+        }
+      }
     }
   },
   "security": {

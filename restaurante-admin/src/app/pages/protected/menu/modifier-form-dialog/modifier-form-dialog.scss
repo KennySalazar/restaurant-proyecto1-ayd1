@@ -1,0 +1,230 @@
+.registration-backdrop {
+  align-items: center;
+  background: rgba(38, 31, 27, 0.42);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: 1.5rem;
+  position: fixed;
+  z-index: 1000;
+}
+
+.registration-dialog {
+  background: #ffffff;
+  border: 1px solid #eaded5;
+  border-radius: 1.15rem;
+  box-shadow: 0 24px 60px rgba(47, 36, 31, 0.2);
+  max-height: 92vh;
+  max-width: 42rem;
+  overflow-y: auto;
+  padding: 1.6rem;
+  width: 100%;
+}
+
+.registration-dialog__header {
+  align-items: flex-start;
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  margin-bottom: 1.2rem;
+}
+
+.registration-dialog__eyebrow {
+  color: #b85c38;
+  font-size: 0.64rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.registration-dialog__header h2 {
+  color: #2f2926;
+  font-size: 1.25rem;
+  margin: 0.35rem 0 0;
+}
+
+.registration-dialog__header p {
+  color: #75675f;
+  font-size: 0.76rem;
+  line-height: 1.6;
+  margin: 0.5rem 0 0;
+}
+
+.close-button {
+  align-items: center;
+  background: #f3ebe5;
+  border: 0;
+  border-radius: 50%;
+  color: #795c4e;
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  height: 2.35rem;
+  justify-content: center;
+  width: 2.35rem;
+}
+
+.close-button:disabled,
+.cancel-button:disabled,
+.save-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.form-grid {
+  display: grid;
+  gap: 1rem 1.5rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.form-field--span-2 {
+  grid-column: 1 / -1;
+}
+
+.form-field {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.form-field label {
+  color: #625650;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.form-field label .field-hint {
+  font-size: 0.6rem;
+  font-weight: 400;
+  margin-left: 0.35rem;
+}
+
+.form-field input,
+.form-field select,
+.form-field textarea {
+  background: #fcfaf7;
+  border: 1px solid #e7ddd3;
+  border-radius: 0.7rem;
+  color: #2f2926;
+  font: inherit;
+  font-size: 0.78rem;
+  outline: none;
+  padding: 0.65rem 0.8rem;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.form-field input:focus,
+.form-field select:focus,
+.form-field textarea:focus {
+  border-color: #b85c38;
+  box-shadow: 0 0 0 3px rgba(184, 92, 56, 0.12);
+}
+
+.form-field input.ng-invalid.ng-touched,
+.form-field select.ng-invalid.ng-touched,
+.form-field textarea.ng-invalid.ng-touched {
+  border-color: #c0564a;
+}
+
+.form-field textarea {
+  resize: vertical;
+}
+
+.form-field select {
+  cursor: pointer;
+}
+
+.checkbox-grid {
+  background: #fcfaf7;
+  border: 1px solid #e7ddd3;
+  border-radius: 0.7rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  max-height: 14rem;
+  overflow-y: auto;
+  padding: 0.45rem 0.7rem;
+}
+
+.checkbox-label {
+  align-items: center;
+  border-radius: 0.45rem;
+  color: #2f2926;
+  cursor: pointer;
+  display: flex;
+  font-size: 0.78rem;
+  gap: 0.5rem;
+  padding: 0.5rem 0.35rem;
+}
+
+.checkbox-label:hover {
+  background: #f7eee7;
+}
+
+.checkbox-label input[type='checkbox'] {
+  accent-color: #a54838;
+  flex: 0 0 auto;
+}
+
+.field-error {
+  color: #a54838;
+  font-size: 0.68rem;
+}
+
+.field-hint {
+  color: #a08f86;
+  font-size: 0.66rem;
+}
+
+.registration-dialog__actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+  margin-top: 1.5rem;
+}
+
+.cancel-button,
+.save-button {
+  align-items: center;
+  border: 0;
+  border-radius: 0.7rem;
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 0.74rem;
+  font-weight: 750;
+  gap: 0.4rem;
+  justify-content: center;
+  min-height: 2.55rem;
+  padding: 0.65rem 1rem;
+}
+
+.cancel-button {
+  background: #f3eee9;
+  color: #645851;
+}
+
+.save-button {
+  background: #a54838;
+  color: #ffffff;
+}
+
+.save-button:hover {
+  background: #93402f;
+}
+
+@media (max-width: 560px) {
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .registration-dialog__actions {
+    flex-direction: column-reverse;
+  }
+
+  .cancel-button,
+  .save-button {
+    width: 100%;
+  }
+}
