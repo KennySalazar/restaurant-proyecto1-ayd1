@@ -62,3 +62,38 @@ export interface SupplyStockLimitsResponse {
   message: string;
   supply: Supply;
 }
+
+export type SupplyAlertLevel = 'BAJO' | 'AGOTADO';
+
+export type AlertPriority = 'ALTA' | 'CRITICA';
+
+export interface SupplyAlert {
+  supplyId: number;
+  supplyCode: string;
+  supplyName: string;
+  categoryId: number;
+  categoryName: string;
+  measurementUnitId: number;
+  measurementUnitName: string;
+  measurementUnitAbbreviation: string;
+  currentStock: number;
+  minimumStock: number;
+  maximumStock: number | null;
+  deficit: number;
+  alertLevel: SupplyAlertLevel;
+  priority: AlertPriority;
+  message: string;
+  timestamp: string;
+}
+
+export interface SupplyAlertSummary {
+  totalAlerts: number;
+  outOfStockCount: number;
+  lowStockCount: number;
+  alerts: SupplyAlert[];
+}
+
+export interface SingleSupplyAlertStatusResponse {
+  hasAlert: boolean;
+  alert: SupplyAlert | null;
+}

@@ -22,6 +22,7 @@
     "dashboard": "Resumen",
     "tables": "Mesas",
     "supplies": "Productos base",
+    "supplyAlerts": "Alertas de inventario",
     "employees": "Empleados",
     "configuration": "Configuración",
     "reservations": "Reservas",
@@ -277,6 +278,63 @@
         "message": "Los límites de stock del insumo {{name}} fueron guardados correctamente."
       }
     }
+  },
+
+  "supplyAlerts": {
+    "eyebrow": "Inventario",
+    "title": "Alertas de inventario bajo",
+    "description": "Identifica oportunamente los insumos que requieren reabastecimiento.",
+    "summary": {
+      "total": "Alertas activas",
+      "outOfStock": "Insumos agotados",
+      "lowStock": "Stock bajo"
+    },
+    "filters": {
+      "category": "Categoría",
+      "allCategories": "Todas las categorías",
+      "level": "Severidad",
+      "allLevels": "Toda severidad",
+      "levelAGOTADO": "Agotado",
+      "levelBAJO": "Stock bajo",
+      "clear": "Limpiar filtros"
+    },
+    "list": {
+      "title": "Insumos con alerta activa",
+      "description": "Las alertas permanecen activas mientras el stock se mantenga igual o por debajo del mínimo.",
+      "refresh": "Actualizar"
+    },
+    "card": {
+      "currentStock": "Stock actual",
+      "minimumStock": "Stock mínimo",
+      "deficit": "Déficit",
+      "level": {
+        "BAJO": "Stock bajo",
+        "AGOTADO": "Agotado"
+      },
+      "priority": {
+        "ALTA": "Prioridad alta",
+        "CRITICA": "Prioridad crítica"
+      }
+    },
+    "empty": {
+      "title": "No existen alertas de inventario bajo",
+      "description": "Todos los insumos se encuentran por encima de su stock mínimo configurado."
+    },
+    "noResults": {
+      "title": "No se encontraron alertas",
+      "description": "Ninguna alerta coincide con los filtros aplicados."
+    }
+  },
+
+  "notifications": {
+    "bellLabel": "Notificaciones",
+    "headerEyebrow": "Centro de notificaciones",
+    "headerTitle": "Avisos recibidos",
+    "markAllRead": "Leer todas",
+    "loading": "Cargando notificaciones...",
+    "emptyTitle": "Sin notificaciones",
+    "emptyDescription": "Cuando existan notificaciones aparecerán aquí.",
+    "goToAlerts": "Ver todas las alertas"
   },
 
   "reservations": {

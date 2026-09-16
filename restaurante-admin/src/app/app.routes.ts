@@ -93,6 +93,14 @@ export const routes: Routes = [
       },
 
       {
+        path: 'supply-alerts',
+        loadComponent: () =>
+          import('./pages/protected/supply-alerts/supply-alerts').then(
+            (module) => module.SupplyAlertsPageComponent,
+          ),
+      },
+
+      {
         path: 'configuration',
         loadComponent: () =>
           import('./pages/protected/configuration/configuration').then(

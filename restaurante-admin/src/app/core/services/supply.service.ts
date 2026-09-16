@@ -7,7 +7,10 @@ import {
   ConfigureStockLimitsRequest,
   CreateSupplyRequest,
   MeasurementUnit,
+  SingleSupplyAlertStatusResponse,
   Supply,
+  SupplyAlert,
+  SupplyAlertSummary,
   SupplyCategory,
   SupplyRegistrationResponse,
   SupplyStockLimitsResponse,
@@ -64,5 +67,27 @@ export class SupplyService {
 
   listMeasurementUnits(): Observable<MeasurementUnit[]> {
     return this.http.get<MeasurementUnit[]>(`${this.suppliesUrl}/measurement-units`);
+  }
+
+  listAlerts(categoryId?: number | null, level?: string | null): Observable<SupplyAlert[]> {
+    let params = new HttpParams();
+
+    if (categoryId != null) {
+      params = params.set('categoryId', categoryId);
+    }
+
+    if (level) {
+      params = params.set('level', level);
+    }
+
+    return this.http.get<SupplyAlert[]>(`${this.suppliesUrl}/alerts`, { params });
+  }
+
+  listAlertsSummary(): Observable<SupplyAlertSummary> {
+    return this.http.get<SupplyAlertSummary>(`${this.suppliesUrl}/alerts/summary`);
+  }
+
+  getSupplyAlert(id: number): Observable<SingleSupplyAlertStatusResponse> {
+    return this.http.get<SingleSupplyAlertStatusResponse>(`${this.suppliesUrl}/${id}/alert`);
   }
 }
