@@ -13,6 +13,8 @@ import org.springframework.transaction.annotation.Transactional;
 import jakarta.persistence.EntityManager;
 import com.restaurante.web.dto.cash.CloseCashShiftRequest;
 
+import com.restaurante.web.dto.cash.CashRegisterAvailabilityResponse;
+import java.util.List;
 @Service
 public class CashShiftService {
 
@@ -37,6 +39,73 @@ public class CashShiftService {
         this.users = users;
         this.profiles = profiles;
         this.entityManager = entityManager;
+    }
+
+    @Transactional(readOnly = true)
+    public List<CashRegisterAvailabilityResponse> getCashRegisters(
+            Authentication authentication) {
+
+        UserAccount account = users
+                .findByEmail(authentication.getName())
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.UNAUTHORIZED,
+                        "authenticated_user_not_found",
+                        "Usuario no encontrado",
+                        "No se encontro la cuenta autenticada"
+                ));
+
+        if (!account.isEnabled()) {
+            throw new ApiException(
+                    HttpStatus.FORBIDDEN,
+                    "account_disabled",
+                    "Cuenta deshabilitada",
+                    "La cuenta se encuentra deshabilitada"
+            );
+        }
+
+        if (account.getRole().getName() != RoleName.CASHIER) {
+            throw new ApiException(
+                    HttpStatus.FORBIDDEN,
+                    "cashier_role_required",
+                    "Operacion no permitida",
+                    "Solamente un cajero puede consultar las cajas"
+            );
+        }
+
+        RestaurantUserProfile profile = profiles
+                .findById(account.getId())
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "employee_profile_not_found",
+                        "Empleado no encontrado",
+                        "No se encontro el perfil del cajero"
+                ));
+
+        Long restaurantId = profile.getRestaurantId();
+
+        return cashRegisters
+                .findByRestaurantIdAndActiveTrueOrderByNameAsc(
+                        restaurantId
+                )
+                .stream()
+                .map(cashRegister -> {
+
+                    boolean available =
+                            !cashShifts.existsByCashRegisterIdAndStatus(
+                                    cashRegister.getId(),
+                                    CashShiftStatus.ABIERTA
+                            );
+
+                    return new CashRegisterAvailabilityResponse(
+                            cashRegister.getId(),
+                            cashRegister.getCode(),
+                            cashRegister.getName(),
+                            cashRegister.getLocation(),
+                            cashRegister.isActive(),
+                            available
+                    );
+                })
+                .toList();
     }
 
     @Transactional
