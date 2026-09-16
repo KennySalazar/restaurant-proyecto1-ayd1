@@ -713,9 +713,7 @@
       "label": "Secciones de Platillos y Menú",
       "dishes": "Platillos",
       "modifiers": "Modificadores",
-      "combos": "Combos",
-      "soon": "Disponible próximamente",
-      "soonDescription": "Esta sección se habilitará en una próxima versión del módulo."
+      "combos": "Combos"
     },
     "units": {
       "minutes": "min"
@@ -939,6 +937,115 @@
         "success": {
           "title": "Modificador desactivado",
           "message": "El modificador «{{name}}» se desactivó correctamente."
+        }
+      }
+    },
+    "combos": {
+      "summary": {
+        "total": "Combos registrados",
+        "active": "Activos",
+        "retired": "Retirados"
+      },
+      "actions": {
+        "register": "Registrar combo",
+        "edit": "Editar",
+        "retire": "Retirar"
+      },
+      "list": {
+        "title": "Combos y promociones",
+        "description": "Combos y promociones registrados con su precio especial, ahorro estimado y platillos incluidos.",
+        "refresh": "Actualizar",
+        "emptyTitle": "Todavía no existen combos registrados",
+        "emptyDescription": "Crea el primer combo o promoción para ofrecer alternativas comerciales atractivas a tus clientes.",
+        "noResultsTitle": "Sin resultados",
+        "noResultsDescription": "No se encontraron combos que coincidan con los filtros aplicados.",
+        "regularHint": "Individual:"
+      },
+      "filters": {
+        "searchPlaceholder": "Buscar por nombre o código...",
+        "status": "Estado del combo",
+        "allStatuses": "Activos y retirados",
+        "activeOnly": "Activos",
+        "retiredOnly": "Retirados",
+        "clear": "Limpiar filtros"
+      },
+      "columns": {
+        "code": "Código",
+        "name": "Combo",
+        "price": "Precio especial",
+        "savings": "Ahorro",
+        "items": "Platillos incluidos",
+        "status": "Estado",
+        "actions": "Acciones"
+      },
+      "status": {
+        "active": "Activo",
+        "retired": "Retirado"
+      },
+      "registration": {
+        "eyebrow": "Nuevo combo",
+        "title": "Registrar combo o promoción",
+        "description": "Agrupa al menos dos platillos con cantidades válidas y fija un precio especial de venta.",
+        "fields": {
+          "name": "Nombre",
+          "code": "Código",
+          "codeHint": "Opcional. Se autogenera si no se indica.",
+          "description": "Descripción",
+          "salePrice": "Precio especial",
+          "currency": "(GTQ)",
+          "preparationTime": "Tiempo estimado de preparación",
+          "minutes": "min",
+          "startDate": "Inicio de vigencia",
+          "endDate": "Fin de vigencia",
+          "optional": "Opcional",
+          "items": "Platillos del combo",
+          "itemsHint": "Agrega al menos dos platillos distintos con cantidad mayor que cero.",
+          "dish": "Platillo",
+          "dishPlaceholder": "Selecciona un platillo",
+          "quantity": "Cantidad"
+        },
+        "validation": {
+          "name": "El nombre del combo es obligatorio.",
+          "code": "El código no puede exceder 30 caracteres.",
+          "description": "La descripción no puede exceder 500 caracteres.",
+          "salePrice": "El precio especial debe ser mayor que cero.",
+          "preparationTime": "El tiempo de preparación debe ser mayor que cero.",
+          "dish": "Selecciona un platillo activo.",
+          "quantity": "La cantidad debe ser mayor que cero.",
+          "items": "El combo debe incluir al menos dos platillos."
+        },
+        "actions": {
+          "save": "Registrar combo",
+          "saving": "Registrando...",
+          "addItem": "Agregar platillo",
+          "removeItem": "Quitar platillo"
+        },
+        "success": {
+          "title": "Combo registrado",
+          "message": "El combo «{{name}}» se registró con su precio especial."
+        }
+      },
+      "update": {
+        "eyebrow": "Editar combo",
+        "title": "Actualizar combo",
+        "description": "Modifica el nombre, los platillos, las cantidades o el precio especial del combo. Los precios individuales de cada platillo no se alteran.",
+        "actions": {
+          "save": "Guardar cambios",
+          "saving": "Guardando..."
+        },
+        "success": {
+          "title": "Combo actualizado",
+          "message": "El combo «{{name}}» se actualizó correctamente."
+        }
+      },
+      "retirement": {
+        "eyebrow": "Retirar combo",
+        "title": "Retirar del menú",
+        "description": "El combo «{{name}}» dejará de estar disponible para nuevas comandas. Su composición y precio aplicados en ventas anteriores se conservarán.",
+        "confirm": "Retirar combo",
+        "success": {
+          "title": "Combo retirado",
+          "message": "El combo «{{name}}» se retiró del menú."
         }
       }
     }

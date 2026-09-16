@@ -2,6 +2,7 @@ import { Component, signal } from '@angular/core';
 import { TranslocoPipe } from '@jsverse/transloco';
 
 import { PageHeadingComponent } from '../../../shared/components/page-heading/page-heading';
+import { CombosTabComponent } from './combos-tab/combos-tab';
 import { DishesTabComponent } from './dishes-tab/dishes-tab';
 import { ModifiersTabComponent } from './modifiers-tab/modifiers-tab';
 
@@ -9,7 +10,13 @@ type MenuTab = 'dishes' | 'modifiers' | 'combos';
 
 @Component({
   selector: 'app-menu-page',
-  imports: [DishesTabComponent, ModifiersTabComponent, PageHeadingComponent, TranslocoPipe],
+  imports: [
+    CombosTabComponent,
+    DishesTabComponent,
+    ModifiersTabComponent,
+    PageHeadingComponent,
+    TranslocoPipe,
+  ],
   templateUrl: './menu.html',
   styleUrl: './menu.scss',
 })

@@ -44,17 +44,5 @@
 } @else if (isTabActive('modifiers')) {
   <app-menu-modifiers-tab />
 } @else {
-  <section class="menu-panel">
-    <div class="state-panel state-panel--empty">
-      <span class="state-panel__icon">
-        <i class="pi pi-clock"></i>
-      </span>
-
-      <strong>{{ 'menu.tabs.soon' | transloco }}</strong>
-
-      <p>
-        {{ 'menu.tabs.soonDescription' | transloco }}
-      </p>
-    </div>
-  </section>
+  <app-menu-combos-tab />
 }
