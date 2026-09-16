@@ -44,12 +44,14 @@ import com.restaurante.security.JwtData;
 import com.restaurante.web.dto.comanda.AddDishItemRequest;
 import com.restaurante.web.dto.comanda.AddDishResponse;
 import com.restaurante.web.dto.comanda.AddDishToAccountRequest;
+import com.restaurante.web.dto.comanda.ComandaDishProgressResponse;
 import com.restaurante.web.dto.comanda.ComandaInventoryProcessResponse;
 import com.restaurante.web.dto.kitchen.KitchenComandaResponse;
 import com.restaurante.web.dto.comanda.ComandaItemResponse;
 import com.restaurante.web.dto.comanda.ComandaResponse;
 import com.restaurante.web.dto.comanda.CreateComandaItemRequest;
 import com.restaurante.web.dto.comanda.CreateComandaRequest;
+import com.restaurante.web.dto.comanda.DeliverDishRequest;
 import com.restaurante.web.dto.comanda.DishOrderDetailResponse;
 import com.restaurante.web.dto.comanda.KardexMovementResponse;
 import com.restaurante.web.dto.comanda.RejectedDishDetailResponse;
@@ -700,6 +702,290 @@ public class ComandaInventoryService {
         comandaDetailRepository.findByComandaIdWithModifiers(comandaId);
 
         return mapToComandaResponse(comanda);
+    }
+
+    /**
+     * Consulta el avance de los platillos ordenados en el restaurante según los filtros indicados.
+     *
+     * @param restaurantId Identificador del restaurante
+     * @param mesaId Filtro opcional por mesa
+     * @param cuentaId Filtro opcional por cuenta
+     * @param comandaId Filtro opcional por comanda
+     * @param status Filtro opcional por estado de preparación
+     * @return Listado de platillos con su detalle de avance y tiempos
+     */
+    @Transactional(readOnly = true)
+    public List<ComandaDishProgressResponse> getDishProgress(
+            Long restaurantId,
+            Long mesaId,
+            Long cuentaId,
+            Long comandaId,
+            ComandaDetailStatus status) {
+
+        Long targetRestaurantId = restaurantId != null ? restaurantId : DEFAULT_RESTAURANT_ID;
+        List<ComandaDetail> details = comandaDetailRepository.findDishProgress(
+                targetRestaurantId,
+                comandaId,
+                cuentaId,
+                mesaId,
+                status
+        );
+
+        return details.stream()
+                .map(d -> mapToDishProgressResponse(d, null, null))
+                .toList();
+    }
+
+    /**
+     * Consulta el avance de todos los platillos de una comanda específica.
+     *
+     * @param comandaId Identificador de la comanda
+     * @param restaurantId Identificador del restaurante
+     * @return Listado de platillos de la comanda con su avance
+     */
+    @Transactional(readOnly = true)
+    public List<ComandaDishProgressResponse> getComandaDishProgress(Long comandaId, Long restaurantId) {
+        if (comandaId == null) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "comanda_id_required",
+                    "Identificador requerido",
+                    "El identificador de la comanda es obligatorio"
+            );
+        }
+
+        Long targetRestaurantId = restaurantId != null ? restaurantId : DEFAULT_RESTAURANT_ID;
+        Comanda comanda = comandaRepository.findByIdAndRestaurantId(comandaId, targetRestaurantId)
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "comanda_not_found",
+                        "Comanda no encontrada",
+                        "No se encontró la comanda con identificador " + comandaId
+                ));
+
+        List<ComandaDetail> details = comandaDetailRepository.findByComandaIdWithModifiers(comanda.getId());
+        return details.stream()
+                .map(d -> mapToDishProgressResponse(d, null, null))
+                .toList();
+    }
+
+    /**
+     * Marca un platillo de una comanda como entregado a la mesa cuando se encuentra en estado LISTO.
+     * Registra la fecha de entrega, el mesero responsable y sincroniza el estado de la comanda en tiempo real.
+     *
+     * @param detailId Identificador del detalle de la comanda (platillo)
+     * @param request Solicitud opcional con notas de entrega
+     * @param authentication Información de autenticación del usuario mesero o administrador
+     * @return Detalle actualizado del platillo y confirmación de entrega
+     */
+    @Transactional
+    public ComandaDishProgressResponse markDishAsDelivered(
+            Long detailId,
+            DeliverDishRequest request,
+            Authentication authentication) {
+
+        if (detailId == null) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "detail_id_required",
+                    "Identificador requerido",
+                    "El identificador del platillo de la comanda es obligatorio"
+            );
+        }
+
+        ComandaDetail detail = comandaDetailRepository.findByIdWithAllDetails(detailId)
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "dish_detail_not_found",
+                        "Platillo no encontrado",
+                        "No se encontró el platillo de la comanda con identificador " + detailId
+                ));
+
+        Comanda comanda = detail.getComanda();
+        if (comanda == null) {
+            throw new ApiException(
+                    HttpStatus.NOT_FOUND,
+                    "comanda_not_found",
+                    "Comanda no encontrada",
+                    "El platillo no está asociado a una comanda válida"
+            );
+        }
+
+        Long restaurantId = (comanda.getAccount() != null && comanda.getAccount().getRestaurantId() != null)
+                ? comanda.getAccount().getRestaurantId()
+                : DEFAULT_RESTAURANT_ID;
+
+        ComandaDetailStatus currentStatus = detail.getStatus();
+
+        // Si ya fue entregado, responder de forma idempotente
+        if (currentStatus == ComandaDetailStatus.ENTREGADO) {
+            return mapToDishProgressResponse(
+                    detail,
+                    "El platillo ya fue marcado como entregado previamente.",
+                    currentStatus.name()
+            );
+        }
+
+        // Validar que el platillo esté en estado LISTO
+        if (currentStatus != ComandaDetailStatus.LISTO) {
+            switch (currentStatus) {
+                case BORRADOR -> throw new ApiException(
+                        HttpStatus.BAD_REQUEST,
+                        "dish_in_draft_state",
+                        "Platillo en borrador",
+                        "No se puede entregar un platillo que aún está en borrador y no ha sido enviado a cocina"
+                );
+                case RECIBIDO -> throw new ApiException(
+                        HttpStatus.BAD_REQUEST,
+                        "dish_not_ready",
+                        "Platillo no listo",
+                        "El platillo aún está en estado RECIBIDO en cocina y no ha sido preparado. Solo se pueden entregar platillos en estado LISTO."
+                );
+                case EN_PREPARACION -> throw new ApiException(
+                        HttpStatus.BAD_REQUEST,
+                        "dish_in_preparation",
+                        "Platillo en preparación",
+                        "El platillo aún está preparándose en cocina. Debe esperar a que cocina lo marque como LISTO antes de entregarlo a la mesa."
+                );
+                case CANCELADO -> throw new ApiException(
+                        HttpStatus.BAD_REQUEST,
+                        "dish_already_cancelled",
+                        "Platillo cancelado",
+                        "No se puede entregar un platillo cancelado."
+                );
+                case NO_DISPONIBLE -> throw new ApiException(
+                        HttpStatus.BAD_REQUEST,
+                        "dish_unavailable",
+                        "Platillo no disponible",
+                        "No se puede entregar un platillo marcado como no disponible por falta de insumos."
+                );
+                default -> throw new ApiException(
+                        HttpStatus.BAD_REQUEST,
+                        "invalid_dish_delivery_state",
+                        "Estado inválido para entrega",
+                        "Solo los platillos en estado LISTO pueden ser marcados como entregados a la mesa."
+                );
+            }
+        }
+
+        Long responsibleUserId = resolveWaiterUserId(restaurantId, authentication);
+        Instant now = Instant.now();
+
+        detail.setStatus(ComandaDetailStatus.ENTREGADO);
+        detail.setDeliveredAt(now);
+        detail.setUpdatedById(responsibleUserId);
+
+        if (request != null && request.notes() != null && !request.notes().isBlank()) {
+            String existingNotes = detail.getSpecialNotes();
+            String appendNote = " [Entrega: " + request.notes().trim() + "]";
+            detail.setSpecialNotes(existingNotes != null ? existingNotes + appendNote : appendNote.trim());
+        }
+
+        detail = comandaDetailRepository.save(detail);
+
+        // Verificar si todos los platillos activos de la comanda ya están entregados
+        List<ComandaDetail> allDetails = comandaDetailRepository.findByComandaIdWithModifiers(comanda.getId());
+        boolean allActiveDelivered = allDetails.stream()
+                .filter(d -> d.getStatus() != ComandaDetailStatus.CANCELADO && d.getStatus() != ComandaDetailStatus.NO_DISPONIBLE)
+                .allMatch(d -> d.getId().equals(detailId) || d.getStatus() == ComandaDetailStatus.ENTREGADO);
+
+        if (allActiveDelivered) {
+            if (comanda.getStatus() == ComandaStatus.EN_PREPARACION) {
+                comanda.setStatus(ComandaStatus.LISTA);
+                comandaRepository.save(comanda);
+            }
+            if (comanda.getStatus() == ComandaStatus.LISTA) {
+                comanda.setStatus(ComandaStatus.ENTREGADA);
+                comanda.setFinishedAt(now);
+                comandaRepository.save(comanda);
+            }
+        }
+
+        String message = "Platillo '" + detail.getNameSnapshot() + "' marcado como entregado exitosamente a la mesa.";
+        ComandaDishProgressResponse response = mapToDishProgressResponse(detail, message, currentStatus.name());
+
+        // Notificar en tiempo real a cocina y meseros
+        try {
+            kitchenRealtimeService.notifyDishDelivered(restaurantId, response);
+            KitchenComandaResponse kitchenPayload = kitchenService.getKitchenComandaById(comanda.getId(), restaurantId);
+            kitchenRealtimeService.notifyComandaUpdated(restaurantId, kitchenPayload);
+        } catch (Exception ignored) {
+        }
+
+        return response;
+    }
+
+    private ComandaDishProgressResponse mapToDishProgressResponse(
+            ComandaDetail detail,
+            String message,
+            String previousStatus) {
+
+        Comanda comanda = detail.getComanda();
+        Long comandaId = comanda != null ? comanda.getId() : null;
+        Long accountId = (comanda != null && comanda.getAccount() != null) ? comanda.getAccount().getId() : null;
+        Long tableId = (comanda != null && comanda.getAccount() != null) ? comanda.getAccount().getTableId() : null;
+        String tableNumber = comanda != null ? resolveTableNumber(comanda) : "";
+        short roundNumber = comanda != null ? comanda.getRoundNumber() : 1;
+        Long waiterId = comanda != null ? comanda.getWaiterId() : null;
+        String waiterName = comanda != null ? resolveWaiterName(comanda) : "Mesero no asignado";
+        String comandaStatus = comanda != null && comanda.getStatus() != null ? comanda.getStatus().name() : "";
+
+        List<String> modifiers = new ArrayList<>();
+        if (detail.getModifiers() != null) {
+            for (ComandaDetailModifier m : detail.getModifiers()) {
+                if (m.getNameSnapshot() != null) {
+                    modifiers.add(m.getNameSnapshot());
+                } else if (m.getModifier() != null) {
+                    modifiers.add(m.getModifier().getName());
+                }
+            }
+        }
+
+        return new ComandaDishProgressResponse(
+                detail.getId(),
+                comandaId,
+                accountId,
+                tableId,
+                tableNumber,
+                roundNumber,
+                detail.getDish() != null ? detail.getDish().getId() : null,
+                detail.getCombo() != null ? detail.getCombo().getId() : null,
+                detail.getNameSnapshot(),
+                detail.getQuantity(),
+                detail.getUnitPriceSnapshot(),
+                detail.getStatus().name(),
+                previousStatus != null ? previousStatus : detail.getStatus().name(),
+                detail.getSpecialNotes(),
+                modifiers,
+                detail.getReceivedAt(),
+                detail.getPreparationStartedAt(),
+                detail.getReadyAt(),
+                detail.getDeliveredAt(),
+                waiterId,
+                waiterName,
+                comandaStatus,
+                message
+        );
+    }
+
+    private String resolveTableNumber(Comanda comanda) {
+        if (comanda.getAccount() != null && comanda.getAccount().getTableId() != null) {
+            return tableRepository.findById(comanda.getAccount().getTableId())
+                    .map(RestaurantTable::getNumber)
+                    .orElse("");
+        }
+        return "";
+    }
+
+    private String resolveWaiterName(Comanda comanda) {
+        if (comanda.getWaiterUser() != null) {
+            return (comanda.getWaiterUser().getFirstName() + " " + comanda.getWaiterUser().getLastName()).trim();
+        } else if (comanda.getWaiterId() != null) {
+            return userProfileRepository.findById(comanda.getWaiterId())
+                    .map(u -> (u.getFirstName() + " " + u.getLastName()).trim())
+                    .orElse("Mesero #" + comanda.getWaiterId());
+        }
+        return "Mesero no asignado";
     }
 
     private Map<Long, BigDecimal> calculateSupplyRequirements(Long restaurantId, Comanda comanda) {

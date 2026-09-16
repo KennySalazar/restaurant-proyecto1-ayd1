@@ -1,10 +1,18 @@
 package com.restaurante.web.operation;
 
 import com.restaurante.application.inventory.ComandaInventoryService;
+import com.restaurante.domain.model.ComandaDetailStatus;
+import com.restaurante.domain.model.RestaurantUserProfile;
+import com.restaurante.domain.repository.RestaurantUserProfileRepository;
+import com.restaurante.security.JwtData;
+import com.restaurante.web.dto.comanda.ComandaDishProgressResponse;
 import com.restaurante.web.dto.comanda.ComandaInventoryProcessResponse;
 import com.restaurante.web.dto.comanda.ComandaResponse;
 import com.restaurante.web.dto.comanda.CreateComandaRequest;
+import com.restaurante.web.dto.comanda.DeliverDishRequest;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -22,7 +30,11 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
 
 /**
  * Controlador para la gestión operativa de comandas y descuento de inventario.
@@ -33,10 +45,16 @@ import org.springframework.web.bind.annotation.RestController;
 @SecurityRequirement(name = "bearerAuth")
 public class OperationComandaController {
 
-    private final ComandaInventoryService comandaInventoryService;
+    private static final Long DEFAULT_RESTAURANT_ID = 1L;
 
-    public OperationComandaController(ComandaInventoryService comandaInventoryService) {
+    private final ComandaInventoryService comandaInventoryService;
+    private final RestaurantUserProfileRepository userProfileRepository;
+
+    public OperationComandaController(
+            ComandaInventoryService comandaInventoryService,
+            RestaurantUserProfileRepository userProfileRepository) {
         this.comandaInventoryService = comandaInventoryService;
+        this.userProfileRepository = userProfileRepository;
     }
 
     /**
@@ -100,5 +118,126 @@ public class OperationComandaController {
     public ResponseEntity<ComandaResponse> getComandaById(@PathVariable Long id) {
         ComandaResponse response = comandaInventoryService.getComandaById(id);
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/platillos/avance")
+    @PreAuthorize("hasAnyRole('WAITER', 'ADMIN', 'KITCHEN')")
+    @Operation(
+            summary = "Visualizar avance de platillos ordenados",
+            description = "Permite al mesero consultar el estado y avance de preparación de cada platillo ordenado (filtrando opcionalmente por mesa, cuenta, comanda o estado) para llevar control de lo servido en la mesa."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Listado de platillos y su estado de avance obtenido exitosamente",
+                    content = @Content(array = @ArraySchema(schema = @Schema(implementation = ComandaDishProgressResponse.class)))
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "No autenticado",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Acceso denegado",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            )
+    })
+    public ResponseEntity<List<ComandaDishProgressResponse>> getDishProgress(
+            @Parameter(description = "Filtro opcional por mesa")
+            @RequestParam(required = false) Long mesaId,
+            @Parameter(description = "Filtro opcional por cuenta")
+            @RequestParam(required = false) Long cuentaId,
+            @Parameter(description = "Filtro opcional por comanda")
+            @RequestParam(required = false) Long comandaId,
+            @Parameter(description = "Filtro opcional por estado del platillo (BORRADOR, RECIBIDO, EN_PREPARACION, LISTO, ENTREGADO, etc.)")
+            @RequestParam(required = false) ComandaDetailStatus estado,
+            Authentication authentication) {
+
+        Long restaurantId = resolveRestaurantId(authentication);
+        List<ComandaDishProgressResponse> response = comandaInventoryService.getDishProgress(
+                restaurantId, mesaId, cuentaId, comandaId, estado
+        );
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/{id}/avance")
+    @PreAuthorize("hasAnyRole('WAITER', 'ADMIN', 'KITCHEN')")
+    @Operation(
+            summary = "Visualizar avance de platillos de una comanda",
+            description = "Consulta el detalle y avance de todos los platillos ordenados en una comanda específica."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Avance de platillos de la comanda obtenido exitosamente",
+                    content = @Content(array = @ArraySchema(schema = @Schema(implementation = ComandaDishProgressResponse.class)))
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Comanda no encontrada",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            )
+    })
+    public ResponseEntity<List<ComandaDishProgressResponse>> getComandaDishProgress(
+            @Parameter(description = "Identificador de la comanda", required = true)
+            @PathVariable Long id,
+            Authentication authentication) {
+
+        Long restaurantId = resolveRestaurantId(authentication);
+        List<ComandaDishProgressResponse> response = comandaInventoryService.getComandaDishProgress(id, restaurantId);
+        return ResponseEntity.ok(response);
+    }
+
+    @RequestMapping(value = "/platillos/{id}/entregar", method = {RequestMethod.POST, RequestMethod.PUT})
+    @PreAuthorize("hasAnyRole('WAITER', 'ADMIN')")
+    @Operation(
+            summary = "Marcar platillo como entregado en la mesa",
+            description = "Marca un platillo de una comanda en estado LISTO como ENTREGADO cuando el mesero lo sirve en la mesa. Registra el momento de entrega, el mesero responsable y sincroniza la comanda."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Platillo marcado como entregado exitosamente",
+                    content = @Content(schema = @Schema(implementation = ComandaDishProgressResponse.class))
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "El platillo no se encuentra en estado LISTO para ser entregado",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "No autenticado",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Acceso denegado (requiere rol de mesero o administrador)",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Platillo o comanda no encontrada",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            )
+    })
+    public ResponseEntity<ComandaDishProgressResponse> markDishAsDelivered(
+            @Parameter(description = "Identificador del detalle de la comanda (platillo)", required = true)
+            @PathVariable Long id,
+            @RequestBody(required = false) DeliverDishRequest request,
+            Authentication authentication) {
+
+        ComandaDishProgressResponse response = comandaInventoryService.markDishAsDelivered(id, request, authentication);
+        return ResponseEntity.ok(response);
+    }
+
+    private Long resolveRestaurantId(Authentication authentication) {
+        if (authentication != null && authentication.getDetails() instanceof JwtData jwtData) {
+            return userProfileRepository.findById(jwtData.userId())
+                    .map(RestaurantUserProfile::getRestaurantId)
+                    .orElse(DEFAULT_RESTAURANT_ID);
+        }
+        return DEFAULT_RESTAURANT_ID;
     }
 }
