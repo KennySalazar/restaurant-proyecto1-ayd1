@@ -705,7 +705,8 @@
     "title": "Catálogo de platillos",
     "description": "Consulta la información comercial, el tiempo de preparación y la disponibilidad de cada platillo del menú.",
     "actions": {
-      "register": "Registrar platillo"
+      "register": "Registrar platillo",
+      "edit": "Editar"
     },
     "tabs": {
       "label": "Secciones de Platillos y Menú",
@@ -776,6 +777,19 @@
       "success": {
         "title": "Platillo registrado",
         "message": "El platillo «{{name}}» se registró e incorporó al catálogo."
+      }
+    },
+    "update": {
+      "eyebrow": "Editar platillo",
+      "title": "Actualizar platillo",
+      "description": "Modifica la información comercial y el tiempo estimado de preparación del platillo.",
+      "actions": {
+        "save": "Guardar cambios",
+        "saving": "Guardando..."
+      },
+      "success": {
+        "title": "Platillo actualizado",
+        "message": "El platillo «{{name}}» se actualizó correctamente."
       }
     },
     "availability": {

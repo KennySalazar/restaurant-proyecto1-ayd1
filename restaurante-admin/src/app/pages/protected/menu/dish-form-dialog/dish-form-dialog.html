@@ -9,15 +9,15 @@
       <header class="registration-dialog__header">
         <div>
           <span class="registration-dialog__eyebrow">
-            {{ 'menu.registration.eyebrow' | transloco }}
+            {{ (dish ? 'menu.update.eyebrow' : 'menu.registration.eyebrow') | transloco }}
           </span>
 
           <h2 id="dish-form-dialog-title">
-            {{ 'menu.registration.title' | transloco }}
+            {{ (dish ? 'menu.update.title' : 'menu.registration.title') | transloco }}
           </h2>
 
           <p>
-            {{ 'menu.registration.description' | transloco }}
+            {{ (dish ? 'menu.update.description' : 'menu.registration.description') | transloco }}
           </p>
         </div>
 
@@ -173,10 +173,15 @@
           <button class="save-button" type="submit" [disabled]="isSaving()">
             @if (isSaving()) {
               <i class="pi pi-spin pi-spinner"></i>
-              {{ 'menu.registration.actions.saving' | transloco }}
+              {{
+                (dish ? 'menu.update.actions.saving' : 'menu.registration.actions.saving')
+                  | transloco
+              }}
             } @else {
               <i class="pi pi-check"></i>
-              {{ 'menu.registration.actions.save' | transloco }}
+              {{
+                (dish ? 'menu.update.actions.save' : 'menu.registration.actions.save') | transloco
+              }}
             }
           </button>
         </footer>

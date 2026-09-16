@@ -95,17 +95,26 @@ export class DishesTabComponent implements OnInit {
   }
 
   readonly registrationOpen = signal(false);
+  readonly editingDish = signal<DishSummary | null>(null);
 
   openRegistration(): void {
+    this.editingDish.set(null);
+    this.registrationOpen.set(true);
+  }
+
+  openEdit(dish: DishSummary): void {
+    this.editingDish.set(dish);
     this.registrationOpen.set(true);
   }
 
   closeRegistration(): void {
     this.registrationOpen.set(false);
+    this.editingDish.set(null);
   }
 
-  onDishRegistered(): void {
+  onDishSaved(): void {
     this.registrationOpen.set(false);
+    this.editingDish.set(null);
     this.loadDishes();
   }
 

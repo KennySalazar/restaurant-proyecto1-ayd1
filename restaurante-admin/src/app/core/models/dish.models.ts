@@ -40,3 +40,17 @@ export interface DishRegistrationResponse {
   message: string;
   dish: DishSummary;
 }
+
+export interface UpdateDishRequest {
+  code?: string | null;
+  name: string;
+  description?: string | null;
+  categoryId: number;
+  salePrice: number;
+  preparationTimeMinutes: number;
+}
+
+export interface DishUpdateResponse {
+  message: string;
+  dish: DishSummary;
+}

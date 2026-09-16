@@ -8,6 +8,8 @@ import {
   DishCategory,
   DishRegistrationResponse,
   DishSummary,
+  DishUpdateResponse,
+  UpdateDishRequest,
 } from '../models/dish.models';
 
 @Injectable({
@@ -37,5 +39,9 @@ export class DishService {
 
   registerDish(payload: CreateDishRequest): Observable<DishRegistrationResponse> {
     return this.http.post<DishRegistrationResponse>(this.dishesUrl, payload);
+  }
+
+  updateDish(id: number, payload: UpdateDishRequest): Observable<DishUpdateResponse> {
+    return this.http.put<DishUpdateResponse>(`${this.dishesUrl}/${id}`, payload);
   }
 }

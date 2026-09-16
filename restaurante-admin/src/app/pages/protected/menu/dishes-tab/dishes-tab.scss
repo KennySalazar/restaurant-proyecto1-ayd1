@@ -242,6 +242,37 @@
   border-bottom: 0;
 }
 
+.restaurant-table__actions {
+  text-align: right !important;
+}
+
+.row-actions {
+  align-items: center;
+  display: flex;
+  gap: 0.35rem;
+  justify-content: flex-end;
+}
+
+.edit-button {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 0.55rem;
+  color: #b85c38;
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 750;
+  gap: 0.4rem;
+  justify-content: center;
+  padding: 0.5rem 0.65rem;
+}
+
+.edit-button:hover {
+  background: #f7eee7;
+}
+
 .dish-thumb {
   border: 1px solid #eee5dd;
   border-radius: 0.6rem;

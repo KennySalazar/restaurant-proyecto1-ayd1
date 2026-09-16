@@ -4,7 +4,7 @@ import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { MessageService } from 'primeng/api';
 import { finalize } from 'rxjs';
 
-import { CreateDishRequest, DishCategory, DishSummary } from '../../../../core/models/dish.models';
+import { DishCategory, DishSummary, UpdateDishRequest } from '../../../../core/models/dish.models';
 import { ApiErrorService } from '../../../../core/services/api-error.service';
 import { DishService } from '../../../../core/services/dish.service';
 import { FormFeedbackComponent } from '../../../../shared/components/form-feedback/form-feedback';
@@ -23,9 +23,24 @@ export class DishFormDialogComponent {
   private readonly transloco = inject(TranslocoService);
 
   @Input() categories: DishCategory[] = [];
-  @Input() open = false;
+  @Input() dish: DishSummary | null = null;
   @Output() readonly saved = new EventEmitter<DishSummary>();
   @Output() readonly dismissed = new EventEmitter<void>();
+
+  private isOpen = false;
+
+  @Input()
+  set open(value: boolean) {
+    this.isOpen = value;
+
+    if (value) {
+      this.prepareForm();
+    }
+  }
+
+  get open(): boolean {
+    return this.isOpen;
+  }
 
   readonly isSaving = signal(false);
   readonly submitted = signal(false);
@@ -57,31 +72,60 @@ export class DishFormDialogComponent {
       return;
     }
 
+    const editing = this.dish;
     this.isSaving.set(true);
 
-    this.dishService
-      .registerDish(this.buildPayload())
-      .pipe(finalize(() => this.isSaving.set(false)))
-      .subscribe({
-        next: (response) => {
-          this.messages.add({
-            severity: 'success',
-            summary: this.transloco.translate('menu.registration.success.title'),
-            detail: this.transloco.translate('menu.registration.success.message', {
-              name: response.dish.name,
-            }),
-            life: 6000,
-          });
+    const request = editing
+      ? this.dishService.updateDish(editing.id, this.buildPayload())
+      : this.dishService.registerDish(this.buildPayload());
 
-          this.saved.emit(response.dish);
-        },
-        error: (error: unknown) => {
-          this.serverMessage.set(this.errors.getMessage(error));
-        },
-      });
+    request.pipe(finalize(() => this.isSaving.set(false))).subscribe({
+      next: (response) => {
+        const successKey = editing ? 'menu.update.success' : 'menu.registration.success';
+
+        this.messages.add({
+          severity: 'success',
+          summary: this.transloco.translate(`${successKey}.title`),
+          detail: this.transloco.translate(`${successKey}.message`, { name: response.dish.name }),
+          life: 6000,
+        });
+
+        this.saved.emit(response.dish);
+      },
+      error: (error: unknown) => {
+        this.serverMessage.set(this.errors.getMessage(error));
+      },
+    });
   }
 
-  private buildPayload(): CreateDishRequest {
+  private prepareForm(): void {
+    this.submitted.set(false);
+    this.serverMessage.set(null);
+
+    if (this.dish) {
+      this.registrationForm.reset({
+        code: this.dish.code ?? '',
+        name: this.dish.name,
+        description: this.dish.description ?? '',
+        categoryId: this.dish.categoryId,
+        salePrice: this.dish.salePrice,
+        preparationTimeMinutes: this.dish.preparationTimeMinutes,
+      });
+
+      return;
+    }
+
+    this.registrationForm.reset({
+      code: '',
+      name: '',
+      description: '',
+      categoryId: 0,
+      salePrice: null,
+      preparationTimeMinutes: null,
+    });
+  }
+
+  private buildPayload(): UpdateDishRequest {
     const raw = this.registrationForm.getRawValue();
 
     return {

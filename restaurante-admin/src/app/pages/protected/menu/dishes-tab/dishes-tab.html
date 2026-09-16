@@ -143,6 +143,11 @@
             <th>{{ 'menu.columns.price' | transloco }}</th>
             <th>{{ 'menu.columns.time' | transloco }}</th>
             <th>{{ 'menu.columns.availability' | transloco }}</th>
+            <th>
+              <span class="sr-only">
+                {{ 'menu.columns.actions' | transloco }}
+              </span>
+            </th>
           </tr>
         </thead>
 
@@ -229,6 +234,15 @@
                   }
                 </div>
               </td>
+
+              <td class="restaurant-table__actions">
+                <div class="row-actions">
+                  <button class="edit-button" type="button" (click)="openEdit(dish)">
+                    <i class="pi pi-pencil"></i>
+                    {{ 'menu.actions.edit' | transloco }}
+                  </button>
+                </div>
+              </td>
             </tr>
           }
         </tbody>
@@ -239,7 +253,8 @@
 
 <app-menu-dish-form-dialog
   [categories]="categories()"
+  [dish]="editingDish()"
   [open]="registrationOpen()"
-  (saved)="onDishRegistered()"
+  (saved)="onDishSaved()"
   (dismissed)="closeRegistration()"
 />
