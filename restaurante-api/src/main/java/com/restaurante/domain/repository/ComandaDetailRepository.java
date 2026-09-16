@@ -21,6 +21,17 @@ public interface ComandaDetailRepository extends JpaRepository<ComandaDetail, Lo
     );
 
     @Query("""
+           SELECT DISTINCT d
+           FROM ComandaDetail d
+           LEFT JOIN FETCH d.modifiers m
+           LEFT JOIN FETCH m.modifier
+           WHERE d.comanda.id IN (:comandaIds)
+           """)
+    List<ComandaDetail> findByComandaIdInWithModifiers(
+            @Param("comandaIds") List<Long> comandaIds
+    );
+
+    @Query("""
            SELECT COUNT(d)
            FROM ComandaDetail d
            WHERE d.comanda.account.id = :accountId
