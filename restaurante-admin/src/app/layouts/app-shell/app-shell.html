@@ -64,9 +64,111 @@
         <i class="pi pi-bars"></i>
       </button>
       <span class="topbar-context">{{ 'brand.caption' | transloco }}</span>
-      <div class="topbar-status">
-        <span class="status-dot"></span>
-        <span>{{ 'nav.secureSession' | transloco }}</span>
+      <div class="topbar-actions">
+        <div class="notification-area">
+          <button
+            class="notification-bell"
+            type="button"
+            [attr.aria-label]="'notifications.bellLabel' | transloco"
+            [attr.aria-expanded]="notificationsOpen()"
+            (click)="toggleNotifications()"
+          >
+            <i class="pi pi-bell"></i>
+
+            @if (unreadCount() > 0) {
+              <span class="notification-bell__badge">{{ unreadCount() }}</span>
+            }
+          </button>
+
+          @if (notificationsOpen()) {
+            <div
+              class="notification-backdrop"
+              role="presentation"
+              (click)="closeNotifications()"
+            ></div>
+
+            <section
+              class="notification-panel"
+              aria-label="{{ 'notifications.bellLabel' | transloco }}"
+            >
+              <header class="notification-panel__header">
+                <div>
+                  <span>{{ 'notifications.headerEyebrow' | transloco }}</span>
+                  <h3>{{ 'notifications.headerTitle' | transloco }}</h3>
+                </div>
+
+                <button
+                  class="mark-all-button"
+                  type="button"
+                  [disabled]="isMarkingAllRead() || unreadCount() === 0"
+                  (click)="markAllNotificationsRead()"
+                >
+                  @if (isMarkingAllRead()) {
+                    <i class="pi pi-spin pi-spinner"></i>
+                  } @else {
+                    <i class="pi pi-check-double"></i>
+                  }
+                  {{ 'notifications.markAllRead' | transloco }}
+                </button>
+              </header>
+
+              <div class="notification-panel__body">
+                @if (isLoadingNotifications() && notifications().length === 0) {
+                  <div class="notification-states">
+                    <i class="pi pi-spin pi-spinner"></i>
+                    <span>{{ 'notifications.loading' | transloco }}</span>
+                  </div>
+                } @else if (notifications().length === 0) {
+                  <div class="notification-states">
+                    <i class="pi pi-bell-slash"></i>
+                    <strong>{{ 'notifications.emptyTitle' | transloco }}</strong>
+                    <span>{{ 'notifications.emptyDescription' | transloco }}</span>
+                  </div>
+                } @else {
+                  <ul class="notification-list">
+                    @for (notification of notifications(); track notification.id) {
+                      <li>
+                        <button
+                          class="notification-item"
+                          type="button"
+                          [class.is-unread]="!notification.read"
+                          (click)="markNotificationRead(notification)"
+                        >
+                          <span class="notification-item__dot">
+                            @if (!notification.read) {
+                              <i class="pi pi-circle-fill"></i>
+                            }
+                          </span>
+
+                          <span class="notification-item__body">
+                            <strong>{{ notification.title }}</strong>
+                            <p>{{ notification.message }}</p>
+                            <span class="notification-item__time">
+                              <i class="pi pi-clock"></i>
+                              {{ formatNotificationTime(notification.createdAt) }}
+                            </span>
+                          </span>
+                        </button>
+                      </li>
+                    }
+                  </ul>
+                }
+              </div>
+
+              <footer class="notification-panel__footer">
+                <button class="alerts-link" type="button" (click)="goToAlerts()">
+                  <i class="pi pi-exclamation-triangle"></i>
+                  {{ 'notifications.goToAlerts' | transloco }}
+                </button>
+              </footer>
+            </section>
+          }
+        </div>
+
+        <div class="topbar-status">
+          <span class="status-dot"></span>
+          <span>{{ 'nav.secureSession' | transloco }}</span>
+        </div>
       </div>
     </header>
 
