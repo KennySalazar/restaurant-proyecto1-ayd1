@@ -26,6 +26,7 @@
     "employees": "Empleados",
     "configuration": "Configuración",
     "reservations": "Reservas",
+    "waitlist": "Lista de espera",
     "occupancy": "Panel de ocupación",
     "security": "Seguridad",
     "admin": "Administración",
@@ -170,7 +171,7 @@
     }
   },
 
-  "supplies": {
+"supplies": {
     "eyebrow": "Catálogo de insumos",
     "title": "Catálogo de insumos",
     "description": "Consulta la materia prima disponible y revisa su información de compra e inventario.",
@@ -281,6 +282,67 @@
         "title": "Límites de stock configurados",
         "message": "Los límites de stock del insumo {{name}} fueron guardados correctamente."
       }
+    }
+  },
+
+  "waitlist": {
+    "eyebrow": "Reservas y lista de espera",
+    "title": "Lista de espera",
+    "description": "Consulta los clientes que esperan una mesa y respeta su orden de llegada.",
+    "live": "Actualización automática",
+    "lastUpdated": "Actualizado:",
+    "refresh": "Actualizar",
+    "loading": "Consultando lista de espera...",
+    "people": "personas",
+    "summary": {
+      "total": "Clientes en cola",
+      "waiting": "Esperando",
+      "suggested": "Con sugerencia",
+      "notified": "Notificados"
+    },
+    "list": {
+      "title": "Clientes en espera",
+      "description": "La cola se muestra desde el cliente con mayor tiempo de espera hasta el más reciente."
+    },
+    "columns": {
+      "position": "Posición",
+      "client": "Cliente",
+      "phone": "Teléfono",
+      "people": "Personas",
+      "arrival": "Hora de llegada",
+      "status": "Estado"
+    },
+    "status": {
+      "ESPERANDO": "Esperando",
+      "SUGERIDA": "Sugerida",
+      "NOTIFICADA": "Notificada",
+      "SENTADA": "Sentada",
+      "RETIRADA": "Retirada"
+    },
+    "actions": {
+      "view": "Ver detalle",
+      "close": "Cerrar detalle"
+    },
+    "detail": {
+      "eyebrow": "Detalle del cliente",
+      "position": "Posición actual",
+      "client": "Nombre",
+      "phone": "Teléfono",
+      "people": "Número de personas",
+      "arrival": "Hora de llegada",
+      "status": "Estado",
+      "notes": "Notas",
+      "noNotes": "Sin notas registradas",
+      "loading": "Consultando detalle...",
+      "error": "No fue posible consultar el detalle del cliente."
+    },
+    "empty": {
+      "title": "No hay clientes en espera",
+      "description": "La lista de espera se encuentra vacía actualmente."
+    },
+    "error": {
+      "title": "No fue posible consultar la lista de espera",
+      "description": "Verifica la conexión e intenta nuevamente."
     }
   },
 
@@ -606,7 +668,8 @@
       "total": "Mesas",
       "free": "Libres",
       "reserved": "Reservadas",
-      "occupied": "Ocupadas"
+      "occupied": "Ocupadas",
+      "requested": "Cuenta solicitada"
     },
     "list": {
       "title": "Estado actual de las mesas",

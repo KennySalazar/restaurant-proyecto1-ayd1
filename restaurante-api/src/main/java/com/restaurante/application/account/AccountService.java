@@ -1,21 +1,33 @@
 package com.restaurante.application.account;
 
 import com.restaurante.domain.model.Account;
+import com.restaurante.domain.model.AccountMerge;
 import com.restaurante.domain.model.AccountTransfer;
+import com.restaurante.domain.model.Comanda;
+import com.restaurante.domain.model.Notification;
 import com.restaurante.domain.model.Reservation;
 import com.restaurante.domain.model.RestaurantTable;
 import com.restaurante.domain.model.RestaurantUserProfile;
+import com.restaurante.domain.model.Role;
+import com.restaurante.domain.model.RoleName;
 import com.restaurante.domain.model.TableStatus;
+import com.restaurante.domain.repository.AccountMergeRepository;
 import com.restaurante.domain.repository.AccountRepository;
 import com.restaurante.domain.repository.AccountTransferRepository;
+import com.restaurante.domain.repository.ComandaDetailRepository;
 import com.restaurante.domain.repository.ComandaRepository;
+import com.restaurante.domain.repository.NotificationRepository;
 import com.restaurante.domain.repository.ReservationRepository;
 import com.restaurante.domain.repository.RestaurantTableRepository;
 import com.restaurante.domain.repository.RestaurantUserProfileRepository;
+import com.restaurante.domain.repository.RoleRepository;
 import com.restaurante.exception.ApiException;
 import com.restaurante.security.JwtData;
 import com.restaurante.web.dto.account.AccountResponse;
+import com.restaurante.web.dto.account.MergeAccountsRequest;
+import com.restaurante.web.dto.account.MergeAccountsResponse;
 import com.restaurante.web.dto.account.OpenAccountRequest;
+import com.restaurante.web.dto.account.RequestBillResponse;
 import com.restaurante.web.dto.account.TransferAccountRequest;
 import com.restaurante.web.dto.account.TransferAccountResponse;
 import org.springframework.http.HttpStatus;
@@ -30,7 +42,7 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Servicio de aplicación para la gestión, apertura y transferencia de cuentas de consumo en mesas del restaurante.
+ * Servicio de aplicación para la gestión, apertura, transferencia, fusión y cobro de cuentas de consumo en mesas del restaurante.
  */
 @Service
 public class AccountService {
@@ -43,6 +55,10 @@ public class AccountService {
     private final RestaurantUserProfileRepository userProfileRepository;
     private final AccountTransferRepository accountTransferRepository;
     private final ComandaRepository comandaRepository;
+    private final AccountMergeRepository accountMergeRepository;
+    private final ComandaDetailRepository comandaDetailRepository;
+    private final NotificationRepository notificationRepository;
+    private final RoleRepository roleRepository;
 
     public AccountService(
             AccountRepository accountRepository,
@@ -50,13 +66,21 @@ public class AccountService {
             ReservationRepository reservationRepository,
             RestaurantUserProfileRepository userProfileRepository,
             AccountTransferRepository accountTransferRepository,
-            ComandaRepository comandaRepository) {
+            ComandaRepository comandaRepository,
+            AccountMergeRepository accountMergeRepository,
+            ComandaDetailRepository comandaDetailRepository,
+            NotificationRepository notificationRepository,
+            RoleRepository roleRepository) {
         this.accountRepository = accountRepository;
         this.tableRepository = tableRepository;
         this.reservationRepository = reservationRepository;
         this.userProfileRepository = userProfileRepository;
         this.accountTransferRepository = accountTransferRepository;
         this.comandaRepository = comandaRepository;
+        this.accountMergeRepository = accountMergeRepository;
+        this.comandaDetailRepository = comandaDetailRepository;
+        this.notificationRepository = notificationRepository;
+        this.roleRepository = roleRepository;
     }
 
     /**
@@ -415,6 +439,397 @@ public class AccountService {
                 context.userId(),
                 reason,
                 Instant.now()
+        );
+    }
+
+    /**
+     * Fusiona dos cuentas de mesas identificando la cuenta origen por su ID.
+     */
+    @Transactional
+    public MergeAccountsResponse mergeAccountsById(
+            Long accountId,
+            MergeAccountsRequest request,
+            Authentication authentication) {
+        return mergeAccounts(accountId, false, request, authentication);
+    }
+
+    /**
+     * Fusiona dos cuentas de mesas identificando la cuenta origen por el ID de la mesa.
+     */
+    @Transactional
+    public MergeAccountsResponse mergeAccountsByTable(
+            Long originTableId,
+            MergeAccountsRequest request,
+            Authentication authentication) {
+        return mergeAccounts(originTableId, true, request, authentication);
+    }
+
+    /**
+     * Fusiona dos cuentas abiertas de mesas que se unieron físicamente.
+     * Combina el detalle y comandas de ambas en una sola cuenta (destino) y libera una de las mesas (origen).
+     * Si alguna de las cuentas está en proceso de cobro ("LISTA_COBRO"), impide la fusión.
+     */
+    @Transactional
+    public MergeAccountsResponse mergeAccounts(
+            Long originId,
+            boolean isOriginTableId,
+            MergeAccountsRequest request,
+            Authentication authentication) {
+
+        AuthenticatedUser context = getAuthenticatedUser(authentication);
+        Long restaurantId = context.restaurantId();
+
+        // 1. Resolver cuenta origen
+        Account originAccount;
+        if (isOriginTableId) {
+            originAccount = accountRepository
+                    .findActiveByTableIdAndRestaurantId(originId, restaurantId)
+                    .orElseThrow(() -> new ApiException(
+                            HttpStatus.NOT_FOUND,
+                            "origin_active_account_not_found",
+                            "Sin cuenta activa",
+                            "La mesa de origen no tiene una cuenta activa para fusionar"
+                    ));
+        } else if (originId != null) {
+            originAccount = accountRepository
+                    .findByIdAndRestaurantId(originId, restaurantId)
+                    .orElseThrow(() -> new ApiException(
+                            HttpStatus.NOT_FOUND,
+                            "origin_account_not_found",
+                            "Cuenta origen no encontrada",
+                            "La cuenta origen solicitada no existe"
+                    ));
+        } else if (request != null && request.cuentaOrigenId() != null) {
+            originAccount = accountRepository
+                    .findByIdAndRestaurantId(request.cuentaOrigenId(), restaurantId)
+                    .orElseThrow(() -> new ApiException(
+                            HttpStatus.NOT_FOUND,
+                            "origin_account_not_found",
+                            "Cuenta origen no encontrada",
+                            "La cuenta origen solicitada no existe"
+                    ));
+        } else if (request != null && request.mesaOrigenId() != null) {
+            originAccount = accountRepository
+                    .findActiveByTableIdAndRestaurantId(request.mesaOrigenId(), restaurantId)
+                    .orElseThrow(() -> new ApiException(
+                            HttpStatus.NOT_FOUND,
+                            "origin_active_account_not_found",
+                            "Sin cuenta activa",
+                            "La mesa de origen no tiene una cuenta activa para fusionar"
+                    ));
+        } else {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "missing_origin_account",
+                    "Cuenta origen requerida",
+                    "Debe especificar la cuenta o mesa origen para la fusión"
+            );
+        }
+
+        // 2. Resolver cuenta destino
+        Account destinationAccount;
+        if (request != null && request.cuentaDestinoId() != null) {
+            destinationAccount = accountRepository
+                    .findByIdAndRestaurantId(request.cuentaDestinoId(), restaurantId)
+                    .orElseThrow(() -> new ApiException(
+                            HttpStatus.NOT_FOUND,
+                            "destination_account_not_found",
+                            "Cuenta destino no encontrada",
+                            "La cuenta destino solicitada no existe"
+                    ));
+        } else if (request != null && request.mesaDestinoId() != null) {
+            destinationAccount = accountRepository
+                    .findActiveByTableIdAndRestaurantId(request.mesaDestinoId(), restaurantId)
+                    .orElseThrow(() -> new ApiException(
+                            HttpStatus.NOT_FOUND,
+                            "destination_active_account_not_found",
+                            "Sin cuenta activa destino",
+                            "La mesa destino no tiene una cuenta activa para recibir la fusión"
+                    ));
+        } else {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "missing_destination_account",
+                    "Cuenta destino requerida",
+                    "Debe especificar la cuenta o mesa destino para la fusión"
+            );
+        }
+
+        // 3. Validar que no sea la misma cuenta
+        if (originAccount.getId().equals(destinationAccount.getId())) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "same_account_merge",
+                    "Cuentas idénticas",
+                    "Una cuenta no puede fusionarse consigo misma"
+            );
+        }
+
+        // 4. Validar que pertenezcan a mesas distintas
+        if (originAccount.getTableId().equals(destinationAccount.getTableId())) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "same_table_merge",
+                    "Mesas idénticas",
+                    "No se pueden fusionar cuentas de la misma mesa"
+            );
+        }
+
+        // 5. Validar si alguna de las cuentas está lista para cobro o en proceso de facturación
+        boolean isOriginInBilling = "LISTA_COBRO".equalsIgnoreCase(originAccount.getStatus())
+                || originAccount.getRequestedPaymentAt() != null
+                || "PARCIALMENTE_PAGADA".equalsIgnoreCase(originAccount.getStatus());
+        boolean isDestInBilling = "LISTA_COBRO".equalsIgnoreCase(destinationAccount.getStatus())
+                || destinationAccount.getRequestedPaymentAt() != null
+                || "PARCIALMENTE_PAGADA".equalsIgnoreCase(destinationAccount.getStatus());
+
+        if (isOriginInBilling || isDestInBilling) {
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "account_in_billing",
+                    "Cuenta en proceso de cobro",
+                    "La cuenta ya está en proceso de cobro"
+            );
+        }
+
+        // 6. Validar que ambas cuentas estén en estado 'ABIERTA'
+        if (!"ABIERTA".equalsIgnoreCase(originAccount.getStatus())
+                || !"ABIERTA".equalsIgnoreCase(destinationAccount.getStatus())) {
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "invalid_account_status",
+                    "Estado de cuenta no válido",
+                    "Solo se pueden fusionar cuentas en estado abierta"
+            );
+        }
+
+        // 7. Cargar y validar mesas correspondientes
+        RestaurantTable originTable = tableRepository
+                .findByIdAndRestaurantId(originAccount.getTableId(), restaurantId)
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "origin_table_not_found",
+                        "Mesa origen no encontrada",
+                        "La mesa origen de la cuenta no existe"
+                ));
+
+        RestaurantTable destinationTable = tableRepository
+                .findByIdAndRestaurantId(destinationAccount.getTableId(), restaurantId)
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "destination_table_not_found",
+                        "Mesa destino no encontrada",
+                        "La mesa destino de la cuenta no existe"
+                ));
+
+        // 8. Reasignar comandas de la cuenta origen hacia la cuenta destino
+        List<Comanda> originComandas = comandaRepository.findByAccountId(originAccount.getId());
+        short nextRound = comandaRepository.findMaxRoundNumberByAccountId(destinationAccount.getId());
+
+        for (Comanda comanda : originComandas) {
+            nextRound++;
+            comanda.setAccount(destinationAccount);
+            comanda.setRoundNumber(nextRound);
+            comanda.setWaiterId(destinationAccount.getWaiterId());
+            comandaRepository.save(comanda);
+        }
+
+        // 9. Actualizar personas y notas en la cuenta destino
+        short totalPeople = (short) (destinationAccount.getPeopleCount() + originAccount.getPeopleCount());
+        destinationAccount.setPeopleCount(totalPeople);
+        String destNotes = destinationAccount.getNotes();
+        String destNoteMerge = "Recibe fusion de cuenta " + originAccount.getId();
+        destinationAccount.setNotes(destNotes != null && !destNotes.isBlank()
+                ? destNotes + " | " + destNoteMerge
+                : destNoteMerge);
+        Account savedDestAccount = accountRepository.save(destinationAccount);
+
+        // 10. Registrar auditoría de fusión
+        String reason = request != null && request.motivo() != null && !request.motivo().trim().isEmpty()
+                ? request.motivo().trim()
+                : "Mesas unidas físicamente";
+
+        AccountMerge merge = new AccountMerge(
+                originAccount.getId(),
+                destinationAccount.getId(),
+                context.userId(),
+                reason
+        );
+        AccountMerge savedMerge = accountMergeRepository.save(merge);
+
+        // 11. Actualizar cuenta origen a 'FUSIONADA' y cerrarla
+        String originNotes = originAccount.getNotes();
+        String originNoteMerge = "Fusionada en cuenta " + destinationAccount.getId();
+        originAccount.setNotes(originNotes != null && !originNotes.isBlank()
+                ? originNotes + " | " + originNoteMerge
+                : originNoteMerge);
+        originAccount.setStatus("FUSIONADA");
+        originAccount.setClosedAt(Instant.now());
+        Account savedOriginAccount = accountRepository.save(originAccount);
+
+        // 12. Liberar la mesa de origen
+        originTable.setStatus(TableStatus.LIBRE);
+        tableRepository.save(originTable);
+
+        // Asegurar que la mesa destino permanezca ocupada
+        destinationTable.occupy();
+        tableRepository.save(destinationTable);
+
+        int totalComandasDestino = comandaRepository.findByAccountId(savedDestAccount.getId()).size();
+
+        return new MergeAccountsResponse(
+                "Cuentas fusionadas exitosamente en una sola cuenta",
+                savedMerge.getId(),
+                savedOriginAccount.getId(),
+                savedOriginAccount.getAccountNumber(),
+                savedOriginAccount.getStatus(),
+                originTable.getId(),
+                originTable.getNumber(),
+                originTable.getStatus(),
+                savedDestAccount.getId(),
+                savedDestAccount.getAccountNumber(),
+                savedDestAccount.getStatus(),
+                destinationTable.getId(),
+                destinationTable.getNumber(),
+                destinationTable.getStatus(),
+                originComandas.size(),
+                totalComandasDestino,
+                totalPeople,
+                context.userId(),
+                reason,
+                savedMerge.getPerformedAt() != null ? savedMerge.getPerformedAt() : Instant.now()
+        );
+    }
+
+    /**
+     * Marca la cuenta como lista para cobro identificándola por su ID.
+     */
+    @Transactional
+    public RequestBillResponse requestBillById(Long accountId, Authentication authentication) {
+        return requestBill(accountId, false, authentication);
+    }
+
+    /**
+     * Marca la cuenta activa de una mesa como lista para cobro identificándola por el ID de la mesa.
+     */
+    @Transactional
+    public RequestBillResponse requestBillByTable(Long tableId, Authentication authentication) {
+        return requestBill(tableId, true, authentication);
+    }
+
+    /**
+     * Marca una cuenta abierta como lista para cobro, cambia el estado de la mesa a 'CUENTA_SOLICITADA'
+     * y genera la notificación correspondiente para el cajero.
+     * Si la cuenta no tiene platillos registrados, la acción es impedida.
+     */
+    @Transactional
+    public RequestBillResponse requestBill(
+            Long accountIdOrTableId,
+            boolean isTableId,
+            Authentication authentication) {
+
+        AuthenticatedUser context = getAuthenticatedUser(authentication);
+        Long restaurantId = context.restaurantId();
+
+        Account account;
+        if (isTableId) {
+            account = accountRepository
+                    .findActiveByTableIdAndRestaurantId(accountIdOrTableId, restaurantId)
+                    .orElseThrow(() -> new ApiException(
+                            HttpStatus.NOT_FOUND,
+                            "active_account_not_found",
+                            "Sin cuenta activa",
+                            "La mesa no tiene una cuenta activa para solicitar cobro"
+                    ));
+        } else {
+            account = accountRepository
+                    .findByIdAndRestaurantId(accountIdOrTableId, restaurantId)
+                    .orElseThrow(() -> new ApiException(
+                            HttpStatus.NOT_FOUND,
+                            "account_not_found",
+                            "Cuenta no encontrada",
+                            "La cuenta solicitada no existe"
+                    ));
+        }
+
+        if ("LISTA_COBRO".equalsIgnoreCase(account.getStatus())) {
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "account_already_in_billing",
+                    "Cuenta ya en cobro",
+                    "La cuenta ya se encuentra marcada como lista para cobro"
+            );
+        }
+
+        if (!"ABIERTA".equalsIgnoreCase(account.getStatus())) {
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "invalid_account_status",
+                    "Estado de cuenta inválido",
+                    "Solo se pueden marcar como listas para cobro cuentas en estado abierta"
+            );
+        }
+
+        // Validar que la cuenta tenga al menos un platillo registrado
+        long activeDishesCount = comandaDetailRepository.countActiveByAccountId(account.getId());
+        if (activeDishesCount <= 0) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "account_has_no_dishes",
+                    "Cuenta sin platillos registrados",
+                    "No se puede marcar como lista para cobro una cuenta sin platillos registrados"
+            );
+        }
+
+        RestaurantTable table = tableRepository
+                .findByIdAndRestaurantId(account.getTableId(), restaurantId)
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "table_not_found",
+                        "Mesa no encontrada",
+                        "La mesa asociada a la cuenta no existe"
+                ));
+
+        // 1. Marcar la cuenta como LISTA_COBRO
+        account.setStatus("LISTA_COBRO");
+        Instant now = Instant.now();
+        account.setRequestedPaymentAt(now);
+        Account savedAccount = accountRepository.save(account);
+
+        // 2. Cambiar el estado de la mesa a 'CUENTA_SOLICITADA'
+        table.setStatus(TableStatus.CUENTA_SOLICITADA);
+        RestaurantTable savedTable = tableRepository.save(table);
+
+        // 3. Notificar al cajero
+        Role cashierRole = roleRepository.findByName(RoleName.CASHIER).orElse(null);
+        Long cashierRoleId = cashierRole != null ? cashierRole.getId() : null;
+
+        String tableNumber = savedTable.getNumber();
+        Notification notification = new Notification(
+                restaurantId,
+                null,
+                cashierRoleId,
+                "CUENTA_LISTA_COBRO",
+                "Cuenta lista para cobro - Mesa " + tableNumber,
+                "La cuenta " + savedAccount.getAccountNumber() + " de la mesa " + tableNumber + " está lista para cobro.",
+                "CUENTA",
+                savedAccount.getId().toString(),
+                "ALTA"
+        );
+        Notification savedNotification = notificationRepository.save(notification);
+
+        return new RequestBillResponse(
+                "Cuenta marcada exitosamente como lista para cobro",
+                savedAccount.getId(),
+                savedAccount.getAccountNumber(),
+                savedAccount.getStatus(),
+                savedAccount.getRequestedPaymentAt(),
+                savedTable.getId(),
+                savedTable.getNumber(),
+                savedTable.getStatus(),
+                activeDishesCount,
+                true,
+                savedNotification.getId()
         );
     }
 

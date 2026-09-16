@@ -1,6 +1,7 @@
 package com.restaurante.domain.repository;
 
 import com.restaurante.domain.model.Comanda;
+import com.restaurante.domain.model.ComandaStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -37,4 +38,30 @@ public interface ComandaRepository extends JpaRepository<Comanda, Long> {
 
     @Query("SELECT c FROM Comanda c WHERE c.account.id = :accountId ORDER BY c.roundNumber ASC")
     List<Comanda> findByAccountId(@Param("accountId") Long accountId);
+
+    @Query("""
+           SELECT c
+           FROM Comanda c
+           WHERE c.account.id = :accountId
+             AND c.status = com.restaurante.domain.model.ComandaStatus.BORRADOR
+           ORDER BY c.roundNumber DESC
+           """)
+    List<Comanda> findDraftComandasByAccountId(@Param("accountId") Long accountId);
+
+    @Query("""
+           SELECT DISTINCT c
+           FROM Comanda c
+           JOIN FETCH c.account a
+           LEFT JOIN FETCH c.waiterUser w
+           LEFT JOIN FETCH c.details d
+           LEFT JOIN FETCH d.dish
+           LEFT JOIN FETCH d.combo
+           WHERE c.account.restaurantId = :restaurantId
+             AND c.status IN (:statuses)
+           ORDER BY c.sentAt ASC, c.id ASC
+           """)
+    List<Comanda> findKitchenComandasByStatusIn(
+            @Param("restaurantId") Long restaurantId,
+            @Param("statuses") List<ComandaStatus> statuses
+    );
 }

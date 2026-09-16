@@ -48,6 +48,17 @@
       <strong>{{ occupiedCount() }}</strong>
     </div>
   </article>
+
+  <article class="summary-card">
+  <div class="summary-icon summary-icon--requested">
+    <i class="pi pi-receipt"></i>
+  </div>
+
+  <div>
+    <span>{{ 'occupancy.summary.requested' | transloco }}</span>
+    <strong>{{ requestedCount() }}</strong>
+  </div>
+</article>
 </section>
 
 <section class="occupancy-panel">
