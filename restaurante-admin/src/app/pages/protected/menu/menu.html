@@ -41,6 +41,8 @@
 
 @if (isTabActive('dishes')) {
   <app-menu-dishes-tab />
+} @else if (isTabActive('modifiers')) {
+  <app-menu-modifiers-tab />
 } @else {
   <section class="menu-panel">
     <div class="state-panel state-panel--empty">

@@ -3,12 +3,13 @@ import { TranslocoPipe } from '@jsverse/transloco';
 
 import { PageHeadingComponent } from '../../../shared/components/page-heading/page-heading';
 import { DishesTabComponent } from './dishes-tab/dishes-tab';
+import { ModifiersTabComponent } from './modifiers-tab/modifiers-tab';
 
 type MenuTab = 'dishes' | 'modifiers' | 'combos';
 
 @Component({
   selector: 'app-menu-page',
-  imports: [DishesTabComponent, PageHeadingComponent, TranslocoPipe],
+  imports: [DishesTabComponent, ModifiersTabComponent, PageHeadingComponent, TranslocoPipe],
   templateUrl: './menu.html',
   styleUrl: './menu.scss',
 })
