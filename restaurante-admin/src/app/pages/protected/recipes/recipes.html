@@ -185,11 +185,22 @@
                 <h2>{{ selectedDish()!.name }}</h2>
                 <p>{{ selectedDish()!.code }} · {{ selectedDish()!.categoryName }}</p>
               </div>
-              <span class="recipe-version-chip">
-                {{
-                  'recipes.detail.version' | transloco: { number: selectedRecipe()!.versionNumber }
-                }}
-              </span>
+              <div class="recipe-detail__header-actions">
+                <button
+                  class="row-action row-action--update"
+                  type="button"
+                  (click)="openUpdate(selectedDish()!)"
+                >
+                  <i class="pi pi-pencil"></i>
+                  {{ 'recipes.dishes.actions.update' | transloco }}
+                </button>
+                <span class="recipe-version-chip">
+                  {{
+                    'recipes.detail.version'
+                      | transloco: { number: selectedRecipe()!.versionNumber }
+                  }}
+                </span>
+              </div>
             </div>
 
             <div class="recipe-summary-grid">
@@ -314,10 +325,20 @@
       <div class="registration-dialog__header">
         <div>
           <span class="registration-dialog__eyebrow">{{
-            'recipes.define.eyebrow' | transloco
+            (isUpdatingRecipe() ? 'recipes.update.eyebrow' : 'recipes.define.eyebrow') | transloco
           }}</span>
-          <h2>{{ 'recipes.define.title' | transloco: { name: defineDish()!.name } }}</h2>
-          <p>{{ 'recipes.define.description' | transloco }}</p>
+          <h2>
+            {{
+              (isUpdatingRecipe() ? 'recipes.update.title' : 'recipes.define.title')
+                | transloco: { name: defineDish()!.name }
+            }}
+          </h2>
+          <p>
+            {{
+              (isUpdatingRecipe() ? 'recipes.update.description' : 'recipes.define.description')
+                | transloco
+            }}
+          </p>
           <small class="supply-card">
             {{ 'recipes.define.fields.supplyCard.category' | transloco }}:
             {{ defineDish()!.categoryName }} ·
@@ -389,9 +410,17 @@
           <i class="pi pi-check"></i>
           @if (isSavingDefine()) {
             <i class="pi pi-spin pi-spinner"></i>
-            {{ 'recipes.define.actions.saving' | transloco }}
+            {{
+              (isUpdatingRecipe()
+                ? 'recipes.update.actions.saving'
+                : 'recipes.define.actions.saving'
+              ) | transloco
+            }}
           } @else {
-            {{ 'recipes.define.actions.save' | transloco }}
+            {{
+              (isUpdatingRecipe() ? 'recipes.update.actions.save' : 'recipes.define.actions.save')
+                | transloco
+            }}
           }
         </button>
       </div>

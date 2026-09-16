@@ -538,7 +538,8 @@
       },
       "actions": {
         "define": "Definir receta",
-        "view": "Ver receta"
+        "view": "Ver receta",
+        "update": "Actualizar receta"
       }
     },
     "detail": {
@@ -597,6 +598,29 @@
       "success": {
         "title": "Receta definida",
         "message": "La receta de {{dish}} fue definida en la versión {{version}}."
+      }
+    },
+    "update": {
+      "eyebrow": "Producción",
+      "title": "Actualizar receta de {{name}}",
+      "description": "Modifica los insumos o cantidades de la receta vigente. La versión anterior quedará conservada en el historial.",
+      "fields": {
+        "supplyCard": {
+          "category": "Categoría",
+          "price": "Precio de venta"
+        },
+        "ingredients": "Insumos de la receta",
+        "changeReason": "Motivo del cambio",
+        "changeReasonHint": "Opcional. Hasta 500 caracteres.",
+        "estimatedTotal": "Costo total estimado"
+      },
+      "actions": {
+        "save": "Guardar cambios",
+        "saving": "Guardando..."
+      },
+      "success": {
+        "title": "Receta actualizada",
+        "message": "La receta de {{dish}} fue actualizada en la versión {{version}}."
       }
     },
     "editor": {

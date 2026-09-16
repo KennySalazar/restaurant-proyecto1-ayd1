@@ -12,10 +12,10 @@ import { MessageService } from 'primeng/api';
 import { finalize, forkJoin } from 'rxjs';
 
 import {
-  DefineRecipeRequest,
   DishSummary,
   Recipe,
   RecipeIngredientEdit,
+  UpdateRecipeRequest,
 } from '../../../core/models/recipe.models';
 import { MeasurementUnit, Supply } from '../../../core/models/supply.models';
 import { ApiErrorService } from '../../../core/services/api-error.service';
@@ -136,7 +136,7 @@ export class RecipesPageComponent implements OnInit {
     return map;
   });
 
-  readonly defineValidationErrorKey = computed(() => {
+  defineValidationErrorKey(): string | null {
     const ingredientsControl = this.defineForm.controls.ingredients;
     if (ingredientsControl.hasError('ingredientsRequired')) {
       return 'recipes.define.validation.ingredientsRequired';
@@ -148,7 +148,7 @@ export class RecipesPageComponent implements OnInit {
       return 'recipes.define.validation.incomplete';
     }
     return null;
-  });
+  }
 
   defineCostPreview(): { total: number; hasConverted: boolean } {
     const suppliesById = this.supplyById();
@@ -225,6 +225,11 @@ export class RecipesPageComponent implements OnInit {
       .subscribe((recipe) => this.selectedRecipe.set(recipe));
   }
 
+  readonly isUpdatingRecipe = computed(() => {
+    const dish = this.defineDish();
+    return dish != null && dishHasRecipe(dish);
+  });
+
   openDefine(dish: DishSummary): void {
     if (dishHasRecipe(dish)) {
       const title = this.transloco.translate('recipes.define.warning.title');
@@ -236,12 +241,33 @@ export class RecipesPageComponent implements OnInit {
     }
 
     this.defineDish.set(dish);
+    this.prepareDefineForm([
+      { supplyId: null, quantity: null, measurementUnitId: null, notes: null },
+    ]);
+  }
+
+  openUpdate(dish: DishSummary): void {
+    const recipe = this.selectedRecipe();
+    if (!dishHasRecipe(dish) || !recipe) {
+      return;
+    }
+
+    this.defineDish.set(dish);
+    this.prepareDefineForm(
+      recipe.ingredients.map((ing) => ({
+        supplyId: ing.supplyId,
+        quantity: ing.quantity,
+        measurementUnitId: ing.measurementUnitId,
+        notes: ing.notes,
+      })),
+    );
+  }
+
+  private prepareDefineForm(ingredients: RecipeIngredientEdit[]): void {
     this.defineServerMessage.set(null);
     this.defineSubmitted.set(false);
     this.defineForm.reset();
-    this.defineForm.controls.ingredients.setValue([
-      { supplyId: null, quantity: null, measurementUnitId: null, notes: null },
-    ]);
+    this.defineForm.controls.ingredients.setValue(ingredients);
     this.isDefineOpen.set(true);
   }
 
@@ -271,13 +297,17 @@ export class RecipesPageComponent implements OnInit {
     }
 
     this.isSavingDefine.set(true);
-    const request: DefineRecipeRequest = {
+    const updating = this.isUpdatingRecipe();
+    const request: UpdateRecipeRequest = {
       ingredients: ingredientsControl.value ?? [],
       changeReason: this.defineForm.controls.changeReason.value?.trim() || null,
     };
 
-    this.recipeService
-      .defineDishRecipe(dish.id, request)
+    const submission = updating
+      ? this.recipeService.updateDishRecipe(dish.id, request)
+      : this.recipeService.defineDishRecipe(dish.id, request);
+
+    submission
       .pipe(
         takeUntilDestroyed(this.destroyRef),
         finalize(() => this.isSavingDefine.set(false)),
@@ -285,11 +315,16 @@ export class RecipesPageComponent implements OnInit {
       .subscribe({
         next: (response) => {
           this.isDefineOpen.set(false);
-          const summary = this.transloco.translate('recipes.define.success.title');
-          const detail = this.transloco.translate('recipes.define.success.message', {
-            dish: dish.name,
-            version: response.recipe.versionNumber,
-          });
+          const summary = this.transloco.translate(
+            updating ? 'recipes.update.success.title' : 'recipes.define.success.title',
+          );
+          const detail = this.transloco.translate(
+            updating ? 'recipes.update.success.message' : 'recipes.define.success.message',
+            {
+              dish: dish.name,
+              version: response.recipe.versionNumber,
+            },
+          );
           this.messages.add({ severity: 'success', summary, detail });
           this.selectDish(dish.id);
           this.reloadDishes();

@@ -356,6 +356,14 @@
   background: #fae8e5;
 }
 
+.row-action--update {
+  color: #9d5b2f;
+}
+
+.row-action--update:hover {
+  background: #f5e9d8;
+}
+
 .state-panel {
   align-items: center;
   color: #88776e;
@@ -411,6 +419,14 @@
   color: #88776e;
   font-size: 0.72rem;
   margin: 0.25rem 0 0;
+}
+
+.recipe-detail__header-actions {
+  align-items: center;
+  display: flex;
+  gap: 0.6rem;
+  padding-top: 0.55rem;
+  white-space: nowrap;
 }
 
 .registration-dialog__eyebrow {
