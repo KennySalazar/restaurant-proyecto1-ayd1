@@ -1,0 +1,134 @@
+HU-B-026 - Acreditar puntos de fidelizacion por compra
+
+Objetivo
+-------
+Cuando un cliente registrado completa exitosamente el pago de su cuenta,
+el sistema acredita automaticamente puntos de fidelizacion segun la
+configuracion vigente del restaurante.
+
+La logica ya se encuentra integrada en el flujo de cobro del backend,
+por lo que esta historia no requirio cambios adicionales en codigo de produccion.
+
+Endpoint utilizado
+------------------
+POST /api/v1/caja/cuentas/{cuentaId}/cobro
+
+Ejemplo de request
+------------------
+{
+  "puntosRedimidos": 0,
+  "pagos": [
+    {
+      "metodoPagoId": 1,
+      "monto": 210.00,
+      "montoRecibido": 210.00,
+      "referencia": null,
+      "autorizacion": null
+    }
+  ]
+}
+
+Comportamiento
+--------------
+Si la cuenta esta asociada a un cliente registrado:
+
+1. El sistema obtiene la configuracion vigente del restaurante.
+2. Toma el valor configurado en puntos_por_moneda.
+3. Calcula los puntos a otorgar con la formula:
+
+   puntosOtorgados = FLOOR(totalFactura * puntosPorMoneda)
+
+4. Registra los puntos en la factura.
+5. Genera un movimiento de fidelizacion de tipo OTORGAMIENTO.
+6. Actualiza automaticamente el saldo de puntos del cliente.
+7. Devuelve el nuevo saldo en la respuesta del cobro.
+
+Prueba realizada
+----------------
+Cliente:
+- Cliente ID: 2
+- Saldo inicial: 0 puntos
+
+Cuenta:
+- Cuenta ID: 13
+- Subtotal: Q100.00
+- Impuesto: Q100.00
+- Propina: Q10.00
+- Total factura: Q210.00
+
+Configuracion:
+- puntos_por_moneda = 1.0000
+
+Resultado:
+- puntosRedimidos = 0
+- puntosOtorgados = 210
+- saldoPuntosResultante = 210
+- estadoCuenta = CERRADA
+
+Respuesta obtenida
+------------------
+{
+  "facturaId": 5,
+  "numeroDocumento": "A-4",
+  "cuentaId": 13,
+  "subtotal": 100,
+  "puntosRedimidos": 0,
+  "descuentoPuntos": 0,
+  "porcentajeImpuesto": 100,
+  "montoImpuesto": 100,
+  "porcentajePropina": 10,
+  "montoPropina": 10,
+  "totalFactura": 210,
+  "puntosOtorgados": 210,
+  "saldoPuntosResultante": 210,
+  "totalPagado": 210,
+  "montoPendiente": 0,
+  "estadoCuenta": "CERRADA"
+}
+
+Persistencia verificada
+-----------------------
+Factura:
+- puntos_redimidos = 0
+- puntos_otorgados = 210
+- total = 210.00
+
+Movimiento de puntos:
+- tipo = OTORGAMIENTO
+- cantidad_puntos = 210
+- saldo_anterior = 0
+- saldo_resultante = 210
+- motivo = Puntos otorgados por compra
+
+Cliente:
+- saldo_puntos = 210
+- total_visitas = 1
+
+Notas para Frontend
+-------------------
+Frontend no necesita llamar a un endpoint adicional para acreditar puntos.
+
+La acreditacion ocurre automaticamente al ejecutar correctamente:
+
+POST /api/v1/caja/cuentas/{cuentaId}/cobro
+
+Despues del cobro, frontend puede utilizar directamente estos campos de la respuesta:
+
+- puntosOtorgados
+- saldoPuntosResultante
+- totalFactura
+- estadoCuenta
+
+Ejemplo visual sugerido para frontend:
+
+Pago realizado exitosamente
+Total pagado: Q210.00
+Puntos obtenidos: 210
+Nuevo saldo de puntos: 210
+
+Importante
+----------
+Los puntos solo se acreditan si la cuenta esta asociada a un cliente registrado.
+
+Si la cuenta no tiene cliente asociado, puntosOtorgados sera 0 y no se genera
+movimiento de fidelizacion.
