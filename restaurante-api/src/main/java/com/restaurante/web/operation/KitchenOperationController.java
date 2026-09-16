@@ -5,7 +5,9 @@ import com.restaurante.domain.model.ComandaStatus;
 import com.restaurante.domain.model.RestaurantUserProfile;
 import com.restaurante.domain.repository.RestaurantUserProfileRepository;
 import com.restaurante.security.JwtData;
+import com.restaurante.web.dto.kitchen.DishPreparationStatusResponse;
 import com.restaurante.web.dto.kitchen.KitchenComandaResponse;
+import com.restaurante.web.dto.kitchen.UpdateDishPreparationStatusRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
@@ -15,6 +17,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import org.springframework.http.MediaType;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
@@ -22,7 +25,9 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
@@ -33,10 +38,10 @@ import java.util.List;
  * Controlador de operación para la visualización y gestión de comandas en cocina.
  */
 @RestController
-@RequestMapping("/operacion/cocina/comandas")
+@RequestMapping("/operacion/cocina")
 @Tag(
         name = "Cocina (Operación)",
-        description = "Visualización de comandas entrantes ordenadas por antigüedad y actualización en tiempo real para el personal de cocina"
+        description = "Visualización de comandas entrantes ordenadas por antigüedad, actualización de estados de preparación y sincronización en tiempo real para el personal de cocina"
 )
 @SecurityRequirement(name = "bearerAuth")
 public class KitchenOperationController {
@@ -52,7 +57,7 @@ public class KitchenOperationController {
         this.userProfileRepository = userProfileRepository;
     }
 
-    @GetMapping
+    @GetMapping("/comandas")
     @PreAuthorize("hasAnyRole('KITCHEN', 'ADMIN', 'WAITER')")
     @Operation(
             summary = "Visualizar comandas entrantes y activas en cocina",
@@ -85,11 +90,11 @@ public class KitchenOperationController {
         return ResponseEntity.ok(response);
     }
 
-    @GetMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    @PreAuthorize("hasAnyRole('KITCHEN', 'ADMIN')")
+    @GetMapping(value = "/comandas/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @PreAuthorize("hasAnyRole('KITCHEN', 'ADMIN', 'WAITER')")
     @Operation(
             summary = "Suscripción en tiempo real a comandas de cocina (SSE)",
-            description = "Conexión mediante Server-Sent Events (SSE) que emite eventos instantáneos al recibir nuevas comandas sin que sea necesario recargar la página."
+            description = "Conexión mediante Server-Sent Events (SSE) que emite eventos instantáneos al recibir nuevas comandas o actualizar estados sin que sea necesario recargar la página."
     )
     @ApiResponses({
             @ApiResponse(
@@ -113,7 +118,7 @@ public class KitchenOperationController {
         return kitchenService.subscribeToKitchenStream(restaurantId);
     }
 
-    @GetMapping("/{id}")
+    @GetMapping("/comandas/{id}")
     @PreAuthorize("hasAnyRole('KITCHEN', 'ADMIN', 'WAITER')")
     @Operation(
             summary = "Consultar comanda de cocina por identificador",
@@ -138,6 +143,49 @@ public class KitchenOperationController {
 
         Long restaurantId = resolveRestaurantId(authentication);
         KitchenComandaResponse response = kitchenService.getKitchenComandaById(id, restaurantId);
+        return ResponseEntity.ok(response);
+    }
+
+    @RequestMapping(value = "/platillos/{id}/estado", method = {RequestMethod.PUT, RequestMethod.PATCH})
+    @PreAuthorize("hasAnyRole('KITCHEN', 'ADMIN')")
+    @Operation(
+            summary = "Actualizar estado de preparación de un platillo",
+            description = "Actualiza el estado de preparación de un platillo de una comanda (recibido → en preparación → listo). Valida la secuencia de transición (no permite saltar de recibido a listo). Notifica al mesero responsable cuando el platillo queda listo para servir y sincroniza el estado en tiempo real."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Estado de preparación del platillo actualizado exitosamente",
+                    content = @Content(schema = @Schema(implementation = DishPreparationStatusResponse.class))
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Transición de estado inválida o datos de solicitud incompletos",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "No autenticado",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Acceso denegado (requiere rol de cocina o administrador)",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Platillo o comanda no encontrada",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            )
+    })
+    public ResponseEntity<DishPreparationStatusResponse> updateDishPreparationStatus(
+            @Parameter(description = "Identificador único del detalle de la comanda (platillo)", required = true)
+            @PathVariable Long id,
+            @Valid @RequestBody UpdateDishPreparationStatusRequest request,
+            Authentication authentication) {
+
+        DishPreparationStatusResponse response = kitchenService.updateDishPreparationStatus(id, request, authentication);
         return ResponseEntity.ok(response);
     }
 
