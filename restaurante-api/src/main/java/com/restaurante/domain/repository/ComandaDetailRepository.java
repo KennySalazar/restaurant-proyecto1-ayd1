@@ -6,8 +6,22 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface ComandaDetailRepository extends JpaRepository<ComandaDetail, Long> {
+
+    @Query("""
+           SELECT DISTINCT d
+           FROM ComandaDetail d
+           JOIN FETCH d.comanda c
+           LEFT JOIN FETCH c.account a
+           LEFT JOIN FETCH d.modifiers m
+           LEFT JOIN FETCH m.modifier
+           WHERE d.id = :id
+           """)
+    Optional<ComandaDetail> findByIdWithComandaAndModifiers(
+            @Param("id") Long id
+    );
 
     @Query("""
            SELECT DISTINCT d
@@ -35,7 +49,7 @@ public interface ComandaDetailRepository extends JpaRepository<ComandaDetail, Lo
            SELECT COUNT(d)
            FROM ComandaDetail d
            WHERE d.comanda.account.id = :accountId
-             AND d.status NOT IN (com.restaurante.domain.model.ComandaDetailStatus.CANCELADO, com.restaurante.domain.model.ComandaDetailStatus.NO_DISPONIBLE)
+              AND d.status NOT IN (com.restaurante.domain.model.ComandaDetailStatus.CANCELADO, com.restaurante.domain.model.ComandaDetailStatus.NO_DISPONIBLE)
            """)
     long countActiveByAccountId(@Param("accountId") Long accountId);
 }

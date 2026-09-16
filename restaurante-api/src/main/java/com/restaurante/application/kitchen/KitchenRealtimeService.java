@@ -1,8 +1,7 @@
 package com.restaurante.application.kitchen;
 
+import com.restaurante.web.dto.kitchen.DishPreparationStatusResponse;
 import com.restaurante.web.dto.kitchen.KitchenComandaResponse;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
@@ -18,7 +17,6 @@ import java.util.concurrent.CopyOnWriteArrayList;
 @Service
 public class KitchenRealtimeService {
 
-    private static final Logger logger = LoggerFactory.getLogger(KitchenRealtimeService.class);
     private static final Long DEFAULT_RESTAURANT_ID = 1L;
     private static final long EMITTER_TIMEOUT = 30 * 60 * 1000L; // 30 minutos
 
@@ -83,6 +81,66 @@ public class KitchenRealtimeService {
             try {
                 emitter.send(SseEmitter.event()
                         .name("nueva-comanda")
+                        .data(comanda));
+            } catch (Exception e) {
+                deadEmitters.add(emitter);
+            }
+        }
+
+        if (!deadEmitters.isEmpty()) {
+            list.removeAll(deadEmitters);
+        }
+    }
+
+    /**
+     * Notifica en tiempo real el cambio de estado de preparación de un platillo a todos los suscriptores activos.
+     *
+     * @param restaurantId Identificador del restaurante
+     * @param dishStatus Datos del platillo con su nuevo estado
+     */
+    public void notifyDishStatusChanged(Long restaurantId, DishPreparationStatusResponse dishStatus) {
+        Long targetRestaurantId = restaurantId != null ? restaurantId : DEFAULT_RESTAURANT_ID;
+        CopyOnWriteArrayList<SseEmitter> list = emittersByRestaurant.get(targetRestaurantId);
+
+        if (list == null || list.isEmpty()) {
+            return;
+        }
+
+        List<SseEmitter> deadEmitters = new ArrayList<>();
+        for (SseEmitter emitter : list) {
+            try {
+                emitter.send(SseEmitter.event()
+                        .name("estado-platillo-actualizado")
+                        .data(dishStatus));
+            } catch (Exception e) {
+                deadEmitters.add(emitter);
+            }
+        }
+
+        if (!deadEmitters.isEmpty()) {
+            list.removeAll(deadEmitters);
+        }
+    }
+
+    /**
+     * Notifica en tiempo real una comanda actualizada a todos los suscriptores activos.
+     *
+     * @param restaurantId Identificador del restaurante
+     * @param comanda Datos actualizados de la comanda
+     */
+    public void notifyComandaUpdated(Long restaurantId, KitchenComandaResponse comanda) {
+        Long targetRestaurantId = restaurantId != null ? restaurantId : DEFAULT_RESTAURANT_ID;
+        CopyOnWriteArrayList<SseEmitter> list = emittersByRestaurant.get(targetRestaurantId);
+
+        if (list == null || list.isEmpty()) {
+            return;
+        }
+
+        List<SseEmitter> deadEmitters = new ArrayList<>();
+        for (SseEmitter emitter : list) {
+            try {
+                emitter.send(SseEmitter.event()
+                        .name("comanda-actualizada")
                         .data(comanda));
             } catch (Exception e) {
                 deadEmitters.add(emitter);
