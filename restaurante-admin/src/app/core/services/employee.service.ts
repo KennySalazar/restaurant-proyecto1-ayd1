@@ -7,6 +7,7 @@ import {
   CreateEmployeeRequest,
   Employee,
   OperationalRoleOption,
+  UpdateEmployeeRequest,
 } from '../models/employee.models';
 
 @Injectable({
@@ -33,6 +34,16 @@ export class EmployeeService {
   createEmployee(payload: CreateEmployeeRequest): Observable<Employee> {
     return this.http.post<Employee>(this.employeesUrl, payload);
   }
+
+  updateEmployee(
+  id: number,
+  payload: UpdateEmployeeRequest,
+): Observable<Employee> {
+  return this.http.put<Employee>(
+    `${this.employeesUrl}/${id}`,
+    payload,
+  );
+}
 
   deactivateEmployee(id: number): Observable<Employee> {
     return this.http.delete<Employee>(`${this.employeesUrl}/${id}`);

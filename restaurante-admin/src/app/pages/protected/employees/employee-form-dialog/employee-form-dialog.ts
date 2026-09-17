@@ -22,6 +22,7 @@ import {
   Employee,
   OperationalRole,
   OperationalRoleOption,
+  UpdateEmployeeRequest,
 } from '../../../../core/models/employee.models';
 import { ApiErrorService } from '../../../../core/services/api-error.service';
 import { EmployeeService } from '../../../../core/services/employee.service';
@@ -45,6 +46,7 @@ export class EmployeeFormDialogComponent implements OnChanges {
   private readonly transloco = inject(TranslocoService);
 
   @Input() open = false;
+  @Input() employee: Employee | null = null;
 
   @Output() closed = new EventEmitter<void>();
   @Output() saved = new EventEmitter<Employee>();
@@ -127,62 +129,121 @@ export class EmployeeFormDialogComponent implements OnChanges {
   }
 
   submit(): void {
-    this.submitted.set(true);
-    this.serverMessage.set(null);
+  this.submitted.set(true);
+  this.serverMessage.set(null);
 
-    if (this.employeeForm.invalid) {
-      this.employeeForm.markAllAsTouched();
-      return;
-    }
-
-    const raw = this.employeeForm.getRawValue();
-
-    if (!raw.rol) {
-      return;
-    }
-
-    const payload: CreateEmployeeRequest = {
-      codigoEmpleado: raw.codigoEmpleado.trim(),
-      nombres: raw.nombres.trim(),
-      apellidos: raw.apellidos.trim(),
-      email: raw.email.trim(),
-      password: raw.password,
-      fechaContratacion: raw.fechaContratacion || null,
-      rol: raw.rol,
-    };
-
-    this.isSaving.set(true);
-
-    this.employeeService
-      .createEmployee(payload)
-      .pipe(finalize(() => this.isSaving.set(false)))
-      .subscribe({
-        next: (employee) => {
-          this.messages.add({
-            severity: 'success',
-            summary: this.transloco.translate(
-              'employees.registration.successTitle',
-            ),
-            detail: this.transloco.translate(
-              'employees.registration.successMessage',
-              {
-                name: `${employee.nombres} ${employee.apellidos}`,
-              },
-            ),
-            life: 5000,
-          });
-
-          this.saved.emit(employee);
-        },
-        error: (error: unknown) => {
-          this.serverMessage.set(this.errors.getMessage(error));
-        },
-      });
+  if (this.employeeForm.invalid) {
+    this.employeeForm.markAllAsTouched();
+    return;
   }
 
+  const raw = this.employeeForm.getRawValue();
+
+  if (!raw.rol) {
+    return;
+  }
+
+  const editing = this.employee;
+
+  const request = editing
+    ? this.employeeService.updateEmployee(
+        editing.id,
+        this.buildUpdatePayload(),
+      )
+    : this.employeeService.createEmployee(
+        this.buildCreatePayload(),
+      );
+
+  this.isSaving.set(true);
+
+  request
+    .pipe(finalize(() => this.isSaving.set(false)))
+    .subscribe({
+      next: (employee) => {
+        const key = editing
+          ? 'employees.update'
+          : 'employees.registration';
+
+        this.messages.add({
+          severity: 'success',
+          summary: this.transloco.translate(
+            `${key}.successTitle`,
+          ),
+          detail: this.transloco.translate(
+            `${key}.successMessage`,
+            {
+              name: `${employee.nombres} ${employee.apellidos}`,
+            },
+          ),
+          life: 5000,
+        });
+
+        this.saved.emit(employee);
+      },
+      error: (error: unknown) => {
+        this.serverMessage.set(
+          this.errors.getMessage(error),
+        );
+      },
+    });
+}
+
+private buildUpdatePayload(): UpdateEmployeeRequest {
+  const raw = this.employeeForm.getRawValue();
+
+  if (!raw.rol) {
+    throw new Error('Rol operativo requerido');
+  }
+
+  return {
+    codigoEmpleado: raw.codigoEmpleado.trim(),
+    nombres: raw.nombres.trim(),
+    apellidos: raw.apellidos.trim(),
+    email: raw.email.trim(),
+    fechaContratacion:
+      raw.fechaContratacion || null,
+    rol: raw.rol,
+  };
+}
+
+private buildCreatePayload(): CreateEmployeeRequest {
+  const raw = this.employeeForm.getRawValue();
+
+  return {
+    ...this.buildUpdatePayload(),
+    password: raw.password,
+  };
+}
+
   private prepareForm(): void {
-    this.submitted.set(false);
-    this.serverMessage.set(null);
+  this.submitted.set(false);
+  this.serverMessage.set(null);
+
+  const passwordControl =
+    this.employeeForm.controls.password;
+
+  if (this.employee) {
+    passwordControl.clearValidators();
+
+    this.employeeForm.reset({
+      codigoEmpleado: this.employee.codigoEmpleado,
+      nombres: this.employee.nombres,
+      apellidos: this.employee.apellidos,
+      email: this.employee.email,
+      password: '',
+      fechaContratacion:
+        this.employee.fechaContratacion ?? '',
+      rol: this.employee.rol,
+    });
+  } else {
+    passwordControl.setValidators([
+      Validators.required,
+      Validators.minLength(8),
+      Validators.maxLength(72),
+      Validators.pattern(
+        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,72}$/,
+      ),
+    ]);
 
     this.employeeForm.reset({
       codigoEmpleado: '',
@@ -194,6 +255,9 @@ export class EmployeeFormDialogComponent implements OnChanges {
       rol: '',
     });
   }
+
+  passwordControl.updateValueAndValidity();
+}
 
   private loadRoles(): void {
     this.isLoadingRoles.set(true);

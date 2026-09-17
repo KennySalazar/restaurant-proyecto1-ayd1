@@ -484,6 +484,14 @@
   .confirm-deactivation-button {
     width: 100%;
   }
+
+  .employee-detail__actions {
+  align-items: stretch;
+}
+
+.edit-button {
+  justify-content: center;
+}
 }
 
 .employees-panel__header {
@@ -501,4 +509,29 @@
 .refresh-button {
   justify-content: center;
   width: 100%;
+}
+
+.employee-detail__actions {
+  align-items: center;
+  display: flex;
+  gap: 0.6rem;
+}
+
+.edit-button {
+  align-items: center;
+  background: #a54838;
+  border: 0;
+  border-radius: 0.7rem;
+  color: #fff;
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 750;
+  gap: 0.4rem;
+  padding: 0.65rem 0.9rem;
+}
+
+.edit-button:hover {
+  background: #93402f;
 }
