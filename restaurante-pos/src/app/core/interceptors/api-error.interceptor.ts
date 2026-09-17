@@ -13,6 +13,8 @@ const PUBLIC_AUTH_PATHS = [
   '/auth/password-recovery/verify',
 ];
 
+const CURRENT_CASH_SHIFT_PATH = '/caja/turnos/actual';
+
 export const apiErrorInterceptor: HttpInterceptorFn = (request, next) => {
   const errors = inject(ApiErrorService);
   const session = inject(AuthSessionService);
@@ -46,7 +48,18 @@ export const apiErrorInterceptor: HttpInterceptorFn = (request, next) => {
         });
       }
 
-      errors.present(error);
+      const problem = errors.getProblem(error);
+
+      const isExpectedMissingCashShift =
+        request.method === 'GET' &&
+        request.url.endsWith(CURRENT_CASH_SHIFT_PATH) &&
+        error.status === 409 &&
+        problem.code === 'open_cash_shift_required';
+
+      if (!isExpectedMissingCashShift) {
+        errors.present(error);
+      }
+
       return throwError(() => error);
     }),
   );
