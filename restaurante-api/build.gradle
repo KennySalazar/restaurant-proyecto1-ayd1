@@ -50,6 +50,7 @@ dependencies {
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 	testAnnotationProcessor 'org.projectlombok:lombok'
 	implementation 'com.github.librepdf:openpdf:2.0.3'
+	implementation 'org.apache.poi:poi-ooxml:5.4.1'
 }
 
 //defeniendo la plataforma de pruebas a utilizar
