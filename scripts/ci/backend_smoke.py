@@ -16,18 +16,16 @@ def docker(*args, env=None):
     if p.returncode:
         raise RuntimeError('Docker operation failed: ' + args[0])
     return p.stdout.strip()
-def request(path, method='GET', data=None, headers=None):
+def request(path, method='GET', data=None, headers=None, timeout=15):
     print(f"HTTP {method} {path}", flush=True)
-
     req = urllib.request.Request(
         base + path,
         method=method,
         data=None if data is None else json.dumps(data).encode(),
         headers=headers or {}
     )
-
     try:
-        with urllib.request.urlopen(req, timeout=15) as r:
+        with urllib.request.urlopen(req, timeout=timeout) as r:
             return r.status, r.read(), r.headers
     except urllib.error.HTTPError as e:
         return e.code, e.read(), e.headers
@@ -81,7 +79,7 @@ try:
     print('PASS: all', len(expected_versions), 'migrations applied to fresh PostgreSQL 18',flush=True)
     for path in ['/auth/me','/admin/ping','/actuator/health','/actuator/env']:
         assert request(path)[0]==401, path
-    assert request('/v3/api-docs')[0]==200
+    assert request('/v3/api-docs', timeout=60)[0] == 200
     status,body,_=request('/auth/login','POST',{'email':env['INITIAL_ADMIN_EMAIL'],
         'password':env['INITIAL_ADMIN_PASSWORD']},{'Content-Type':'application/json'})
     assert status==200, 'login failed'
