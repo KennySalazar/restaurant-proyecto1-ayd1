@@ -1,0 +1,229 @@
+@if (open) {
+  <div class="employee-form-backdrop" role="presentation">
+    <section
+      class="employee-form-dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="employee-form-dialog-title"
+    >
+      <header class="employee-form-dialog__header">
+        <div>
+          <span class="employee-form-dialog__eyebrow">
+            {{ 'employees.registration.eyebrow' | transloco }}
+          </span>
+
+          <h2 id="employee-form-dialog-title">
+            {{ 'employees.registration.title' | transloco }}
+          </h2>
+
+          <p>
+            {{ 'employees.registration.description' | transloco }}
+          </p>
+        </div>
+
+        <button
+          class="close-button"
+          type="button"
+          [attr.aria-label]="'employees.actions.close' | transloco"
+          [disabled]="isSaving()"
+          (click)="close()"
+        >
+          <i class="pi pi-times"></i>
+        </button>
+      </header>
+
+      <app-form-feedback [message]="serverMessage()" />
+
+      <form
+        class="employee-form"
+        [formGroup]="employeeForm"
+        (ngSubmit)="submit()"
+        novalidate
+      >
+        <div class="form-grid">
+          <div class="form-field">
+            <label for="employee-code">
+              {{ 'employees.registration.fields.code' | transloco }}
+            </label>
+
+            <input
+              id="employee-code"
+              type="text"
+              formControlName="codigoEmpleado"
+              maxlength="30"
+              autocomplete="off"
+            />
+
+            @if (invalid('codigoEmpleado')) {
+              <small class="field-error">
+                {{ 'employees.registration.validation.code' | transloco }}
+              </small>
+            }
+          </div>
+
+          <div class="form-field">
+            <label for="employee-hire-date">
+              {{ 'employees.registration.fields.hireDate' | transloco }}
+            </label>
+
+            <input
+              id="employee-hire-date"
+              type="date"
+              formControlName="fechaContratacion"
+            />
+          </div>
+
+          <div class="form-field">
+            <label for="employee-first-name">
+              {{ 'employees.registration.fields.firstName' | transloco }}
+            </label>
+
+            <input
+              id="employee-first-name"
+              type="text"
+              formControlName="nombres"
+              maxlength="100"
+              autocomplete="off"
+            />
+
+            @if (invalid('nombres')) {
+              <small class="field-error">
+                {{ 'employees.registration.validation.firstName' | transloco }}
+              </small>
+            }
+          </div>
+
+          <div class="form-field">
+            <label for="employee-last-name">
+              {{ 'employees.registration.fields.lastName' | transloco }}
+            </label>
+
+            <input
+              id="employee-last-name"
+              type="text"
+              formControlName="apellidos"
+              maxlength="100"
+              autocomplete="off"
+            />
+
+            @if (invalid('apellidos')) {
+              <small class="field-error">
+                {{ 'employees.registration.validation.lastName' | transloco }}
+              </small>
+            }
+          </div>
+
+          <div class="form-field form-field--span-2">
+            <label for="employee-email">
+              {{ 'employees.registration.fields.email' | transloco }}
+            </label>
+
+            <input
+              id="employee-email"
+              type="email"
+              formControlName="email"
+              maxlength="320"
+              autocomplete="off"
+            />
+
+            @if (invalid('email')) {
+              <small class="field-error">
+                {{ 'employees.registration.validation.email' | transloco }}
+              </small>
+            }
+          </div>
+
+          <div class="form-field">
+            <label for="employee-password">
+              {{ 'employees.registration.fields.password' | transloco }}
+            </label>
+
+            <input
+              id="employee-password"
+              type="password"
+              formControlName="password"
+              maxlength="72"
+              autocomplete="new-password"
+            />
+
+            <small class="field-hint">
+              {{ 'employees.registration.passwordHint' | transloco }}
+            </small>
+
+            @if (invalid('password')) {
+              <small class="field-error">
+                {{ 'employees.registration.validation.password' | transloco }}
+              </small>
+            }
+          </div>
+
+          <div class="form-field">
+            <label for="employee-role">
+              {{ 'employees.registration.fields.role' | transloco }}
+            </label>
+
+            <select
+              id="employee-role"
+              formControlName="rol"
+              [disabled]="isLoadingRoles()"
+            >
+              <option value="">
+                {{
+                  (isLoadingRoles()
+                    ? 'employees.registration.fields.loadingRoles'
+                    : 'employees.registration.fields.selectRole'
+                  ) | transloco
+                }}
+              </option>
+
+              @for (role of roles(); track role.codigo) {
+                <option [value]="role.codigo">
+                  {{ role.nombre }}
+                </option>
+              }
+            </select>
+
+            @if (invalid('rol')) {
+              <small class="field-error">
+                {{ 'employees.registration.validation.role' | transloco }}
+              </small>
+            }
+          </div>
+        </div>
+
+        <div class="employee-form-notice">
+          <i class="pi pi-info-circle"></i>
+
+          <span>
+            {{ 'employees.registration.notice' | transloco }}
+          </span>
+        </div>
+
+        <footer class="employee-form-dialog__actions">
+          <button
+            class="cancel-button"
+            type="button"
+            [disabled]="isSaving()"
+            (click)="close()"
+          >
+            {{ 'common.cancel' | transloco }}
+          </button>
+
+          <button
+            class="save-button"
+            type="submit"
+            [disabled]="isSaving() || isLoadingRoles()"
+          >
+            @if (isSaving()) {
+              <i class="pi pi-spin pi-spinner"></i>
+              {{ 'employees.registration.saving' | transloco }}
+            } @else {
+              <i class="pi pi-user-plus"></i>
+              {{ 'employees.registration.save' | transloco }}
+            }
+          </button>
+        </footer>
+      </form>
+    </section>
+  </div>
+}

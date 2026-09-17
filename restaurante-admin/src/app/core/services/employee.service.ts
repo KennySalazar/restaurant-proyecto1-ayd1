@@ -2,9 +2,12 @@ import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 
-
 import { environment } from '../../../environments/environment';
-import { Employee } from '../models/employee.models';
+import {
+  CreateEmployeeRequest,
+  Employee,
+  OperationalRoleOption,
+} from '../models/employee.models';
 
 @Injectable({
   providedIn: 'root',
@@ -21,7 +24,17 @@ export class EmployeeService {
     return this.http.get<Employee>(`${this.employeesUrl}/${id}`);
   }
 
+  getOperationalRoles(): Observable<OperationalRoleOption[]> {
+    return this.http.get<OperationalRoleOption[]>(
+      `${this.employeesUrl}/roles`,
+    );
+  }
+
+  createEmployee(payload: CreateEmployeeRequest): Observable<Employee> {
+    return this.http.post<Employee>(this.employeesUrl, payload);
+  }
+
   deactivateEmployee(id: number): Observable<Employee> {
-  return this.http.delete<Employee>(`${this.employeesUrl}/${id}`);
-}
+    return this.http.delete<Employee>(`${this.employeesUrl}/${id}`);
+  }
 }
