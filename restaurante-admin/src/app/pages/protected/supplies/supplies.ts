@@ -13,6 +13,7 @@ import { debounceTime, distinctUntilChanged, finalize, forkJoin, Subject } from 
 
 import {
   CreateSupplyRequest,
+  INVENTORY_ADJUSTMENT_TYPES,
   KardexMovementNature,
   KardexRecord,
   KARDEX_MOVEMENT_NATURES,
@@ -176,6 +177,20 @@ export class SuppliesPageComponent implements OnInit {
     return null;
   };
 
+  private readonly adjustmentQuantityValidator = (
+    control: AbstractControl,
+  ): ValidationErrors | null => {
+    const candidate = this.adjustmentCandidate();
+    const type = control.get('adjustmentType')?.value;
+    const quantity = control.get('quantity')?.value;
+
+    if (!candidate || type !== 'DISMINUCION' || !quantity || quantity <= 0) {
+      return null;
+    }
+
+    return quantity > candidate.currentStock ? { exceedsStock: true } : null;
+  };
+
   private readonly notInteger = (control: AbstractControl): ValidationErrors | null => {
     const value: number | null = control.value;
     const numeric = Number(value);
@@ -218,6 +233,22 @@ export class SuppliesPageComponent implements OnInit {
     notes: ['', [Validators.maxLength(255)]],
     wasteDate: [this.todayIso()],
   });
+
+  readonly adjustmentCandidate = signal<Supply | null>(null);
+  readonly isAdjustmentOpen = signal(false);
+  readonly isSavingAdjustment = signal(false);
+  readonly submittedAdjustment = signal(false);
+  readonly adjustmentServerMessage = signal<string | null>(null);
+  readonly adjustmentTypes = INVENTORY_ADJUSTMENT_TYPES;
+
+  readonly adjustmentForm = this.formBuilder.group(
+    {
+      adjustmentType: ['AUMENTO', [Validators.required]],
+      quantity: [null as number | null, [Validators.required, Validators.min(0.0001)]],
+      reason: ['', [Validators.required, Validators.maxLength(255)]],
+    },
+    { validators: [this.adjustmentQuantityValidator] },
+  );
 
   ngOnInit(): void {
     this.searchSubject
@@ -697,6 +728,132 @@ export class SuppliesPageComponent implements OnInit {
           this.wasteServerMessage.set(this.errors.getMessage(error));
         },
       });
+  }
+
+  openAdjustment(supply: Supply): void {
+    this.submittedAdjustment.set(false);
+    this.adjustmentServerMessage.set(null);
+    this.adjustmentCandidate.set(supply);
+
+    this.adjustmentForm.patchValue({
+      adjustmentType: 'AUMENTO',
+      quantity: null,
+      reason: '',
+    });
+
+    const integerValidator = this.isConteoUnit(supply.unitId) ? [this.notInteger] : [];
+    this.adjustmentForm.controls.quantity.setValidators([
+      Validators.required,
+      Validators.min(0.0001),
+      ...integerValidator,
+    ]);
+    this.adjustmentForm.controls.quantity.updateValueAndValidity();
+
+    this.isAdjustmentOpen.set(true);
+  }
+
+  closeAdjustment(): void {
+    if (this.isSavingAdjustment()) {
+      return;
+    }
+
+    this.isAdjustmentOpen.set(false);
+  }
+
+  setAdjustmentType(type: string): void {
+    this.adjustmentForm.controls.adjustmentType.setValue(type);
+    this.adjustmentForm.controls.quantity.updateValueAndValidity();
+  }
+
+  adjustmentPreview(): { resulting: number; exceedsStock: boolean; danger: boolean } | null {
+    const raw = this.adjustmentForm.getRawValue();
+    const supply = this.adjustmentCandidate();
+
+    if (!supply || raw.quantity == null || raw.quantity <= 0) {
+      return null;
+    }
+
+    const isDecrease = raw.adjustmentType === 'DISMINUCION';
+    const resulting = supply.currentStock + (isDecrease ? -raw.quantity : raw.quantity);
+    const danger = supply.minimumStock != null && resulting <= supply.minimumStock;
+
+    return {
+      resulting: Math.max(0, resulting),
+      exceedsStock: isDecrease && resulting < 0,
+      danger,
+    };
+  }
+
+  submitAdjustment(): void {
+    this.submittedAdjustment.set(true);
+    this.adjustmentServerMessage.set(null);
+
+    if (this.adjustmentForm.invalid) {
+      this.adjustmentForm.markAllAsTouched();
+      return;
+    }
+
+    const supply = this.adjustmentCandidate();
+
+    if (!supply) {
+      return;
+    }
+
+    const raw = this.adjustmentForm.getRawValue();
+    this.isSavingAdjustment.set(true);
+
+    this.supplyService
+      .registerSupplyAdjustment(supply.id, {
+        supplyId: supply.id,
+        adjustmentType: raw.adjustmentType ?? 'AUMENTO',
+        quantity: raw.quantity ?? 0,
+        reason: (raw.reason ?? '').trim(),
+      })
+      .pipe(finalize(() => this.isSavingAdjustment.set(false)))
+      .subscribe({
+        next: (response) => {
+          const unavailableDishes = response.affectedDishes.filter((dish) => !dish.available);
+
+          this.messages.add({
+            severity: 'success',
+            summary: this.transloco.translate('supplyAdjustments.success.title'),
+            detail:
+              this.transloco.translate('supplyAdjustments.success.message', {
+                quantity: this.formatStock(response.quantity),
+                unit: response.unit,
+                name: response.supplyName,
+                stock: this.formatStock(response.resultingStock),
+              }) +
+              (response.lowStockAlertGenerated
+                ? ' ' + this.transloco.translate('supplyAdjustments.success.alertNote')
+                : '') +
+              (unavailableDishes.length > 0
+                ? ' ' +
+                  this.transloco.translate('supplyAdjustments.success.unavailableNote', {
+                    count: unavailableDishes.length,
+                  })
+                : ''),
+            life: 8000,
+          });
+
+          this.kardexLoaded.set(false);
+          this.loadSupplies();
+          this.isAdjustmentOpen.set(false);
+          this.submittedAdjustment.set(false);
+          this.adjustmentServerMessage.set(null);
+          this.adjustmentCandidate.set(null);
+          this.adjustmentForm.reset();
+        },
+        error: (error: unknown) => {
+          this.adjustmentServerMessage.set(this.errors.getMessage(error));
+        },
+      });
+  }
+
+  invalidAdjustment(controlName: 'adjustmentType' | 'quantity' | 'reason'): boolean {
+    const control = this.adjustmentForm.controls[controlName];
+
+    return control.invalid && (control.touched || this.submittedAdjustment());
   }
 
   invalidWaste(

@@ -562,6 +562,43 @@
       "alertNote": "Se generó una alerta de inventario bajo."
     }
   },
+  "supplyAdjustments": {
+    "actions": {
+      "row": "Ajuste",
+      "saving": "Guardando ajuste...",
+      "save": "Guardar ajuste"
+    },
+    "eyebrow": "Ajuste manual de inventario",
+    "title": "Registrar ajuste de stock",
+    "description": "Corrige el inventario de un insumo cuando se detecta una diferencia.",
+    "fields": {
+      "supply": "Insumo",
+      "currentStock": "Stock actual",
+      "type": "Tipo de ajuste",
+      "typeIncrease": "Aumento",
+      "typeDecrease": "Disminución",
+      "quantity": "Cantidad",
+      "resultingStock": "Stock resultante",
+      "exceedsStock": "La cantidad excede las existencias disponibles",
+      "lowStockNote": "El stock resultante queda en o por debajo del mínimo",
+      "reason": "Motivo",
+      "reasonPlaceholder": "Describe el motivo del ajuste"
+    },
+    "validation": {
+      "quantityRequired": "La cantidad es obligatoria",
+      "quantityPositive": "La cantidad debe ser mayor a cero",
+      "quantityInteger": "Este insumo se maneja en unidades enteras",
+      "exceedsStock": "La cantidad excede las existencias disponibles",
+      "reasonRequired": "El motivo es obligatorio",
+      "reasonTooLong": "El motivo no puede superar los 255 caracteres"
+    },
+    "success": {
+      "title": "Ajuste registrado",
+      "message": "Se ajustó el stock de {{name}} en {{quantity}} {{unit}}. El stock disponible ahora es {{stock}} {{unit}}.",
+      "alertNote": "Se generó una alerta de inventario bajo.",
+      "unavailableNote": "{{count}} platillos dejaron de estar disponibles."
+    }
+  },
   "notifications": {
     "bellLabel": "Notificaciones",
     "headerEyebrow": "Centro de notificaciones",

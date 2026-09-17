@@ -5,9 +5,11 @@ import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import {
   ConfigureStockLimitsRequest,
+  CreateInventoryAdjustmentRequest,
   CreateSupplyEntryRequest,
   CreateSupplyRequest,
   CreateSupplyWasteRequest,
+  InventoryAdjustmentResponse,
   KardexRecord,
   MeasurementUnit,
   SingleSupplyAlertStatusResponse,
@@ -118,5 +120,15 @@ export class SupplyService {
 
   getSupplyKardex(supplyId: number): Observable<KardexRecord[]> {
     return this.http.get<KardexRecord[]>(`${this.suppliesUrl}/${supplyId}/kardex`);
+  }
+
+  registerSupplyAdjustment(
+    supplyId: number,
+    payload: CreateInventoryAdjustmentRequest,
+  ): Observable<InventoryAdjustmentResponse> {
+    return this.http.post<InventoryAdjustmentResponse>(
+      `${this.suppliesUrl}/${supplyId}/adjustments`,
+      payload,
+    );
   }
 }

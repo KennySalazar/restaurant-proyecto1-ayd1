@@ -249,6 +249,11 @@
                       {{ 'supplyEntries.actions.row' | transloco }}
                     </button>
 
+                    <button class="limits-button" type="button" (click)="openAdjustment(supply)">
+                      <i class="pi pi-sliders-v"></i>
+                      {{ 'supplyAdjustments.actions.row' | transloco }}
+                    </button>
+
                     <button class="limits-button" type="button" (click)="openStockLimits(supply)">
                       <i class="pi pi-sliders-h"></i>
                       {{ 'supplies.actions.limits' | transloco }}
@@ -1236,6 +1241,234 @@
               } @else {
                 <i class="pi pi-check"></i>
                 {{ 'supplyWastes.actions.save' | transloco }}
+              }
+            </button>
+          </footer>
+        </form>
+      </section>
+    </div>
+  }
+  @if (isAdjustmentOpen()) {
+    <div class="registration-backdrop" role="presentation">
+      <section
+        class="registration-dialog"
+        role="dialog"
+        aria-modal="true"
+        [attr.aria-labelledby]="'adjustment-dialog-title'"
+      >
+        <header class="registration-dialog__header">
+          <div>
+            <span class="registration-dialog__eyebrow">
+              {{ 'supplyAdjustments.eyebrow' | transloco }}
+            </span>
+
+            <h2 id="adjustment-dialog-title">
+              {{ 'supplyAdjustments.title' | transloco }}
+            </h2>
+
+            <p>
+              {{ 'supplyAdjustments.description' | transloco }}
+            </p>
+          </div>
+
+          <button
+            class="close-button"
+            type="button"
+            [attr.aria-label]="'common.cancel' | transloco"
+            [disabled]="isSavingAdjustment()"
+            (click)="closeAdjustment()"
+          >
+            <i class="pi pi-times"></i>
+          </button>
+        </header>
+
+        <app-form-feedback [message]="adjustmentServerMessage()" />
+
+        <form
+          class="registration-form"
+          [formGroup]="adjustmentForm"
+          (ngSubmit)="submitAdjustment()"
+          novalidate
+        >
+          <div class="form-grid">
+            @if (adjustmentCandidate(); as supply) {
+              <div class="form-field form-field--span-2">
+                <label>
+                  {{ 'supplyAdjustments.fields.supply' | transloco }}
+                </label>
+
+                <div class="entry-supply-selected">
+                  <span class="entry-supply-selected__icon">
+                    <i class="pi pi-box"></i>
+                  </span>
+
+                  <div class="entry-supply-selected__info">
+                    <span class="entry-supply-selected__code">
+                      {{ supply.code }}
+                    </span>
+
+                    <strong>{{ supply.name }}</strong>
+
+                    <small>
+                      <i class="pi pi-warehouse"></i>
+                      {{ 'supplyAdjustments.fields.currentStock' | transloco }}:
+                      {{ formatStock(supply.currentStock) }}
+                      {{ supply.unitAbbreviation }}
+                    </small>
+                  </div>
+                </div>
+              </div>
+            }
+
+            <div class="form-field form-field--span-2">
+              <label>
+                {{ 'supplyAdjustments.fields.type' | transloco }}
+              </label>
+
+              <div class="type-toggle" role="group" aria-label="Ajuste">
+                <button
+                  class="type-toggle__option"
+                  type="button"
+                  [class.is-active]="adjustmentForm.controls.adjustmentType.value === 'AUMENTO'"
+                  (click)="setAdjustmentType('AUMENTO')"
+                >
+                  <i class="pi pi-plus"></i>
+                  {{ 'supplyAdjustments.fields.typeIncrease' | transloco }}
+                </button>
+
+                <button
+                  class="type-toggle__option type-toggle__option--decrease"
+                  type="button"
+                  [class.is-active]="adjustmentForm.controls.adjustmentType.value === 'DISMINUCION'"
+                  (click)="setAdjustmentType('DISMINUCION')"
+                >
+                  <i class="pi pi-minus"></i>
+                  {{ 'supplyAdjustments.fields.typeDecrease' | transloco }}
+                </button>
+              </div>
+            </div>
+
+            <div class="form-field">
+              <label for="adjustment-quantity">
+                {{ 'supplyAdjustments.fields.quantity' | transloco }}
+              </label>
+
+              <input
+                id="adjustment-quantity"
+                type="number"
+                formControlName="quantity"
+                min="0"
+                [step]="wasteQuantityStep()"
+              />
+
+              @if (
+                invalidAdjustment('quantity') &&
+                adjustmentForm.controls.quantity.hasError('required')
+              ) {
+                <small class="field-error">
+                  {{ 'supplyAdjustments.validation.quantityRequired' | transloco }}
+                </small>
+              } @else if (
+                invalidAdjustment('quantity') && adjustmentForm.controls.quantity.hasError('min')
+              ) {
+                <small class="field-error">
+                  {{ 'supplyAdjustments.validation.quantityPositive' | transloco }}
+                </small>
+              } @else if (
+                invalidAdjustment('quantity') &&
+                adjustmentForm.controls.quantity.hasError('notInteger')
+              ) {
+                <small class="field-error">
+                  {{ 'supplyAdjustments.validation.quantityInteger' | transloco }}
+                </small>
+              }
+
+              @if (adjustmentForm.hasError('exceedsStock')) {
+                <small class="field-error">
+                  {{ 'supplyAdjustments.validation.exceedsStock' | transloco }}
+                </small>
+              }
+
+              <div class="waste-previews">
+                @if (adjustmentPreview(); as preview) {
+                  @if (preview.exceedsStock) {
+                    <small class="field-summary field-summary--danger">
+                      <i class="pi pi-exclamation-triangle"></i>
+                      {{ 'supplyAdjustments.fields.exceedsStock' | transloco }}
+                    </small>
+                  } @else {
+                    <small class="field-summary">
+                      <i
+                        class="pi"
+                        [class.pi-arrow-up]="
+                          adjustmentForm.controls.adjustmentType.value === 'AUMENTO'
+                        "
+                        [class.pi-arrow-down]="
+                          adjustmentForm.controls.adjustmentType.value === 'DISMINUCION'
+                        "
+                      ></i>
+                      {{ 'supplyAdjustments.fields.resultingStock' | transloco }}:
+                      {{ formatStock(preview.resulting) }}
+                      {{ adjustmentCandidate()?.unitAbbreviation }}
+                    </small>
+
+                    @if (preview.danger) {
+                      <small class="field-summary field-summary--danger">
+                        <i class="pi pi-exclamation-triangle"></i>
+                        {{ 'supplyAdjustments.fields.lowStockNote' | transloco }}
+                      </small>
+                    }
+                  }
+                }
+              </div>
+            </div>
+
+            <div class="form-field form-field--span-2">
+              <label for="adjustment-reason">
+                {{ 'supplyAdjustments.fields.reason' | transloco }}
+              </label>
+
+              <textarea
+                id="adjustment-reason"
+                formControlName="reason"
+                maxlength="255"
+                rows="2"
+                placeholder="{{ 'supplyAdjustments.fields.reasonPlaceholder' | transloco }}"
+              ></textarea>
+
+              @if (
+                invalidAdjustment('reason') && adjustmentForm.controls.reason.hasError('required')
+              ) {
+                <small class="field-error">
+                  {{ 'supplyAdjustments.validation.reasonRequired' | transloco }}
+                </small>
+              } @else if (
+                invalidAdjustment('reason') && adjustmentForm.controls.reason.hasError('maxlength')
+              ) {
+                <small class="field-error">
+                  {{ 'supplyAdjustments.validation.reasonTooLong' | transloco }}
+                </small>
+              }
+            </div>
+          </div>
+
+          <footer class="registration-dialog__actions">
+            <button
+              class="cancel-button"
+              type="button"
+              [disabled]="isSavingAdjustment()"
+              (click)="closeAdjustment()"
+            >
+              {{ 'common.cancel' | transloco }}
+            </button>
+
+            <button class="save-button" type="submit" [disabled]="isSavingAdjustment()">
+              @if (isSavingAdjustment()) {
+                <i class="pi pi-spin pi-spinner"></i>
+                {{ 'supplyAdjustments.actions.saving' | transloco }}
+              } @else {
+                <i class="pi pi-check"></i>
+                {{ 'supplyAdjustments.actions.save' | transloco }}
               }
             </button>
           </footer>
