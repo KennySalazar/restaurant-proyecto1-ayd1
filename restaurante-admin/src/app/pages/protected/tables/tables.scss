@@ -336,7 +336,13 @@
     flex-direction: column;
   }
 
+  .table-detail__actions {
+  width: 100%;
+}
 
+.edit-button {
+  flex: 1;
+}
   .detail-grid {
     grid-template-columns: 1fr;
   }
@@ -546,5 +552,32 @@
 }
 
 .registration-button:hover {
+  background: #93402f;
+}
+
+.table-detail__actions {
+  align-items: center;
+  display: flex;
+  gap: 0.6rem;
+}
+
+.edit-button {
+  align-items: center;
+  background: #a54838;
+  border: 0;
+  border-radius: 0.7rem;
+  color: #ffffff;
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 0.74rem;
+  font-weight: 700;
+  gap: 0.4rem;
+  justify-content: center;
+  min-height: 2.4rem;
+  padding: 0.55rem 0.85rem;
+}
+
+.edit-button:hover {
   background: #93402f;
 }

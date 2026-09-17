@@ -148,6 +148,7 @@
     },
     "actions": {
       "register": "Registrar mesa",
+      "edit": "Editar mesa",
       "view": "Ver detalle",
       "close": "Cerrar detalle",
       "retire": "Retirar",
@@ -179,7 +180,19 @@
   "saving": "Registrando...",
   "successTitle": "Mesa registrada",
   "successMessage": "La mesa {{number}} fue registrada correctamente."
+    },
+  "update": {
+    "eyebrow": "Edición de mesa",
+    "title": "Editar mesa",
+    "description": "Actualiza la configuración de la mesa seleccionada.",
+    "notice": "Los cambios actualizarán el número, la capacidad y la zona de la mesa. El estado operativo actual no será modificado.",
+    "save": "Guardar cambios",
+    "saving": "Guardando...",
+    "successTitle": "Mesa actualizada",
+    "successMessage": "La mesa {{number}} fue actualizada correctamente."
+
 },
+
 
     "retirement": {
       "eyebrow": "Retiro de mesa",

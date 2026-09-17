@@ -19,6 +19,7 @@ import {
   CreateTableRequest,
   RestaurantTable,
   TableZone,
+  UpdateTableRequest,
 } from '../../../../core/models/table.models';
 import { ApiErrorService } from '../../../../core/services/api-error.service';
 import { TableService } from '../../../../core/services/table.service';
@@ -43,6 +44,8 @@ export class TableFormDialogComponent {
 
   @Output() readonly saved = new EventEmitter<RestaurantTable>();
   @Output() readonly dismissed = new EventEmitter<void>();
+
+  @Input() table: RestaurantTable | null = null;
 
   private isOpen = false;
 
@@ -99,44 +102,58 @@ export class TableFormDialogComponent {
   }
 
   submit(): void {
-    this.submitted.set(true);
-    this.serverMessage.set(null);
+  this.submitted.set(true);
+  this.serverMessage.set(null);
 
-    if (this.registrationForm.invalid) {
-      this.registrationForm.markAllAsTouched();
-      return;
-    }
-
-    this.isSaving.set(true);
-
-    this.tableService
-      .createTable(this.buildPayload())
-      .pipe(finalize(() => this.isSaving.set(false)))
-      .subscribe({
-        next: (table) => {
-          this.messages.add({
-            severity: 'success',
-            summary: this.transloco.translate(
-              'tables.registration.successTitle',
-            ),
-            detail: this.transloco.translate(
-              'tables.registration.successMessage',
-              {
-                number: table.numero,
-              },
-            ),
-            life: 5000,
-          });
-
-          this.saved.emit(table);
-        },
-        error: (error: unknown) => {
-          this.serverMessage.set(
-            this.errors.getMessage(error),
-          );
-        },
-      });
+  if (this.registrationForm.invalid) {
+    this.registrationForm.markAllAsTouched();
+    return;
   }
+
+  const editing = this.table;
+
+  this.isSaving.set(true);
+
+  const request = editing
+    ? this.tableService.updateTable(
+        editing.id,
+        this.buildUpdatePayload(),
+      )
+    : this.tableService.createTable(
+        this.buildCreatePayload(),
+      );
+
+  request
+    .pipe(finalize(() => this.isSaving.set(false)))
+    .subscribe({
+      next: (table) => {
+        const key = editing
+          ? 'tables.update'
+          : 'tables.registration';
+
+        this.messages.add({
+          severity: 'success',
+          summary: this.transloco.translate(
+            `${key}.successTitle`,
+          ),
+          detail: this.transloco.translate(
+            `${key}.successMessage`,
+            {
+              number: table.numero,
+            },
+          ),
+          life: 5000,
+        });
+
+        this.saved.emit(table);
+      },
+      error: (error: unknown) => {
+        this.serverMessage.set(
+          this.errors.getMessage(error),
+        );
+      },
+    });
+}
 
   invalid(
     controlName: keyof typeof this.registrationForm.controls,
@@ -150,15 +167,25 @@ export class TableFormDialogComponent {
   }
 
   private prepareForm(): void {
-    this.submitted.set(false);
-    this.serverMessage.set(null);
+  this.submitted.set(false);
+  this.serverMessage.set(null);
 
+  if (this.table) {
     this.registrationForm.reset({
-      numero: '',
-      capacidad: 1,
-      zonaId: 0,
+      numero: this.table.numero,
+      capacidad: this.table.capacidad,
+      zonaId: this.table.zona.id,
     });
+
+    return;
   }
+
+  this.registrationForm.reset({
+    numero: '',
+    capacidad: 1,
+    zonaId: 0,
+  });
+}
 
   private loadZones(): void {
     if (this.zones().length > 0 || this.isLoadingZones()) {
@@ -180,14 +207,20 @@ export class TableFormDialogComponent {
       });
   }
 
-  private buildPayload(): CreateTableRequest {
-    const raw = this.registrationForm.getRawValue();
+  private buildUpdatePayload(): UpdateTableRequest {
+  const raw = this.registrationForm.getRawValue();
 
-    return {
-      numero: raw.numero.trim(),
-      capacidad: raw.capacidad,
-      zonaId: raw.zonaId,
-      estadoInicial: 'LIBRE',
-    };
-  }
+  return {
+    numero: raw.numero.trim(),
+    capacidad: raw.capacidad,
+    zonaId: raw.zonaId,
+  };
+}
+
+private buildCreatePayload(): CreateTableRequest {
+  return {
+    ...this.buildUpdatePayload(),
+    estadoInicial: 'LIBRE',
+  };
+}
 }

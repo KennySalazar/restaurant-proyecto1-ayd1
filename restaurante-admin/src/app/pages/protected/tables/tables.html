@@ -188,6 +188,7 @@
 </section>
 
 <app-table-form-dialog
+  [table]="editingTable()"
   [open]="registrationDialogOpen()"
   (saved)="handleTableSaved($event)"
   (dismissed)="closeRegistration()"
@@ -204,14 +205,27 @@
         </h2>
       </div>
 
-      <button
-        class="close-button"
-        type="button"
-        [attr.aria-label]="'tables.actions.close' | transloco"
-        (click)="closeDetails()"
-      >
-        <i class="pi pi-times"></i>
-      </button>
+      <div class="table-detail__actions">
+  @if (table.activo) {
+    <button
+      class="edit-button"
+      type="button"
+      (click)="openEdition(table)"
+    >
+      <i class="pi pi-pencil"></i>
+      {{ 'tables.actions.edit' | transloco }}
+    </button>
+  }
+
+  <button
+    class="close-button"
+    type="button"
+    [attr.aria-label]="'tables.actions.close' | transloco"
+    (click)="closeDetails()"
+  >
+    <i class="pi pi-times"></i>
+  </button>
+</div>
     </header>
 
     <div class="detail-grid">

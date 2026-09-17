@@ -46,6 +46,7 @@ export class TablesPageComponent implements OnInit {
   readonly retirementCandidate = signal<RestaurantTable | null>(null);
   readonly isRetiring = signal(false);
   readonly registrationDialogOpen = signal(false);
+  readonly editingTable = signal<RestaurantTable | null>(null);
 
   readonly totalTables = computed(() => this.tables().length);
 
@@ -91,17 +92,44 @@ export class TablesPageComponent implements OnInit {
     this.selectedTable.set(null);
   }
 
-  openRegistration(): void {
+openRegistration(): void {
+  this.editingTable.set(null);
+  this.registrationDialogOpen.set(true);
+}
+
+openEdition(table: RestaurantTable): void {
+  if (!table.activo) {
+    return;
+  }
+
+  this.editingTable.set(table);
   this.registrationDialogOpen.set(true);
 }
 
 closeRegistration(): void {
   this.registrationDialogOpen.set(false);
+  this.editingTable.set(null);
 }
 
 handleTableSaved(table: RestaurantTable): void {
-  this.tables.update((tables) => [table, ...tables]);
+  const editing = this.editingTable();
+
+  this.tables.update((tables) => {
+    if (!editing) {
+      return [table, ...tables];
+    }
+
+    return tables.map((current) =>
+      current.id === table.id ? table : current,
+    );
+  });
+
+  if (this.selectedTable()?.id === table.id) {
+    this.selectedTable.set(table);
+  }
+
   this.registrationDialogOpen.set(false);
+  this.editingTable.set(null);
 }
 
   statusKey(status: TableStatus): string {

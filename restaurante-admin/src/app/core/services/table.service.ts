@@ -7,6 +7,7 @@ import {
   CreateTableRequest,
   RestaurantTable,
   TableZone,
+  UpdateTableRequest,
 } from '../models/table.models';
 
 @Injectable({
@@ -31,6 +32,16 @@ export class TableService {
   createTable(payload: CreateTableRequest): Observable<RestaurantTable> {
     return this.http.post<RestaurantTable>(this.tablesUrl, payload);
   }
+
+  updateTable(
+  id: number,
+  payload: UpdateTableRequest,
+): Observable<RestaurantTable> {
+  return this.http.put<RestaurantTable>(
+    `${this.tablesUrl}/${id}`,
+    payload,
+  );
+}
 
   retireTable(id: number): Observable<RestaurantTable> {
     return this.http.delete<RestaurantTable>(`${this.tablesUrl}/${id}`);
