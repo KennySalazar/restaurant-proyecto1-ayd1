@@ -667,6 +667,7 @@
     "actions": {
       "view": "Ver detalle",
       "close": "Cerrar detalle",
+      "register": "Registrar empleado",
       "refresh": "Actualizar",
       "deactivate": "Desactivar",
       "alreadyDisabled": "Desactivado"
@@ -675,6 +676,36 @@
       "eyebrow": "Detalle de empleado",
       "name": "Nombre completo"
     },
+    "registration": {
+  "eyebrow": "Registro de empleado",
+  "title": "Registrar empleado",
+  "description": "Ingresa los datos del nuevo empleado y asigna su rol operativo.",
+  "fields": {
+    "code": "Código de empleado",
+    "hireDate": "Fecha de contratación",
+    "firstName": "Nombres",
+    "lastName": "Apellidos",
+    "email": "Correo electrónico",
+    "password": "Contraseña",
+    "role": "Rol operativo",
+    "selectRole": "Selecciona un rol",
+    "loadingRoles": "Cargando roles..."
+  },
+  "validation": {
+    "code": "Ingresa un código de empleado válido.",
+    "firstName": "Ingresa los nombres del empleado.",
+    "lastName": "Ingresa los apellidos del empleado.",
+    "email": "Ingresa un correo electrónico válido.",
+    "password": "La contraseña no cumple la política requerida.",
+    "role": "Selecciona un rol operativo."
+  },
+  "passwordHint": "Debe tener entre 8 y 72 caracteres e incluir al menos una mayúscula, una minúscula y un número.",
+  "notice": "El correo será utilizado como identificador de acceso del empleado.",
+  "save": "Registrar empleado",
+  "saving": "Registrando...",
+  "successTitle": "Empleado registrado",
+  "successMessage": "{{name}} fue registrado correctamente."
+},
     "deactivation": {
       "eyebrow": "Desactivación de empleado",
       "title": "¿Desactivar a {{name}}?",

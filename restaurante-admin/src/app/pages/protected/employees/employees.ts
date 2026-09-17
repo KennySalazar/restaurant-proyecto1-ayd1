@@ -18,6 +18,7 @@ import { ApiErrorService } from '../../../core/services/api-error.service';
 import { EmployeeService } from '../../../core/services/employee.service';
 import { FormFeedbackComponent } from '../../../shared/components/form-feedback/form-feedback';
 import { PageHeadingComponent } from '../../../shared/components/page-heading/page-heading';
+import { EmployeeFormDialogComponent } from './employee-form-dialog/employee-form-dialog';
 
 @Component({
   selector: 'app-employees-page',
@@ -26,6 +27,7 @@ import { PageHeadingComponent } from '../../../shared/components/page-heading/pa
     FormFeedbackComponent,
     PageHeadingComponent,
     TranslocoPipe,
+    EmployeeFormDialogComponent,
   ],
   templateUrl: './employees.html',
   styleUrl: './employees.scss',
@@ -41,6 +43,7 @@ export class EmployeesPageComponent implements OnInit {
   readonly isLoading = signal(true);
   readonly isDetailLoading = signal(false);
   readonly errorMessage = signal<string | null>(null);
+  readonly registrationDialogOpen = signal(false);
 
   readonly deactivationCandidate = signal<Employee | null>(null);
   readonly isDeactivating = signal(false);
@@ -97,6 +100,23 @@ export class EmployeesPageComponent implements OnInit {
   roleClass(role: OperationalRole): string {
     return `role-badge--${role.toLowerCase()}`;
   }
+
+  openRegistration(): void {
+  this.registrationDialogOpen.set(true);
+}
+
+closeRegistration(): void {
+  this.registrationDialogOpen.set(false);
+}
+
+handleEmployeeRegistered(employee: Employee): void {
+  this.employees.update((employees) => [
+    employee,
+    ...employees,
+  ]);
+
+  this.registrationDialogOpen.set(false);
+}
 
   requestDeactivation(employee: Employee): void {
   if (!employee.habilitado) {

@@ -46,19 +46,30 @@
       <p>{{ 'employees.list.description' | transloco }}</p>
     </div>
 
-    <button
-      class="refresh-button"
-      type="button"
-      [disabled]="isLoading()"
-      (click)="loadEmployees()"
-    >
-      <i
-        class="pi pi-refresh"
-        [class.pi-spin]="isLoading()"
-      ></i>
+    <div class="employees-panel__actions">
+  <button
+    class="register-button"
+    type="button"
+    (click)="openRegistration()"
+  >
+    <i class="pi pi-user-plus"></i>
+    {{ 'employees.actions.register' | transloco }}
+  </button>
 
-      {{ 'employees.actions.refresh' | transloco }}
-    </button>
+  <button
+    class="refresh-button"
+    type="button"
+    [disabled]="isLoading()"
+    (click)="loadEmployees()"
+  >
+    <i
+      class="pi pi-refresh"
+      [class.pi-spin]="isLoading()"
+    ></i>
+
+    {{ 'employees.actions.refresh' | transloco }}
+  </button>
+</div>
   </header>
 
   <app-form-feedback [message]="errorMessage()" />
@@ -334,3 +345,8 @@
     </section>
   </div>
 }
+<app-employee-form-dialog
+  [open]="registrationDialogOpen()"
+  (closed)="closeRegistration()"
+  (saved)="handleEmployeeRegistered($event)"
+/>
