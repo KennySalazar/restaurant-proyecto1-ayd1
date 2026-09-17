@@ -15,6 +15,8 @@ import com.restaurante.web.dto.cash.CloseCashShiftRequest;
 
 import com.restaurante.web.dto.cash.CashRegisterAvailabilityResponse;
 import java.util.List;
+import com.restaurante.web.dto.cash.CurrentCashShiftResponse;
+import java.math.BigDecimal;
 @Service
 public class CashShiftService {
 
@@ -344,5 +346,45 @@ public class CashShiftService {
                         "Turno de caja requerido",
                         "Debe abrir un turno de caja antes de procesar un cobro"
                 ));
+    }
+
+    @Transactional(readOnly = true)
+    public CurrentCashShiftResponse getCurrentShift(
+            Authentication authentication) {
+
+        CashShift shift =
+                requireOpenShift(authentication);
+
+        CashRegister cashRegister = cashRegisters
+                .findById(shift.getCashRegisterId())
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "cash_register_not_found",
+                        "Caja no encontrada",
+                        "No se encontro la caja asociada al turno abierto"
+                ));
+
+        Object result = entityManager
+                .createNativeQuery("""
+                    SELECT efectivo_esperado_calculado
+                    FROM restaurante.vw_cuadre_turnos_caja
+                    WHERE turno_caja_id = :shiftId
+                    """)
+                .setParameter("shiftId", shift.getId())
+                .getSingleResult();
+
+        BigDecimal expectedCash =
+                (BigDecimal) result;
+
+        return new CurrentCashShiftResponse(
+                shift.getId(),
+                cashRegister.getId(),
+                cashRegister.getCode(),
+                cashRegister.getName(),
+                shift.getStatus().name(),
+                shift.getInitialCashAmount(),
+                expectedCash,
+                shift.getOpenedAt()
+        );
     }
 }
