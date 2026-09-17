@@ -17,12 +17,20 @@ def docker(*args, env=None):
         raise RuntimeError('Docker operation failed: ' + args[0])
     return p.stdout.strip()
 def request(path, method='GET', data=None, headers=None):
-print(f"HTTP {method} {path}", flush=True)
-    req=urllib.request.Request(base+path, method=method,
-        data=None if data is None else json.dumps(data).encode(), headers=headers or {})
+    print(f"HTTP {method} {path}", flush=True)
+
+    req = urllib.request.Request(
+        base + path,
+        method=method,
+        data=None if data is None else json.dumps(data).encode(),
+        headers=headers or {}
+    )
+
     try:
-        with urllib.request.urlopen(req, timeout=15) as r: return r.status, r.read(), r.headers
-    except urllib.error.HTTPError as e: return e.code, e.read(), e.headers
+        with urllib.request.urlopen(req, timeout=15) as r:
+            return r.status, r.read(), r.headers
+    except urllib.error.HTTPError as e:
+        return e.code, e.read(), e.headers
 try:
     docker('network', 'create', network)
     env=os.environ.copy()
