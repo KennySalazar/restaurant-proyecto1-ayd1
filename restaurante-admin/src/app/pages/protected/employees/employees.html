@@ -11,7 +11,9 @@
     </span>
 
     <div>
-      <span>{{ 'employees.summary.total' | transloco }}</span>
+      <span>
+        {{ 'employees.summary.total' | transloco }}
+      </span>
       <strong>{{ totalEmployees() }}</strong>
     </div>
   </article>
@@ -22,7 +24,9 @@
     </span>
 
     <div>
-      <span>{{ 'employees.summary.active' | transloco }}</span>
+      <span>
+        {{ 'employees.summary.active' | transloco }}
+      </span>
       <strong>{{ activeEmployees() }}</strong>
     </div>
   </article>
@@ -33,7 +37,9 @@
     </span>
 
     <div>
-      <span>{{ 'employees.summary.disabled' | transloco }}</span>
+      <span>
+        {{ 'employees.summary.disabled' | transloco }}
+      </span>
       <strong>{{ disabledEmployees() }}</strong>
     </div>
   </article>
@@ -42,23 +48,39 @@
 <section class="employees-panel">
   <header class="employees-panel__header">
     <div>
-      <h2>{{ 'employees.list.title' | transloco }}</h2>
-      <p>{{ 'employees.list.description' | transloco }}</p>
+      <h2>
+        {{ 'employees.list.title' | transloco }}
+      </h2>
+
+      <p>
+        {{ 'employees.list.description' | transloco }}
+      </p>
     </div>
 
-    <button
-      class="refresh-button"
-      type="button"
-      [disabled]="isLoading()"
-      (click)="loadEmployees()"
-    >
-      <i
-        class="pi pi-refresh"
-        [class.pi-spin]="isLoading()"
-      ></i>
+    <div class="employees-panel__actions">
+      <button
+        class="register-button"
+        type="button"
+        (click)="openRegistration()"
+      >
+        <i class="pi pi-user-plus"></i>
+        {{ 'employees.actions.register' | transloco }}
+      </button>
 
-      {{ 'employees.actions.refresh' | transloco }}
-    </button>
+      <button
+        class="refresh-button"
+        type="button"
+        [disabled]="isLoading()"
+        (click)="loadEmployees()"
+      >
+        <i
+          class="pi pi-refresh"
+          [class.pi-spin]="isLoading()"
+        ></i>
+
+        {{ 'employees.actions.refresh' | transloco }}
+      </button>
+    </div>
   </header>
 
   <app-form-feedback [message]="errorMessage()" />
@@ -87,12 +109,30 @@
       <table class="employees-table">
         <thead>
           <tr>
-            <th>{{ 'employees.columns.code' | transloco }}</th>
-            <th>{{ 'employees.columns.employee' | transloco }}</th>
-            <th>{{ 'employees.columns.email' | transloco }}</th>
-            <th>{{ 'employees.columns.hireDate' | transloco }}</th>
-            <th>{{ 'employees.columns.role' | transloco }}</th>
-            <th>{{ 'employees.columns.status' | transloco }}</th>
+            <th>
+              {{ 'employees.columns.code' | transloco }}
+            </th>
+
+            <th>
+              {{ 'employees.columns.employee' | transloco }}
+            </th>
+
+            <th>
+              {{ 'employees.columns.email' | transloco }}
+            </th>
+
+            <th>
+              {{ 'employees.columns.hireDate' | transloco }}
+            </th>
+
+            <th>
+              {{ 'employees.columns.role' | transloco }}
+            </th>
+
+            <th>
+              {{ 'employees.columns.status' | transloco }}
+            </th>
+
             <th>
               <span class="sr-only">
                 {{ 'employees.columns.actions' | transloco }}
@@ -103,9 +143,15 @@
 
         <tbody>
           @for (employee of employees(); track employee.id) {
-            <tr [class.employee-row--disabled]="!employee.habilitado">
+            <tr
+              [class.employee-row--disabled]="
+                !employee.habilitado
+              "
+            >
               <td>
-                <strong>{{ employee.codigoEmpleado }}</strong>
+                <strong>
+                  {{ employee.codigoEmpleado }}
+                </strong>
               </td>
 
               <td>
@@ -122,32 +168,47 @@
                 </div>
               </td>
 
-              <td>{{ employee.email }}</td>
+              <td>
+                {{ employee.email }}
+              </td>
 
               <td>
-                {{ employee.fechaContratacion | date:'dd/MM/yyyy' }}
+                {{
+                  employee.fechaContratacion
+                    | date:'dd/MM/yyyy'
+                }}
               </td>
 
               <td>
                 <span
                   class="role-badge"
                   [class]="
-                    'role-badge ' + roleClass(employee.rol)
+                    'role-badge ' +
+                    roleClass(employee.rol)
                   "
                 >
-                  {{ roleKey(employee.rol) | transloco }}
+                  {{
+                    roleKey(employee.rol)
+                      | transloco
+                  }}
                 </span>
               </td>
 
               <td>
                 <span
                   class="status-badge"
-                  [class.status-badge--disabled]="!employee.habilitado"
+                  [class.status-badge--disabled]="
+                    !employee.habilitado
+                  "
                 >
                   <i
                     class="pi"
-                    [class.pi-check-circle]="employee.habilitado"
-                    [class.pi-ban]="!employee.habilitado"
+                    [class.pi-check-circle]="
+                      employee.habilitado
+                    "
+                    [class.pi-ban]="
+                      !employee.habilitado
+                    "
                   ></i>
 
                   {{
@@ -159,36 +220,42 @@
                 </span>
               </td>
 
-             <td class="employees-table__actions">
-                    <div class="employee-actions">
-                        <button
-                        class="detail-button"
-                        type="button"
-                        [disabled]="isDetailLoading()"
-                        (click)="viewEmployee(employee.id)"
-                        >
-                        <i class="pi pi-eye"></i>
-                        {{ 'employees.actions.view' | transloco }}
-                        </button>
+              <td class="employees-table__actions">
+                <div class="employee-actions">
+                  <button
+                    class="detail-button"
+                    type="button"
+                    [disabled]="isDetailLoading()"
+                    (click)="viewEmployee(employee.id)"
+                  >
+                    <i class="pi pi-eye"></i>
 
-                        <button
-                        class="deactivate-button"
-                        [class.deactivate-button--disabled]="!employee.habilitado"
-                        type="button"
-                        [disabled]="isDeactivating()"
-                        (click)="requestDeactivation(employee)"
-                        >
-                        <i class="pi pi-user-minus"></i>
+                    {{
+                      'employees.actions.view'
+                        | transloco
+                    }}
+                  </button>
 
-                        {{
-                            (employee.habilitado
-                            ? 'employees.actions.deactivate'
-                            : 'employees.actions.alreadyDisabled'
-                            ) | transloco
-                        }}
-                        </button>
-                    </div>
-                    </td>
+                  <button
+                    class="deactivate-button"
+                    [class.deactivate-button--disabled]="
+                      !employee.habilitado
+                    "
+                    type="button"
+                    [disabled]="isDeactivating()"
+                    (click)="requestDeactivation(employee)"
+                  >
+                    <i class="pi pi-user-minus"></i>
+
+                    {{
+                      (employee.habilitado
+                        ? 'employees.actions.deactivate'
+                        : 'employees.actions.alreadyDisabled'
+                      ) | transloco
+                    }}
+                  </button>
+                </div>
+              </td>
             </tr>
           }
         </tbody>
@@ -201,31 +268,56 @@
   <section class="employee-detail">
     <header class="employee-detail__header">
       <div>
-        <span>{{ 'employees.detail.eyebrow' | transloco }}</span>
+        <span>
+          {{ 'employees.detail.eyebrow' | transloco }}
+        </span>
+
         <h2>
           {{ employee.nombres }}
           {{ employee.apellidos }}
         </h2>
       </div>
 
-      <button
-        class="close-button"
-        type="button"
-        [attr.aria-label]="'employees.actions.close' | transloco"
-        (click)="closeDetails()"
-      >
-        <i class="pi pi-times"></i>
-      </button>
+      <div class="employee-detail__actions">
+        <button
+          class="edit-button"
+          type="button"
+          (click)="openEdition(employee)"
+        >
+          <i class="pi pi-pencil"></i>
+
+          {{ 'employees.actions.edit' | transloco }}
+        </button>
+
+        <button
+          class="close-button"
+          type="button"
+          [attr.aria-label]="
+            'employees.actions.close' | transloco
+          "
+          (click)="closeDetails()"
+        >
+          <i class="pi pi-times"></i>
+        </button>
+      </div>
     </header>
 
     <div class="detail-grid">
       <div class="detail-item">
-        <span>{{ 'employees.columns.code' | transloco }}</span>
-        <strong>{{ employee.codigoEmpleado }}</strong>
+        <span>
+          {{ 'employees.columns.code' | transloco }}
+        </span>
+
+        <strong>
+          {{ employee.codigoEmpleado }}
+        </strong>
       </div>
 
       <div class="detail-item">
-        <span>{{ 'employees.detail.name' | transloco }}</span>
+        <span>
+          {{ 'employees.detail.name' | transloco }}
+        </span>
+
         <strong>
           {{ employee.nombres }}
           {{ employee.apellidos }}
@@ -233,24 +325,46 @@
       </div>
 
       <div class="detail-item">
-        <span>{{ 'employees.columns.email' | transloco }}</span>
-        <strong>{{ employee.email }}</strong>
-      </div>
+        <span>
+          {{ 'employees.columns.email' | transloco }}
+        </span>
 
-      <div class="detail-item">
-        <span>{{ 'employees.columns.hireDate' | transloco }}</span>
         <strong>
-          {{ employee.fechaContratacion | date:'dd/MM/yyyy' }}
+          {{ employee.email }}
         </strong>
       </div>
 
       <div class="detail-item">
-        <span>{{ 'employees.columns.role' | transloco }}</span>
-        <strong>{{ roleKey(employee.rol) | transloco }}</strong>
+        <span>
+          {{ 'employees.columns.hireDate' | transloco }}
+        </span>
+
+        <strong>
+          {{
+            employee.fechaContratacion
+              | date:'dd/MM/yyyy'
+          }}
+        </strong>
       </div>
 
       <div class="detail-item">
-        <span>{{ 'employees.columns.status' | transloco }}</span>
+        <span>
+          {{ 'employees.columns.role' | transloco }}
+        </span>
+
+        <strong>
+          {{
+            roleKey(employee.rol)
+              | transloco
+          }}
+        </strong>
+      </div>
+
+      <div class="detail-item">
+        <span>
+          {{ 'employees.columns.status' | transloco }}
+        </span>
+
         <strong>
           {{
             (employee.habilitado
@@ -281,27 +395,39 @@
 
       <div>
         <span class="confirmation-dialog__eyebrow">
-          {{ 'employees.deactivation.eyebrow' | transloco }}
+          {{
+            'employees.deactivation.eyebrow'
+              | transloco
+          }}
         </span>
 
         <h2 id="deactivation-dialog-title">
           {{
             'employees.deactivation.title'
               | transloco:{
-                  name: employee.nombres + ' ' + employee.apellidos
+                  name:
+                    employee.nombres +
+                    ' ' +
+                    employee.apellidos
                 }
           }}
         </h2>
 
         <p>
-          {{ 'employees.deactivation.description' | transloco }}
+          {{
+            'employees.deactivation.description'
+              | transloco
+          }}
         </p>
 
         <div class="confirmation-dialog__notice">
           <i class="pi pi-info-circle"></i>
 
           <span>
-            {{ 'employees.deactivation.historyNotice' | transloco }}
+            {{
+              'employees.deactivation.historyNotice'
+                | transloco
+            }}
           </span>
         </div>
       </div>
@@ -313,7 +439,10 @@
           [disabled]="isDeactivating()"
           (click)="cancelDeactivation()"
         >
-          {{ 'employees.deactivation.cancel' | transloco }}
+          {{
+            'employees.deactivation.cancel'
+              | transloco
+          }}
         </button>
 
         <button
@@ -324,13 +453,28 @@
         >
           @if (isDeactivating()) {
             <i class="pi pi-spin pi-spinner"></i>
-            {{ 'employees.deactivation.processing' | transloco }}
+
+            {{
+              'employees.deactivation.processing'
+                | transloco
+            }}
           } @else {
             <i class="pi pi-user-minus"></i>
-            {{ 'employees.deactivation.confirm' | transloco }}
+
+            {{
+              'employees.deactivation.confirm'
+                | transloco
+            }}
           }
         </button>
       </footer>
     </section>
   </div>
 }
+
+<app-employee-form-dialog
+  [open]="registrationDialogOpen()"
+  [employee]="editingEmployee()"
+  (closed)="closeRegistration()"
+  (saved)="handleEmployeeSaved($event)"
+/>

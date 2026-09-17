@@ -99,6 +99,12 @@ export const routes: Routes = [
       },
 
       {
+        path: 'recipes',
+        loadComponent: () =>
+          import('./pages/protected/recipes/recipes').then((module) => module.RecipesPageComponent),
+      },
+
+      {
         path: 'configuration',
         loadComponent: () =>
           import('./pages/protected/configuration/configuration').then(

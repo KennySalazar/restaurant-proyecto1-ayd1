@@ -182,3 +182,81 @@ export interface SupplyWasteRegistrationResponse {
   message: string;
   waste: SupplyWasteResponse;
 }
+
+export type KardexMovementNature = 'ENTRADA' | 'SALIDA' | 'AJUSTE';
+export type KardexStockEffect = 'AUMENTO' | 'DISMINUCION';
+
+export const KARDEX_MOVEMENT_NATURES: KardexMovementNature[] = ['ENTRADA', 'SALIDA', 'AJUSTE'];
+
+export interface KardexRecord {
+  id: number;
+  supplyId: number;
+  supplyCode: string;
+  supplyName: string;
+  measurementUnit: string;
+  type: string;
+  typeDescription: string;
+  movementNature: KardexMovementNature;
+  isAdjustment: boolean;
+  stockEffect: KardexStockEffect;
+  quantity: number;
+  previousStock: number;
+  resultingStock: number;
+  unitCost: number;
+  totalCost: number;
+  reason: string | null;
+  responsibleUserId: number;
+  responsibleUserName: string;
+  responsibleUserCode: string;
+  createdAt: string;
+  comandaId: number | null;
+  comandaDetailId: number | null;
+  comandaRound: number | null;
+  orderItemName: string | null;
+  comandaSenderId: number | null;
+  comandaSenderName: string | null;
+  entryDetailId: number | null;
+  entryDocumentNumber: string | null;
+  wasteDetailId: number | null;
+  wasteDocumentNumber: string | null;
+}
+
+export type InventoryAdjustmentType = 'AUMENTO' | 'DISMINUCION';
+
+export const INVENTORY_ADJUSTMENT_TYPES: InventoryAdjustmentType[] = ['AUMENTO', 'DISMINUCION'];
+
+export interface CreateInventoryAdjustmentRequest {
+  supplyId: number;
+  adjustmentType: string;
+  quantity: number;
+  reason: string;
+}
+
+export interface AffectedDishResponse {
+  dishId: number;
+  dishCode: string;
+  dishName: string;
+  available: boolean;
+  availablePortions: number;
+  unavailabilityReason: string | null;
+}
+
+export interface InventoryAdjustmentResponse {
+  message: string;
+  adjustmentId: number;
+  supplyId: number;
+  supplyCode: string;
+  supplyName: string;
+  adjustmentType: string;
+  type: string;
+  quantity: number;
+  previousStock: number;
+  resultingStock: number;
+  unit: string;
+  reason: string;
+  responsibleUserId: number;
+  responsibleUserName: string;
+  createdAt: string;
+  lowStockAlertGenerated: boolean;
+  affectedDishes: AffectedDishResponse[];
+}

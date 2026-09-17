@@ -24,6 +24,7 @@
     "supplies": "Productos base",
     "menu": "Platillos y Menú",
     "supplyAlerts": "Alertas de inventario",
+    "recipes": "Recetas",
     "employees": "Empleados",
     "configuration": "Configuración",
     "reservations": "Reservas",
@@ -59,7 +60,6 @@
       "description": "Ingresa tus credenciales para acceder al panel administrativo del restaurante.",
       "submit": "Iniciar sesión"
     },
-
     "loginVerify": {
       "kicker": "Verificación de seguridad",
       "title": "Confirma tu acceso",
@@ -110,7 +110,6 @@
     "adminAction": "Verificar administración",
     "adminDescription": "Comprueba que tu sesión tiene permisos de administrador."
   },
-
   "tables": {
     "eyebrow": "Configuración del restaurante",
     "title": "Mesas registradas",
@@ -147,6 +146,8 @@
       "retired": "Retirada"
     },
     "actions": {
+      "register": "Registrar mesa",
+      "edit": "Editar mesa",
       "view": "Ver detalle",
       "close": "Cerrar detalle",
       "retire": "Retirar",
@@ -155,6 +156,39 @@
     "detail": {
       "eyebrow": "Detalle de mesa",
       "title": "Mesa"
+    },
+
+    "registration": {
+      "eyebrow": "Nueva mesa",
+      "title": "Registrar mesa",
+      "description": "Ingresa la información de la nueva mesa del restaurante.",
+      "fields": {
+        "number": "Número de mesa",
+        "capacity": "Capacidad",
+        "zone": "Zona",
+        "selectZone": "Selecciona una zona",
+        "loadingZones": "Cargando zonas..."
+      },
+      "validation": {
+        "number": "Ingresa un número de mesa válido de hasta 20 caracteres.",
+        "capacity": "La capacidad debe ser mayor que cero.",
+        "zone": "Selecciona una zona."
+      },
+      "initialStateNotice": "La mesa se registrará inicialmente con estado Libre y quedará disponible para nuevas operaciones.",
+      "save": "Registrar mesa",
+      "saving": "Registrando...",
+      "successTitle": "Mesa registrada",
+      "successMessage": "La mesa {{number}} fue registrada correctamente."
+    },
+    "update": {
+      "eyebrow": "Edición de mesa",
+      "title": "Editar mesa",
+      "description": "Actualiza la configuración de la mesa seleccionada.",
+      "notice": "Los cambios actualizarán el número, la capacidad y la zona de la mesa. El estado operativo actual no será modificado.",
+      "save": "Guardar cambios",
+      "saving": "Guardando...",
+      "successTitle": "Mesa actualizada",
+      "successMessage": "La mesa {{number}} fue actualizada correctamente."
     },
 
     "retirement": {
@@ -171,11 +205,57 @@
       "alreadyRetiredMessage": "La mesa seleccionada ya se encuentra retirada."
     }
   },
-
   "supplies": {
     "eyebrow": "Catálogo de insumos",
     "title": "Catálogo de insumos",
     "description": "Consulta la materia prima disponible y revisa su información de compra e inventario.",
+    "tabs": {
+      "supplies": "Insumos",
+      "kardex": "Kardex"
+    },
+    "kardex": {
+      "summary": {
+        "total": "Movimientos",
+        "entries": "Entradas",
+        "sales": "Salidas por venta",
+        "wastes": "Mermas",
+        "adjustments": "Ajustes"
+      },
+      "filters": {
+        "supply": "Insumo",
+        "allSupplies": "Todos los insumos",
+        "clear": "Limpiar filtros"
+      },
+      "natures": {
+        "ENTRADA": "Entradas",
+        "SALIDA": "Salidas",
+        "AJUSTE": "Ajustes"
+      },
+      "list": {
+        "title": "Historial de movimientos",
+        "description": "Movimientos que han afectado el inventario, ordenados del más reciente al más antiguo.",
+        "refresh": "Actualizar movimientos"
+      },
+      "columns": {
+        "date": "Fecha",
+        "supply": "Insumo",
+        "type": "Movimiento",
+        "quantity": "Cantidad",
+        "stock": "Stock",
+        "responsible": "Responsable",
+        "reference": "Origen"
+      },
+      "reference": {
+        "comanda": "Comanda #{{number}}",
+        "entry": "Entrada",
+        "waste": "Merma"
+      },
+      "empty": {
+        "title": "Sin movimientos registrados",
+        "description": "Los movimientos aparecerán aquí cuando se registren entradas por compra, salidas por venta, mermas o ajustes.",
+        "noResults": "Ningún movimiento coincide con los filtros seleccionados."
+      }
+    },
     "summary": {
       "total": "Insumos registrados",
       "active": "Insumos activos",
@@ -285,7 +365,6 @@
       }
     }
   },
-
   "waitlist": {
     "eyebrow": "Reservas y lista de espera",
     "title": "Lista de espera",
@@ -346,7 +425,6 @@
       "description": "Verifica la conexión e intenta nuevamente."
     }
   },
-
   "supplyAlerts": {
     "eyebrow": "Inventario",
     "title": "Alertas de inventario bajo",
@@ -392,7 +470,6 @@
       "description": "Ninguna alerta coincide con los filtros aplicados."
     }
   },
-
   "supplyEntries": {
     "eyebrow": "Inventario",
     "title": "Registrar entrada de inventario",
@@ -438,7 +515,6 @@
       "message": "Se registraron {{quantity}} {{unit}} de {{name}}. El stock disponible ahora es {{stock}} {{unit}}."
     }
   },
-
   "supplyWastes": {
     "eyebrow": "Inventario",
     "title": "Registrar merma",
@@ -486,7 +562,43 @@
       "alertNote": "Se generó una alerta de inventario bajo."
     }
   },
-
+  "supplyAdjustments": {
+    "actions": {
+      "row": "Ajuste",
+      "saving": "Guardando ajuste...",
+      "save": "Guardar ajuste"
+    },
+    "eyebrow": "Ajuste manual de inventario",
+    "title": "Registrar ajuste de stock",
+    "description": "Corrige el inventario de un insumo cuando se detecta una diferencia.",
+    "fields": {
+      "supply": "Insumo",
+      "currentStock": "Stock actual",
+      "type": "Tipo de ajuste",
+      "typeIncrease": "Aumento",
+      "typeDecrease": "Disminución",
+      "quantity": "Cantidad",
+      "resultingStock": "Stock resultante",
+      "exceedsStock": "La cantidad excede las existencias disponibles",
+      "lowStockNote": "El stock resultante queda en o por debajo del mínimo",
+      "reason": "Motivo",
+      "reasonPlaceholder": "Describe el motivo del ajuste"
+    },
+    "validation": {
+      "quantityRequired": "La cantidad es obligatoria",
+      "quantityPositive": "La cantidad debe ser mayor a cero",
+      "quantityInteger": "Este insumo se maneja en unidades enteras",
+      "exceedsStock": "La cantidad excede las existencias disponibles",
+      "reasonRequired": "El motivo es obligatorio",
+      "reasonTooLong": "El motivo no puede superar los 255 caracteres"
+    },
+    "success": {
+      "title": "Ajuste registrado",
+      "message": "Se ajustó el stock de {{name}} en {{quantity}} {{unit}}. El stock disponible ahora es {{stock}} {{unit}}.",
+      "alertNote": "Se generó una alerta de inventario bajo.",
+      "unavailableNote": "{{count}} platillos dejaron de estar disponibles."
+    }
+  },
   "notifications": {
     "bellLabel": "Notificaciones",
     "headerEyebrow": "Centro de notificaciones",
@@ -497,7 +609,342 @@
     "emptyDescription": "Cuando existan notificaciones aparecerán aquí.",
     "goToAlerts": "Ver todas las alertas"
   },
-
+  "recipes": {
+    "eyebrow": "Producción",
+    "title": "Catálogo de recetas",
+    "description": "Define y consulta las recetas de platillos y modificadores; el costo de producción se calcula automáticamente desde el inventario.",
+    "tabs": {
+      "dishes": "Platillos",
+      "modifiers": "Modificadores",
+      "costs": "Costos de producción",
+      "history": "Historial"
+    },
+    "comingSoon": {
+      "title": "Sección próxima",
+      "description": "Esta sección se habilitará en una siguiente iteración del módulo."
+    },
+    "dishes": {
+      "summary": {
+        "total": "Platillos registrados",
+        "withRecipe": "Con receta",
+        "withoutRecipe": "Sin receta"
+      },
+      "list": {
+        "title": "Platillos registrados",
+        "description": "Selecciona un platillo para consultar su receta vigente.",
+        "searchPlaceholder": "Buscar por nombre o código",
+        "empty": "Todavía no existen platillos registrados",
+        "noResults": "Ningún platillo coincide con la búsqueda"
+      },
+      "columns": {
+        "dish": "Platillo",
+        "category": "Categoría",
+        "price": "Precio de venta",
+        "recipe": "Receta"
+      },
+      "status": {
+        "has": "Con receta",
+        "without": "Sin receta"
+      },
+      "actions": {
+        "define": "Definir receta",
+        "view": "Ver receta",
+        "update": "Actualizar receta"
+      }
+    },
+    "detail": {
+      "eyebrow": "Receta vigente",
+      "version": "Versión {{number}}",
+      "ingredientsCount": "{{count}} insumos",
+      "selectHint": "Selecciona un platillo",
+      "selectHintDescription": "Selecciona un platillo de la lista para consultar su receta vigente.",
+      "withoutTitle": "El platillo aún no tiene una receta definida",
+      "withoutDescription": "Defina la receta indicando los insumos y cantidades exactas necesarios para preparar una porción del platillo.",
+      "columns": {
+        "supply": "Insumo",
+        "quantity": "Cantidad",
+        "unitCost": "Costo unitario",
+        "subtotal": "Subtotal",
+        "notes": "Observaciones"
+      },
+      "summary": {
+        "totalCost": "Costo de producción",
+        "salePrice": "Precio de venta",
+        "grossMargin": "Margen bruto",
+        "marginPercentage": "Margen %",
+        "changeReason": "Motivo del cambio",
+        "effectiveFrom": "Vigente desde",
+        "noValue": "—"
+      }
+    },
+    "define": {
+      "eyebrow": "Producción",
+      "title": "Definir receta de {{name}}",
+      "description": "Agrega los insumos y cantidades exactas necesarios para preparar una porción del platillo.",
+      "fields": {
+        "supplyCard": {
+          "category": "Categoría",
+          "price": "Precio de venta"
+        },
+        "ingredients": "Insumos de la receta",
+        "changeReason": "Motivo de la definición",
+        "changeReasonHint": "Opcional. Hasta 500 caracteres.",
+        "estimatedTotal": "Costo total estimado"
+      },
+      "validation": {
+        "ingredientsRequired": "Debe agregarse al menos un insumo a la receta.",
+        "incomplete": "Debe seleccionar un insumo y agregar una cantidad mayor que cero a cada fila.",
+        "duplicate": "El insumo ya forma parte de la receta; no puede repetirse."
+      },
+      "warning": {
+        "title": "Receta ya definida",
+        "alreadyDefined": "El platillo {{dish}} ya tiene una receta vigente. Use la actualización de la receta para modificarla."
+      },
+      "costConvertedHint": "Conversión de unidades pendiente: el costo exacto se calculará al guardar la receta.",
+      "actions": {
+        "save": "Definir receta",
+        "saving": "Definiendo..."
+      },
+      "success": {
+        "title": "Receta definida",
+        "message": "La receta de {{dish}} fue definida en la versión {{version}}."
+      }
+    },
+    "update": {
+      "eyebrow": "Producción",
+      "title": "Actualizar receta de {{name}}",
+      "description": "Modifica los insumos o cantidades de la receta vigente. La versión anterior quedará conservada en el historial.",
+      "fields": {
+        "supplyCard": {
+          "category": "Categoría",
+          "price": "Precio de venta"
+        },
+        "ingredients": "Insumos de la receta",
+        "changeReason": "Motivo del cambio",
+        "changeReasonHint": "Opcional. Hasta 500 caracteres.",
+        "estimatedTotal": "Costo total estimado"
+      },
+      "actions": {
+        "save": "Guardar cambios",
+        "saving": "Guardando..."
+      },
+      "success": {
+        "title": "Receta actualizada",
+        "message": "La receta de {{dish}} fue actualizada en la versión {{version}}."
+      }
+    },
+    "modifier": {
+      "eyebrow": "Producción",
+      "fields": {
+        "supplyCard": {
+          "code": "Código",
+          "price": "Precio adicional"
+        }
+      },
+      "define": {
+        "description": "Asocia los insumos y cantidades adicionales que se consumen cuando se aplica el modificador.",
+        "warning": {
+          "title": "Receta ya definida",
+          "alreadyDefined": "El modificador {{name}} ya tiene una receta vigente. Use la actualización de la receta para modificarla."
+        },
+        "success": {
+          "title": "Receta definida",
+          "message": "La receta del modificador {{name}} fue definida en la versión {{version}}."
+        }
+      },
+      "update": {
+        "description": "Modifica los insumos o cantidades de la receta vigente. La versión anterior quedará conservada en el historial.",
+        "success": {
+          "title": "Receta actualizada",
+          "message": "La receta del modificador {{name}} fue actualizada en la versión {{version}}."
+        }
+      }
+    },
+    "modifiers": {
+      "summary": {
+        "total": "Modificadores registrados",
+        "withRecipe": "Con receta",
+        "withoutRecipe": "Sin receta"
+      },
+      "list": {
+        "title": "Modificadores registrados",
+        "description": "Selecciona un modificador para consultar su receta vigente.",
+        "searchPlaceholder": "Buscar por nombre o código",
+        "empty": "Todavía no existen modificadores registrados",
+        "noResults": "Ningún modificador coincide con la búsqueda"
+      },
+      "columns": {
+        "modifier": "Modificador",
+        "price": "Precio adicional",
+        "recipe": "Receta"
+      },
+      "status": {
+        "has": "Con receta",
+        "without": "Sin receta"
+      },
+      "actions": {
+        "define": "Definir receta",
+        "view": "Ver receta",
+        "update": "Actualizar receta"
+      },
+      "detail": {
+        "eyebrow": "Receta vigente",
+        "summary": {
+          "totalCost": "Costo de producción",
+          "additionalPrice": "Precio adicional",
+          "grossMargin": "Margen bruto",
+          "marginPercentage": "Margen %"
+        },
+        "selectHint": "Selecciona un modificador",
+        "selectHintDescription": "Selecciona un modificador de la lista para consultar su receta vigente.",
+        "withoutTitle": "El modificador aún no tiene una receta definida",
+        "withoutDescription": "Defina la receta del modificador indicando los insumos y cantidades adicionales que se consumen al aplicarlo."
+      }
+    },
+    "costs": {
+      "summary": {
+        "dishes": "Platillos con costo",
+        "averageMargin": "Margen promedio",
+        "modifiers": "Modificadores con costo"
+      },
+      "dishes": {
+        "title": "Costo de producción de platillos",
+        "description": "Costo actual calculado desde los insumos de la receta vigente y los costos unitarios del inventario.",
+        "empty": "No hay platillos con receta vigente",
+        "emptyDescription": "Cuando un platillo tenga una receta definida, su costo de producción aparecerá aquí."
+      },
+      "modifiers": {
+        "title": "Costo adicional de modificadores",
+        "description": "Costo adicional calculado desde los insumos asociados a la receta vigente del modificador.",
+        "empty": "No hay modificadores con receta definida",
+        "emptyDescription": "Cuando un modificador tenga una receta definida, su costo adicional aparecerá aquí."
+      },
+      "columns": {
+        "item": "Platillo",
+        "category": "Categoría",
+        "price": "Precio",
+        "cost": "Costo",
+        "grossMargin": "Margen bruto",
+        "marginPercentage": "Margen %",
+        "modifier": "Modificador",
+        "additionalPrice": "Precio adicional"
+      },
+      "detail": {
+        "eyebrow": "Costo de producción",
+        "summary": {
+          "cost": "Costo de producción",
+          "price": "Precio de venta",
+          "additionalPrice": "Precio adicional",
+          "grossMargin": "Margen bruto",
+          "marginPercentage": "Margen %"
+        },
+        "columns": {
+          "supply": "Insumo",
+          "quantity": "Cantidad",
+          "stockQuantity": "Cantidad en stock",
+          "unitCost": "Costo unitario",
+          "subtotal": "Subtotal"
+        },
+        "calculatedAt": "Calculado al",
+        "selectHint": "Selecciona un platillo o modificador",
+        "selectHintDescription": "Selecciona una fila para ver el desglose de costos por insumo y la conversión de unidades."
+      }
+    },
+    "editor": {
+      "supply": "Insumo",
+      "selectSupply": "Selecciona un insumo",
+      "supplyRequired": "Debes seleccionar un insumo.",
+      "quantity": "Cantidad",
+      "quantityPlaceholder": "0.00",
+      "quantityRequired": "La cantidad es obligatoria.",
+      "quantityPositive": "La cantidad debe ser mayor que cero.",
+      "quantityInteger": "Debe ser un número entero.",
+      "unit": "Unidad de medida",
+      "selectUnit": "Selecciona la unidad (de stock por defecto)",
+      "stockUnit": "Unidad de stock",
+      "notes": "Observaciones",
+      "notesPlaceholder": "Observaciones (opcional)",
+      "notesTooLong": "Máximo 255 caracteres.",
+      "removeIngredient": "Quitar insumo",
+      "add": "Agregar insumo",
+      "empty": "Aún no hay insumos en la receta. Agrega el primero.",
+      "partialCost": "Costo",
+      "costConverted": "El costo se calculará con la conversión al guardar."
+    },
+    "history": {
+      "dishes": {
+        "title": "Platillos con receta",
+        "description": "Selecciona un platillo para consultar el historial de cambios de su receta.",
+        "empty": "No hay platillos con receta",
+        "emptyDescription": "Los platillos con receta definida aparecerán aquí para consultar sus cambios."
+      },
+      "modifiers": {
+        "title": "Modificadores con receta",
+        "description": "Selecciona un modificador para consultar el historial de cambios de su receta.",
+        "empty": "No hay modificadores con receta",
+        "emptyDescription": "Los modificadores con receta definida aparecerán aquí para consultar sus cambios."
+      },
+      "columns": {
+        "item": "Platillo",
+        "modifier": "Modificador"
+      },
+      "status": {
+        "VIGENTE": "Vigente",
+        "HISTORICA": "Histórica",
+        "BORRADOR": "Borrador"
+      },
+      "noReason": "Sin motivo registrado",
+      "noChanges": {
+        "title": "Sin cambios posteriores",
+        "description": "Esta receta no ha sido modificada desde su creación. La composición vigente está disponible en la sección de recetas."
+      },
+      "changes": {
+        "added": "agregado(s)",
+        "removed": "retirado(s)",
+        "modified": "modificado(s)",
+        "initial": "Versión inicial"
+      },
+      "detail": {
+        "eyebrow": "Historial de la receta",
+        "summary": {
+          "current": "Versión vigente",
+          "totalVersions": "Total de versiones",
+          "latestCost": "Costo vigente",
+          "lastChange": "Último cambio"
+        },
+        "changesTitle": "Cambios respecto a la versión anterior",
+        "versionsCompared": "Comparando v{{previous}} → v{{current}}",
+        "columns": {
+          "supply": "Insumo",
+          "type": "Tipo de cambio",
+          "previous": "Anterior",
+          "current": "Nueva",
+          "difference": "Δ costo",
+          "ingredient": "Insumo",
+          "quantity": "Cantidad",
+          "cost": "Subtotal"
+        },
+        "noChangesRows": "No hay cambios entre estas versiones.",
+        "previousComposition": "Composición anterior (v{{number}})",
+        "newComposition": "Nueva composición (v{{number}})",
+        "noPreviousComposition": "Sin composición anterior: es la versión inicial.",
+        "noNewComposition": "Sin composición nueva.",
+        "registeredAt": "Registrado el",
+        "selectHint": "Selecciona un platillo o modificador",
+        "selectHintDescription": "Selecciona un elemento de la lista para consultar el historial de cambios de su receta."
+      },
+      "changeTypes": {
+        "AGREGADO": "Agregado",
+        "RETIRADO": "Retirado",
+        "MODIFICADO": "Modificado",
+        "SIN_CAMBIOS": "Sin cambios"
+      },
+      "adjustments": {
+        "AGREGAR": "agregar",
+        "RETIRAR": "retirar"
+      }
+    }
+  },
   "reservations": {
     "eyebrow": "Reservas y disponibilidad",
     "title": "Registrar una reserva",
@@ -549,7 +996,6 @@
       "message": "La reserva {{code}} fue registrada correctamente para la mesa {{table}}."
     }
   },
-
   "configuration": {
     "eyebrow": "Configuración del restaurante",
     "title": "Configuración",
@@ -593,7 +1039,6 @@
       }
     }
   },
-
   "employees": {
     "eyebrow": "Configuración del restaurante",
     "title": "Empleados registrados",
@@ -630,6 +1075,8 @@
     "actions": {
       "view": "Ver detalle",
       "close": "Cerrar detalle",
+      "register": "Registrar empleado",
+      "edit": "Editar empleado",
       "refresh": "Actualizar",
       "deactivate": "Desactivar",
       "alreadyDisabled": "Desactivado"
@@ -637,6 +1084,46 @@
     "detail": {
       "eyebrow": "Detalle de empleado",
       "name": "Nombre completo"
+    },
+    "registration": {
+      "eyebrow": "Registro de empleado",
+      "title": "Registrar empleado",
+      "description": "Ingresa los datos del nuevo empleado y asigna su rol operativo.",
+      "fields": {
+        "code": "Código de empleado",
+        "hireDate": "Fecha de contratación",
+        "firstName": "Nombres",
+        "lastName": "Apellidos",
+        "email": "Correo electrónico",
+        "password": "Contraseña",
+        "role": "Rol operativo",
+        "selectRole": "Selecciona un rol",
+        "loadingRoles": "Cargando roles..."
+      },
+      "validation": {
+        "code": "Ingresa un código de empleado válido.",
+        "firstName": "Ingresa los nombres del empleado.",
+        "lastName": "Ingresa los apellidos del empleado.",
+        "email": "Ingresa un correo electrónico válido.",
+        "password": "La contraseña no cumple la política requerida.",
+        "role": "Selecciona un rol operativo."
+      },
+      "passwordHint": "Debe tener entre 8 y 72 caracteres e incluir al menos una mayúscula, una minúscula y un número.",
+      "notice": "El correo será utilizado como identificador de acceso del empleado.",
+      "save": "Registrar empleado",
+      "saving": "Registrando...",
+      "successTitle": "Empleado registrado",
+      "successMessage": "{{name}} fue registrado correctamente."
+    },
+    "update": {
+      "eyebrow": "Edición de empleado",
+      "title": "Editar empleado",
+      "description": "Actualiza la información y el rol operativo del empleado seleccionado.",
+      "notice": "El estado del empleado se administra de forma independiente. Esta edición no activa ni desactiva su cuenta.",
+      "save": "Guardar cambios",
+      "saving": "Guardando...",
+      "successTitle": "Empleado actualizado",
+      "successMessage": "{{name}} fue actualizado correctamente."
     },
     "deactivation": {
       "eyebrow": "Desactivación de empleado",
@@ -652,7 +1139,6 @@
       "alreadyDisabledMessage": "El empleado seleccionado ya se encuentra desactivado."
     }
   },
-
   "occupancy": {
     "eyebrow": "Operación en tiempo real",
     "title": "Panel de ocupación",

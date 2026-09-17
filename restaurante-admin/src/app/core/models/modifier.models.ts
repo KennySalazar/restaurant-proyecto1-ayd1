@@ -14,6 +14,7 @@ export interface ModifierSummary {
   description: string | null;
   additionalPrice: number;
   active: boolean;
+  hasRecipe: boolean;
   associatedDishes: ModifierDishItem[];
   createdAt: string;
   updatedAt: string;

@@ -13,6 +13,10 @@ import { debounceTime, distinctUntilChanged, finalize, forkJoin, Subject } from 
 
 import {
   CreateSupplyRequest,
+  INVENTORY_ADJUSTMENT_TYPES,
+  KardexMovementNature,
+  KardexRecord,
+  KARDEX_MOVEMENT_NATURES,
   MeasurementUnit,
   Supply,
   SupplyCategory,
@@ -24,11 +28,13 @@ import { SupplyService } from '../../../core/services/supply.service';
 import { FormFeedbackComponent } from '../../../shared/components/form-feedback/form-feedback';
 import { PageHeadingComponent } from '../../../shared/components/page-heading/page-heading';
 
+type SupplyTab = 'supplies' | 'kardex';
+
 @Component({
   selector: 'app-supplies-page',
   imports: [FormFeedbackComponent, PageHeadingComponent, ReactiveFormsModule, TranslocoPipe],
   templateUrl: './supplies.html',
-  styleUrl: './supplies.scss',
+  styleUrls: ['./supplies.scss', './supplies-kardex.scss'],
 })
 export class SuppliesPageComponent implements OnInit {
   private readonly formBuilder = inject(FormBuilder);
@@ -47,6 +53,21 @@ export class SuppliesPageComponent implements OnInit {
   readonly errorMessage = signal<string | null>(null);
   readonly searchTerm = signal('');
   readonly selectedCategory = signal<number | null>(null);
+
+  readonly tabs: { id: SupplyTab; labelKey: string; icon: string }[] = [
+    { id: 'supplies', labelKey: 'supplies.tabs.supplies', icon: 'pi-box' },
+    { id: 'kardex', labelKey: 'supplies.tabs.kardex', icon: 'pi-history' },
+  ];
+
+  readonly kardexNatures = KARDEX_MOVEMENT_NATURES;
+
+  readonly activeTab = signal<SupplyTab>('supplies');
+  readonly kardexLoaded = signal(false);
+  readonly isKardexLoading = signal(false);
+  readonly kardexErrorMessage = signal<string | null>(null);
+  readonly kardex = signal<KardexRecord[]>([]);
+  readonly kardexSelectedSupplyId = signal<number | null>(null);
+  readonly kardexNature = signal<KardexMovementNature | null>(null);
 
   readonly isRegistrationOpen = signal(false);
   readonly isSaving = signal(false);
@@ -73,6 +94,40 @@ export class SuppliesPageComponent implements OnInit {
 
   readonly hasActiveFilters = computed(
     () => !!this.searchTerm() || this.selectedCategory() != null,
+  );
+
+  readonly kardexSupplies = computed(() => {
+    const ids = new Set(this.kardex().map((record) => record.supplyId));
+    return this.supplies().filter((supply) => ids.has(supply.id));
+  });
+
+  readonly kardexFiltered = computed(() => {
+    const records = this.kardex();
+    const supplyId = this.kardexSelectedSupplyId();
+    const nature = this.kardexNature();
+
+    return records
+      .filter(
+        (record) =>
+          (supplyId == null || record.supplyId === supplyId) &&
+          (nature == null || record.movementNature === nature),
+      )
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  });
+
+  readonly kardexSummary = computed(() => {
+    const records = this.kardexFiltered();
+    return {
+      total: records.length,
+      entries: records.filter((record) => record.movementNature === 'ENTRADA').length,
+      sales: records.filter((record) => record.type === 'SALIDA_VENTA').length,
+      wastes: records.filter((record) => record.type === 'SALIDA_MERMA').length,
+      adjustments: records.filter((record) => record.isAdjustment).length,
+    };
+  });
+
+  readonly hasKardexFilters = computed(
+    () => this.kardexSelectedSupplyId() != null || this.kardexNature() != null,
   );
 
   readonly registrationForm = this.formBuilder.group({
@@ -122,6 +177,20 @@ export class SuppliesPageComponent implements OnInit {
     return null;
   };
 
+  private readonly adjustmentQuantityValidator = (
+    control: AbstractControl,
+  ): ValidationErrors | null => {
+    const candidate = this.adjustmentCandidate();
+    const type = control.get('adjustmentType')?.value;
+    const quantity = control.get('quantity')?.value;
+
+    if (!candidate || type !== 'DISMINUCION' || !quantity || quantity <= 0) {
+      return null;
+    }
+
+    return quantity > candidate.currentStock ? { exceedsStock: true } : null;
+  };
+
   private readonly notInteger = (control: AbstractControl): ValidationErrors | null => {
     const value: number | null = control.value;
     const numeric = Number(value);
@@ -164,6 +233,22 @@ export class SuppliesPageComponent implements OnInit {
     notes: ['', [Validators.maxLength(255)]],
     wasteDate: [this.todayIso()],
   });
+
+  readonly adjustmentCandidate = signal<Supply | null>(null);
+  readonly isAdjustmentOpen = signal(false);
+  readonly isSavingAdjustment = signal(false);
+  readonly submittedAdjustment = signal(false);
+  readonly adjustmentServerMessage = signal<string | null>(null);
+  readonly adjustmentTypes = INVENTORY_ADJUSTMENT_TYPES;
+
+  readonly adjustmentForm = this.formBuilder.group(
+    {
+      adjustmentType: ['AUMENTO', [Validators.required]],
+      quantity: [null as number | null, [Validators.required, Validators.min(0.0001)]],
+      reason: ['', [Validators.required, Validators.maxLength(255)]],
+    },
+    { validators: [this.adjustmentQuantityValidator] },
+  );
 
   ngOnInit(): void {
     this.searchSubject
@@ -645,6 +730,132 @@ export class SuppliesPageComponent implements OnInit {
       });
   }
 
+  openAdjustment(supply: Supply): void {
+    this.submittedAdjustment.set(false);
+    this.adjustmentServerMessage.set(null);
+    this.adjustmentCandidate.set(supply);
+
+    this.adjustmentForm.patchValue({
+      adjustmentType: 'AUMENTO',
+      quantity: null,
+      reason: '',
+    });
+
+    const integerValidator = this.isConteoUnit(supply.unitId) ? [this.notInteger] : [];
+    this.adjustmentForm.controls.quantity.setValidators([
+      Validators.required,
+      Validators.min(0.0001),
+      ...integerValidator,
+    ]);
+    this.adjustmentForm.controls.quantity.updateValueAndValidity();
+
+    this.isAdjustmentOpen.set(true);
+  }
+
+  closeAdjustment(): void {
+    if (this.isSavingAdjustment()) {
+      return;
+    }
+
+    this.isAdjustmentOpen.set(false);
+  }
+
+  setAdjustmentType(type: string): void {
+    this.adjustmentForm.controls.adjustmentType.setValue(type);
+    this.adjustmentForm.controls.quantity.updateValueAndValidity();
+  }
+
+  adjustmentPreview(): { resulting: number; exceedsStock: boolean; danger: boolean } | null {
+    const raw = this.adjustmentForm.getRawValue();
+    const supply = this.adjustmentCandidate();
+
+    if (!supply || raw.quantity == null || raw.quantity <= 0) {
+      return null;
+    }
+
+    const isDecrease = raw.adjustmentType === 'DISMINUCION';
+    const resulting = supply.currentStock + (isDecrease ? -raw.quantity : raw.quantity);
+    const danger = supply.minimumStock != null && resulting <= supply.minimumStock;
+
+    return {
+      resulting: Math.max(0, resulting),
+      exceedsStock: isDecrease && resulting < 0,
+      danger,
+    };
+  }
+
+  submitAdjustment(): void {
+    this.submittedAdjustment.set(true);
+    this.adjustmentServerMessage.set(null);
+
+    if (this.adjustmentForm.invalid) {
+      this.adjustmentForm.markAllAsTouched();
+      return;
+    }
+
+    const supply = this.adjustmentCandidate();
+
+    if (!supply) {
+      return;
+    }
+
+    const raw = this.adjustmentForm.getRawValue();
+    this.isSavingAdjustment.set(true);
+
+    this.supplyService
+      .registerSupplyAdjustment(supply.id, {
+        supplyId: supply.id,
+        adjustmentType: raw.adjustmentType ?? 'AUMENTO',
+        quantity: raw.quantity ?? 0,
+        reason: (raw.reason ?? '').trim(),
+      })
+      .pipe(finalize(() => this.isSavingAdjustment.set(false)))
+      .subscribe({
+        next: (response) => {
+          const unavailableDishes = response.affectedDishes.filter((dish) => !dish.available);
+
+          this.messages.add({
+            severity: 'success',
+            summary: this.transloco.translate('supplyAdjustments.success.title'),
+            detail:
+              this.transloco.translate('supplyAdjustments.success.message', {
+                quantity: this.formatStock(response.quantity),
+                unit: response.unit,
+                name: response.supplyName,
+                stock: this.formatStock(response.resultingStock),
+              }) +
+              (response.lowStockAlertGenerated
+                ? ' ' + this.transloco.translate('supplyAdjustments.success.alertNote')
+                : '') +
+              (unavailableDishes.length > 0
+                ? ' ' +
+                  this.transloco.translate('supplyAdjustments.success.unavailableNote', {
+                    count: unavailableDishes.length,
+                  })
+                : ''),
+            life: 8000,
+          });
+
+          this.kardexLoaded.set(false);
+          this.loadSupplies();
+          this.isAdjustmentOpen.set(false);
+          this.submittedAdjustment.set(false);
+          this.adjustmentServerMessage.set(null);
+          this.adjustmentCandidate.set(null);
+          this.adjustmentForm.reset();
+        },
+        error: (error: unknown) => {
+          this.adjustmentServerMessage.set(this.errors.getMessage(error));
+        },
+      });
+  }
+
+  invalidAdjustment(controlName: 'adjustmentType' | 'quantity' | 'reason'): boolean {
+    const control = this.adjustmentForm.controls[controlName];
+
+    return control.invalid && (control.touched || this.submittedAdjustment());
+  }
+
   invalidWaste(
     controlName: 'quantity' | 'reasonType' | 'reason' | 'batchNumber' | 'notes',
   ): boolean {
@@ -709,6 +920,103 @@ export class SuppliesPageComponent implements OnInit {
     const day = String(now.getDate()).padStart(2, '0');
 
     return `${year}-${month}-${day}`;
+  }
+
+  setTab(tab: SupplyTab): void {
+    this.activeTab.set(tab);
+
+    if (tab === 'kardex' && !this.kardexLoaded()) {
+      this.loadKardex();
+    }
+  }
+
+  loadKardex(): void {
+    this.isKardexLoading.set(true);
+    this.kardexErrorMessage.set(null);
+
+    this.supplyService
+      .getKardex()
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.isKardexLoading.set(false)),
+      )
+      .subscribe({
+        next: (records) => {
+          this.kardex.set(records);
+          this.kardexLoaded.set(true);
+        },
+        error: (error: unknown) => this.kardexErrorMessage.set(this.errors.getMessage(error)),
+      });
+  }
+
+  selectKardexSupply(supplyId: number | null): void {
+    this.kardexSelectedSupplyId.set(supplyId);
+  }
+
+  parseKardexSupplyId(raw: string): number | null {
+    if (!raw) {
+      return null;
+    }
+
+    const value = Number(raw);
+    return Number.isNaN(value) ? null : value;
+  }
+
+  setKardexNature(nature: KardexMovementNature | null): void {
+    this.kardexNature.set(nature);
+  }
+
+  clearKardexFilters(): void {
+    this.kardexSelectedSupplyId.set(null);
+    this.kardexNature.set(null);
+  }
+
+  kardexTypeChipClass(type: string): string {
+    return `kardex-type-chip--${type.toLowerCase()}`;
+  }
+
+  kardexReference(
+    record: KardexRecord,
+  ): { kind: 'comanda' | 'entry' | 'waste' | 'reason'; text: string } | null {
+    if (record.comandaId != null) {
+      return { kind: 'comanda', text: String(record.comandaId) };
+    }
+
+    if (record.entryDocumentNumber) {
+      return { kind: 'entry', text: record.entryDocumentNumber };
+    }
+
+    if (record.wasteDocumentNumber) {
+      return { kind: 'waste', text: record.wasteDocumentNumber };
+    }
+
+    if (record.reason) {
+      return { kind: 'reason', text: record.reason };
+    }
+
+    return null;
+  }
+
+  formatKardexQuantity(value: number): string {
+    return new Intl.NumberFormat('es-GT', {
+      maximumFractionDigits: 4,
+    }).format(value);
+  }
+
+  formatDateTime(iso: string): string {
+    const date = new Date(iso);
+
+    if (Number.isNaN(date.getTime())) {
+      return iso;
+    }
+
+    return new Intl.DateTimeFormat('es-GT', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    }).format(date);
   }
 
   formatCost(value: number): string {
