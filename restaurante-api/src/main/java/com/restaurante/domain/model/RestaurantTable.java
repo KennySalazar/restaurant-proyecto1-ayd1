@@ -84,6 +84,11 @@ public class RestaurantTable {
         this.active = false;
     }
 
+    public void reactivate() {
+        this.active = true;
+        this.status = TableStatus.LIBRE;
+    }
+
     public boolean isActive() {
         return active;
     }

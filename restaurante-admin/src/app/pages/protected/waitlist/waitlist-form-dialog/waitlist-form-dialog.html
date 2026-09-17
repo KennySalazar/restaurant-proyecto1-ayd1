@@ -1,0 +1,157 @@
+@if (open) {
+  <div class="waitlist-form-backdrop" role="presentation">
+    <section
+      class="waitlist-form-dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="waitlist-form-dialog-title"
+    >
+      <header class="waitlist-form-dialog__header">
+        <div>
+          <span class="waitlist-form-dialog__eyebrow">
+            {{ 'waitlist.registration.eyebrow' | transloco }}
+          </span>
+
+          <h2 id="waitlist-form-dialog-title">
+            {{ 'waitlist.registration.title' | transloco }}
+          </h2>
+
+          <p>
+            {{ 'waitlist.registration.description' | transloco }}
+          </p>
+        </div>
+
+        <button
+          class="close-button"
+          type="button"
+          [attr.aria-label]="'waitlist.actions.close' | transloco"
+          [disabled]="isSaving()"
+          (click)="close()"
+        >
+          <i class="pi pi-times"></i>
+        </button>
+      </header>
+
+      <app-form-feedback [message]="serverMessage()" />
+
+      <form
+        class="waitlist-form"
+        [formGroup]="waitlistForm"
+        (ngSubmit)="submit()"
+        novalidate
+      >
+        <div class="form-grid">
+          <div class="form-field form-field--span-2">
+            <label for="waitlist-client-name">
+              {{ 'waitlist.registration.fields.name' | transloco }}
+            </label>
+
+            <input
+              id="waitlist-client-name"
+              type="text"
+              maxlength="150"
+              autocomplete="off"
+              formControlName="nombreCliente"
+            />
+
+            @if (invalid('nombreCliente')) {
+              <small class="field-error">
+                {{ 'waitlist.registration.validation.name' | transloco }}
+              </small>
+            }
+          </div>
+
+          <div class="form-field">
+            <label for="waitlist-phone">
+              {{ 'waitlist.registration.fields.phone' | transloco }}
+            </label>
+
+            <input
+              id="waitlist-phone"
+              type="text"
+              maxlength="25"
+              autocomplete="off"
+              formControlName="telefonoCliente"
+            />
+
+            @if (invalid('telefonoCliente')) {
+              <small class="field-error">
+                {{ 'waitlist.registration.validation.phone' | transloco }}
+              </small>
+            }
+          </div>
+
+          <div class="form-field">
+            <label for="waitlist-people">
+              {{ 'waitlist.registration.fields.people' | transloco }}
+            </label>
+
+            <input
+              id="waitlist-people"
+              type="number"
+              min="1"
+              step="1"
+              formControlName="cantidadPersonas"
+            />
+
+            @if (invalid('cantidadPersonas')) {
+              <small class="field-error">
+                {{ 'waitlist.registration.validation.people' | transloco }}
+              </small>
+            }
+          </div>
+
+          <div class="form-field form-field--span-2">
+            <label for="waitlist-notes">
+              {{ 'waitlist.registration.fields.notes' | transloco }}
+            </label>
+
+            <textarea
+              id="waitlist-notes"
+              rows="4"
+              maxlength="500"
+              formControlName="notas"
+            ></textarea>
+
+            <small class="field-hint">
+              {{ 'waitlist.registration.fields.notesHint' | transloco }}
+            </small>
+          </div>
+        </div>
+
+        <div class="waitlist-form-notice">
+          <i class="pi pi-info-circle"></i>
+
+          <span>
+            {{ 'waitlist.registration.notice' | transloco }}
+          </span>
+        </div>
+
+        <footer class="waitlist-form-dialog__actions">
+          <button
+            class="cancel-button"
+            type="button"
+            [disabled]="isSaving()"
+            (click)="close()"
+          >
+            {{ 'common.cancel' | transloco }}
+          </button>
+
+          <button
+            class="save-button"
+            type="submit"
+            [disabled]="isSaving()"
+          >
+            @if (isSaving()) {
+              <i class="pi pi-spin pi-spinner"></i>
+              {{ 'waitlist.registration.saving' | transloco }}
+            } @else {
+              <i class="pi pi-user-plus"></i>
+              {{ 'waitlist.registration.save' | transloco }}
+            }
+          </button>
+        </footer>
+      </form>
+    </section>
+  </div>
+}

@@ -14,10 +14,14 @@ import {
   WaitlistStatus,
 } from '../../../core/models/waitlist.models';
 import { WaitlistService } from '../../../core/services/waitlist.service';
+import { WaitlistFormDialogComponent } from './waitlist-form-dialog/waitlist-form-dialog';
 
 @Component({
   selector: 'app-waitlist-page',
-  imports: [TranslocoPipe],
+  imports: [
+  TranslocoPipe,
+  WaitlistFormDialogComponent,
+],
   templateUrl: './waitlist.html',
   styleUrl: './waitlist.scss',
 })
@@ -35,6 +39,7 @@ export class WaitlistPageComponent implements OnInit, OnDestroy {
 
   readonly detailLoading = signal(false);
   readonly detailError = signal(false);
+  readonly registrationDialogOpen = signal(false);
 
   readonly lastUpdated = signal<Date | null>(null);
 
@@ -117,6 +122,19 @@ export class WaitlistPageComponent implements OnInit, OnDestroy {
         },
       });
   }
+
+  openRegistration(): void {
+  this.registrationDialogOpen.set(true);
+}
+
+closeRegistration(): void {
+  this.registrationDialogOpen.set(false);
+}
+
+handleClientRegistered(): void {
+  this.registrationDialogOpen.set(false);
+  this.loadWaitlist();
+}
 
   viewDetail(id: number): void {
     this.detailLoading.set(true);

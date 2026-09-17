@@ -24,3 +24,33 @@ export interface CashShiftResponse {
   abiertaEn: string;
   observaciones?: string | null;
 }
+
+export interface CurrentCashShiftResponse {
+  id: number;
+  cajaId: number;
+  codigoCaja: string;
+  nombreCaja: string;
+  estado: string;
+  montoInicialEfectivo: number;
+  efectivoEsperado: number;
+  abiertaEn: string;
+}
+
+export interface CloseCashShiftRequest {
+  efectivoReal: number;
+  observaciones?: string | null;
+}
+
+export interface CloseCashShiftResponse {
+  id: number;
+  cajaId: number;
+  cajeroId: number;
+  estado: string;
+  montoInicialEfectivo: number;
+  efectivoEsperado: number;
+  efectivoReal: number;
+  diferencia: number;
+  abiertaEn: string;
+  cerradaEn: string;
+  observaciones?: string | null;
+}

@@ -400,9 +400,33 @@
       "RETIRADA": "Retirada"
     },
     "actions": {
-      "view": "Ver detalle",
-      "close": "Cerrar detalle"
-    },
+  "register": "Agregar cliente",
+  "view": "Ver detalle",
+  "close": "Cerrar detalle"
+},
+
+"registration": {
+  "eyebrow": "Lista de espera",
+  "title": "Agregar cliente",
+  "description": "Registra al cliente para incorporarlo a la cola de espera del restaurante.",
+  "fields": {
+    "name": "Nombre del cliente",
+    "phone": "Teléfono",
+    "people": "Cantidad de personas",
+    "notes": "Notas",
+    "notesHint": "Opcional. Puedes registrar observaciones relevantes del cliente."
+  },
+  "validation": {
+    "name": "Ingresa el nombre del cliente.",
+    "phone": "Ingresa el teléfono del cliente.",
+    "people": "La cantidad de personas debe ser al menos 1."
+  },
+  "notice": "El cliente será agregado a la lista de espera respetando el orden de llegada.",
+  "save": "Agregar cliente",
+  "saving": "Agregando...",
+  "successTitle": "Cliente agregado",
+  "successMessage": "{{name}} fue agregado correctamente a la lista de espera."
+},
     "detail": {
       "eyebrow": "Detalle del cliente",
       "position": "Posición actual",

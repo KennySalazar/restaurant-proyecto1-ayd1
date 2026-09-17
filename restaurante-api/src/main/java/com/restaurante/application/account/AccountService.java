@@ -259,6 +259,36 @@ public class AccountService {
                 .toList();
     }
 
+    @Transactional(readOnly = true)
+    public List<AccountResponse> getAccountsReadyForPayment(
+            Authentication authentication) {
+
+        AuthenticatedUser context = getAuthenticatedUser(authentication);
+
+        List<Account> accounts = accountRepository
+                .findReadyForPaymentByRestaurantId(context.restaurantId());
+
+        return accounts.stream()
+                .map(account -> {
+                    RestaurantTable table = tableRepository
+                            .findByIdAndRestaurantId(
+                                    account.getTableId(),
+                                    context.restaurantId()
+                            )
+                            .orElse(null);
+
+                    String waiterName =
+                            resolveUserName(account.getWaiterId());
+
+                    return toResponse(
+                            account,
+                            table,
+                            waiterName
+                    );
+                })
+                .toList();
+    }
+
     /**
      * Transfiere una cuenta abierta a otra mesa identificándola por su ID de cuenta.
      */

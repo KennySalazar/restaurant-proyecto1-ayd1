@@ -15,3 +15,10 @@ export interface WaitlistQueueEntry {
   estado: WaitlistStatus;
   notas: string | null;
 }
+
+export interface CreateWaitlistEntryRequest {
+  nombreCliente: string;
+  telefonoCliente: string;
+  cantidadPersonas: number;
+  notas: string | null;
+}

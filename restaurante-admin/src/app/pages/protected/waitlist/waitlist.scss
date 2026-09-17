@@ -163,6 +163,24 @@
   box-shadow: 0 0 0 4px rgb(109 155 96 / 12%);
 }
 
+.register-button {
+  align-items: center;
+  background: #a54838;
+  border: 0;
+  border-radius: 12px;
+  color: #fff;
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-weight: 700;
+  gap: 0.45rem;
+  padding: 0.7rem 0.95rem;
+
+  &:hover {
+    background: #93402f;
+  }
+}
+
 .refresh-button {
   display: inline-flex;
   align-items: center;
@@ -402,6 +420,12 @@
   .detail-grid {
     grid-template-columns: 1fr;
   }
+
+  .register-button,
+.refresh-button {
+  justify-content: center;
+  width: 100%;
+}
 
   .waitlist-panel__header,
   .header-actions {

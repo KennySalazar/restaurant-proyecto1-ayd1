@@ -62,6 +62,15 @@
     </div>
 
     <div class="header-actions">
+      <button
+        type="button"
+        class="register-button"
+        (click)="openRegistration()"
+      >
+        <i class="pi pi-user-plus"></i>
+        {{ 'waitlist.actions.register' | transloco }}
+      </button>
+
       <div class="live-status">
         <span class="live-dot"></span>
 
@@ -161,7 +170,9 @@
                 </div>
               </td>
 
-              <td>{{ entry.telefonoCliente }}</td>
+              <td>
+                {{ entry.telefonoCliente }}
+              </td>
 
               <td>
                 {{ entry.cantidadPersonas }}
@@ -175,9 +186,15 @@
               <td>
                 <span
                   class="status-pill"
-                  [class.status-pill--waiting]="entry.estado === 'ESPERANDO'"
-                  [class.status-pill--suggested]="entry.estado === 'SUGERIDA'"
-                  [class.status-pill--notified]="entry.estado === 'NOTIFICADA'"
+                  [class.status-pill--waiting]="
+                    entry.estado === 'ESPERANDO'
+                  "
+                  [class.status-pill--suggested]="
+                    entry.estado === 'SUGERIDA'
+                  "
+                  [class.status-pill--notified]="
+                    entry.estado === 'NOTIFICADA'
+                  "
                 >
                   <i
                     [class]="'pi ' + statusIcon(entry.estado)"
@@ -262,6 +279,7 @@
 
       <div>
         <span>{{ 'waitlist.detail.people' | transloco }}</span>
+
         <strong>
           {{ selected.cantidadPersonas }}
           {{ 'waitlist.people' | transloco }}
@@ -270,6 +288,7 @@
 
       <div>
         <span>{{ 'waitlist.detail.arrival' | transloco }}</span>
+
         <strong>
           {{ formatArrival(selected.horaLlegada) }}
         </strong>
@@ -296,3 +315,9 @@
     </div>
   </section>
 }
+
+<app-waitlist-form-dialog
+  [open]="registrationDialogOpen()"
+  (closed)="closeRegistration()"
+  (saved)="handleClientRegistered()"
+/>
