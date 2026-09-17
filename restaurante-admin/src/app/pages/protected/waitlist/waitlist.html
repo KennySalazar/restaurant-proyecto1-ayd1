@@ -1,0 +1,298 @@
+<section class="page-heading">
+  <div class="page-heading__eyebrow">
+    <span></span>
+    {{ 'waitlist.eyebrow' | transloco }}
+  </div>
+
+  <h1>{{ 'waitlist.title' | transloco }}</h1>
+  <p>{{ 'waitlist.description' | transloco }}</p>
+</section>
+
+<section class="summary-grid">
+  <article class="summary-card">
+    <div class="summary-icon">
+      <i class="pi pi-users"></i>
+    </div>
+
+    <div>
+      <span>{{ 'waitlist.summary.total' | transloco }}</span>
+      <strong>{{ entries().length }}</strong>
+    </div>
+  </article>
+
+  <article class="summary-card">
+    <div class="summary-icon summary-icon--waiting">
+      <i class="pi pi-clock"></i>
+    </div>
+
+    <div>
+      <span>{{ 'waitlist.summary.waiting' | transloco }}</span>
+      <strong>{{ waitingCount() }}</strong>
+    </div>
+  </article>
+
+  <article class="summary-card">
+    <div class="summary-icon summary-icon--suggested">
+      <i class="pi pi-lightbulb"></i>
+    </div>
+
+    <div>
+      <span>{{ 'waitlist.summary.suggested' | transloco }}</span>
+      <strong>{{ suggestedCount() }}</strong>
+    </div>
+  </article>
+
+  <article class="summary-card">
+    <div class="summary-icon summary-icon--notified">
+      <i class="pi pi-bell"></i>
+    </div>
+
+    <div>
+      <span>{{ 'waitlist.summary.notified' | transloco }}</span>
+      <strong>{{ notifiedCount() }}</strong>
+    </div>
+  </article>
+</section>
+
+<section class="waitlist-panel">
+  <header class="waitlist-panel__header">
+    <div>
+      <h2>{{ 'waitlist.list.title' | transloco }}</h2>
+      <p>{{ 'waitlist.list.description' | transloco }}</p>
+    </div>
+
+    <div class="header-actions">
+      <div class="live-status">
+        <span class="live-dot"></span>
+
+        <div>
+          <strong>{{ 'waitlist.live' | transloco }}</strong>
+
+          @if (lastUpdated()) {
+            <small>
+              {{ 'waitlist.lastUpdated' | transloco }}
+              {{ formatLastUpdated() }}
+            </small>
+          }
+        </div>
+      </div>
+
+      <button
+        type="button"
+        class="refresh-button"
+        [disabled]="refreshing()"
+        (click)="loadWaitlist()"
+      >
+        <i
+          class="pi pi-refresh"
+          [class.is-spinning]="refreshing()"
+        ></i>
+
+        {{ 'waitlist.refresh' | transloco }}
+      </button>
+    </div>
+  </header>
+
+  @if (loading()) {
+    <div class="panel-state">
+      <i class="pi pi-spin pi-spinner"></i>
+      <span>{{ 'waitlist.loading' | transloco }}</span>
+    </div>
+  } @else if (error() && entries().length === 0) {
+    <div class="panel-state panel-state--error">
+      <i class="pi pi-exclamation-triangle"></i>
+
+      <strong>
+        {{ 'waitlist.error.title' | transloco }}
+      </strong>
+
+      <span>
+        {{ 'waitlist.error.description' | transloco }}
+      </span>
+    </div>
+  } @else if (entries().length === 0) {
+    <div class="panel-state">
+      <div class="empty-icon">
+        <i class="pi pi-users"></i>
+      </div>
+
+      <strong>
+        {{ 'waitlist.empty.title' | transloco }}
+      </strong>
+
+      <span>
+        {{ 'waitlist.empty.description' | transloco }}
+      </span>
+    </div>
+  } @else {
+    <div class="table-container">
+      <table class="waitlist-table">
+        <thead>
+          <tr>
+            <th>{{ 'waitlist.columns.position' | transloco }}</th>
+            <th>{{ 'waitlist.columns.client' | transloco }}</th>
+            <th>{{ 'waitlist.columns.phone' | transloco }}</th>
+            <th>{{ 'waitlist.columns.people' | transloco }}</th>
+            <th>{{ 'waitlist.columns.arrival' | transloco }}</th>
+            <th>{{ 'waitlist.columns.status' | transloco }}</th>
+            <th></th>
+          </tr>
+        </thead>
+
+        <tbody>
+          @for (entry of entries(); track entry.id) {
+            <tr>
+              <td>
+                <span
+                  class="position-badge"
+                  [class.position-badge--first]="entry.posicion === 1"
+                >
+                  {{ entry.posicion }}
+                </span>
+              </td>
+
+              <td>
+                <div class="client-cell">
+                  <span class="client-avatar">
+                    {{ entry.nombreCliente.slice(0, 2).toUpperCase() }}
+                  </span>
+
+                  <strong>{{ entry.nombreCliente }}</strong>
+                </div>
+              </td>
+
+              <td>{{ entry.telefonoCliente }}</td>
+
+              <td>
+                {{ entry.cantidadPersonas }}
+                {{ 'waitlist.people' | transloco }}
+              </td>
+
+              <td>
+                {{ formatArrival(entry.horaLlegada) }}
+              </td>
+
+              <td>
+                <span
+                  class="status-pill"
+                  [class.status-pill--waiting]="entry.estado === 'ESPERANDO'"
+                  [class.status-pill--suggested]="entry.estado === 'SUGERIDA'"
+                  [class.status-pill--notified]="entry.estado === 'NOTIFICADA'"
+                >
+                  <i
+                    [class]="'pi ' + statusIcon(entry.estado)"
+                  ></i>
+
+                  {{ statusKey(entry.estado) | transloco }}
+                </span>
+              </td>
+
+              <td class="actions-cell">
+                <button
+                  type="button"
+                  class="detail-button"
+                  (click)="viewDetail(entry.id)"
+                >
+                  <i class="pi pi-eye"></i>
+                  {{ 'waitlist.actions.view' | transloco }}
+                </button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</section>
+
+@if (detailLoading()) {
+  <section class="detail-panel">
+    <div class="panel-state panel-state--small">
+      <i class="pi pi-spin pi-spinner"></i>
+      <span>{{ 'waitlist.detail.loading' | transloco }}</span>
+    </div>
+  </section>
+}
+
+@if (detailError()) {
+  <section class="detail-panel">
+    <div class="panel-state panel-state--error panel-state--small">
+      <i class="pi pi-exclamation-triangle"></i>
+      <span>{{ 'waitlist.detail.error' | transloco }}</span>
+    </div>
+  </section>
+}
+
+@if (selectedEntry(); as selected) {
+  <section class="detail-panel">
+    <header class="detail-panel__header">
+      <div>
+        <span class="detail-eyebrow">
+          {{ 'waitlist.detail.eyebrow' | transloco }}
+        </span>
+
+        <h2>{{ selected.nombreCliente }}</h2>
+      </div>
+
+      <button
+        type="button"
+        class="close-button"
+        (click)="closeDetail()"
+        [attr.aria-label]="'waitlist.actions.close' | transloco"
+      >
+        <i class="pi pi-times"></i>
+      </button>
+    </header>
+
+    <div class="detail-grid">
+      <div>
+        <span>{{ 'waitlist.detail.position' | transloco }}</span>
+        <strong>#{{ selected.posicion }}</strong>
+      </div>
+
+      <div>
+        <span>{{ 'waitlist.detail.client' | transloco }}</span>
+        <strong>{{ selected.nombreCliente }}</strong>
+      </div>
+
+      <div>
+        <span>{{ 'waitlist.detail.phone' | transloco }}</span>
+        <strong>{{ selected.telefonoCliente }}</strong>
+      </div>
+
+      <div>
+        <span>{{ 'waitlist.detail.people' | transloco }}</span>
+        <strong>
+          {{ selected.cantidadPersonas }}
+          {{ 'waitlist.people' | transloco }}
+        </strong>
+      </div>
+
+      <div>
+        <span>{{ 'waitlist.detail.arrival' | transloco }}</span>
+        <strong>
+          {{ formatArrival(selected.horaLlegada) }}
+        </strong>
+      </div>
+
+      <div>
+        <span>{{ 'waitlist.detail.status' | transloco }}</span>
+
+        <strong>
+          {{ statusKey(selected.estado) | transloco }}
+        </strong>
+      </div>
+
+      <div class="detail-grid__notes">
+        <span>{{ 'waitlist.detail.notes' | transloco }}</span>
+
+        <strong>
+          {{
+            selected.notas ||
+              ('waitlist.detail.noNotes' | transloco)
+          }}
+        </strong>
+      </div>
+    </div>
+  </section>
+}

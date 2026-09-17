@@ -1,0 +1,90 @@
+package com.restaurante.web.dto.kitchen;
+
+import io.swagger.v3.oas.annotations.media.Schema;
+
+import java.time.Instant;
+import java.util.List;
+
+/**
+ * Representación de una comanda activa para visualización del personal de cocina con alertas de retraso.
+ */
+@Schema(description = "Comanda entrante o activa para visualización en cocina con tiempos y alertas")
+public record KitchenComandaResponse(
+        @Schema(description = "Identificador único de la comanda", example = "105")
+        Long id,
+
+        @Schema(description = "Identificador de la cuenta asociada", example = "20")
+        Long accountId,
+
+        @Schema(description = "Número de cuenta", example = "CTA-M-12-001")
+        String accountNumber,
+
+        @Schema(description = "Identificador de la mesa", example = "12")
+        Long tableId,
+
+        @Schema(description = "Número o nombre de la mesa", example = "M-12")
+        String tableNumber,
+
+        @Schema(description = "Número de ronda de la comanda", example = "1")
+        short roundNumber,
+
+        @Schema(description = "Identificador del mesero responsable", example = "5")
+        Long waiterId,
+
+        @Schema(description = "Nombre del mesero responsable", example = "Carlos López")
+        String waiterName,
+
+        @Schema(description = "Estado de la comanda en cocina", example = "RECIBIDA")
+        String status,
+
+        @Schema(description = "Fecha y hora en que la comanda fue enviada a cocina")
+        Instant sentAt,
+
+        @Schema(description = "Fecha y hora de creación de la comanda")
+        Instant createdAt,
+
+        @Schema(description = "Minutos transcurridos desde que se envió a cocina (antigüedad)", example = "18")
+        long elapsedMinutes,
+
+        @Schema(description = "Tiempo estimado total de preparación en minutos", example = "15")
+        short estimatedPreparationTimeMinutes,
+
+        @Schema(description = "Notas generales para cocina", example = "Mesa VIP, enviar todo junto")
+        String generalNotes,
+
+        @Schema(description = "Listado de platillos y combos de la comanda")
+        List<KitchenComandaItemResponse> items,
+
+        @Schema(description = "Indica si la comanda contiene platillos que superaron su tiempo estimado sin estar listos", example = "true")
+        boolean timeExceeded,
+
+        @Schema(description = "Cantidad de platillos en la comanda con tiempo de preparación excedido", example = "1")
+        int delayedItemsCount,
+
+        @Schema(description = "Máximo retraso en minutos entre los platillos de la comanda", example = "5")
+        long maxDelayMinutes,
+
+        @Schema(description = "Nivel de alerta general de la comanda (NORMAL, TIEMPO_EXCEDIDO)", example = "TIEMPO_EXCEDIDO")
+        String alertLevel
+) {
+    public KitchenComandaResponse(
+            Long id,
+            Long accountId,
+            String accountNumber,
+            Long tableId,
+            String tableNumber,
+            short roundNumber,
+            Long waiterId,
+            String waiterName,
+            String status,
+            Instant sentAt,
+            Instant createdAt,
+            long elapsedMinutes,
+            short estimatedPreparationTimeMinutes,
+            String generalNotes,
+            List<KitchenComandaItemResponse> items) {
+        this(id, accountId, accountNumber, tableId, tableNumber, roundNumber, waiterId, waiterName, status,
+                sentAt, createdAt, elapsedMinutes, estimatedPreparationTimeMinutes, generalNotes, items,
+                false, 0, 0L, "NORMAL");
+    }
+}

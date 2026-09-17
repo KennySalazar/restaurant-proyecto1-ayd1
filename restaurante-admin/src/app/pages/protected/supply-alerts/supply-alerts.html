@@ -1,0 +1,196 @@
+<app-page-heading
+  eyebrowKey="supplyAlerts.eyebrow"
+  titleKey="supplyAlerts.title"
+  descriptionKey="supplyAlerts.description"
+/>
+
+<section class="summary-grid">
+  <article class="summary-card summary-card--total">
+    <span class="summary-card__icon">
+      <i class="pi pi-exclamation-triangle"></i>
+    </span>
+
+    <div>
+      <span>{{ 'supplyAlerts.summary.total' | transloco }}</span>
+      <strong>{{ totalAlerts() }}</strong>
+    </div>
+  </article>
+
+  <article class="summary-card">
+    <span class="summary-card__icon summary-card__icon--out-list">
+      <i class="pi pi-minus-circle"></i>
+    </span>
+
+    <div>
+      <span>{{ 'supplyAlerts.summary.outOfStock' | transloco }}</span>
+      <strong>{{ outOfStockCount() }}</strong>
+    </div>
+  </article>
+
+  <article class="summary-card">
+    <span class="summary-card__icon summary-card__icon--low">
+      <i class="pi pi-arrow-down"></i>
+    </span>
+
+    <div>
+      <span>{{ 'supplyAlerts.summary.lowStock' | transloco }}</span>
+      <strong>{{ lowStockCount() }}</strong>
+    </div>
+  </article>
+</section>
+
+<section class="alerts-panel">
+  <header class="alerts-panel__header">
+    <div>
+      <h2>{{ 'supplyAlerts.list.title' | transloco }}</h2>
+      <p>{{ 'supplyAlerts.list.description' | transloco }}</p>
+    </div>
+
+    <button class="refresh-button" type="button" [disabled]="isLoading()" (click)="loadAlerts()">
+      <i class="pi pi-refresh" [class.pi-spin]="isLoading()"></i>
+      {{ 'supplyAlerts.list.refresh' | transloco }}
+    </button>
+  </header>
+
+  <div class="filters-bar">
+    <label class="category-field">
+      <span class="sr-only">{{ 'supplyAlerts.filters.category' | transloco }}</span>
+
+      <i class="pi pi-tag"></i>
+
+      <select
+        #categorySelect
+        [value]="selectedCategory() ?? ''"
+        (change)="onCategoryChange(categorySelect.value)"
+      >
+        <option value="">{{ 'supplyAlerts.filters.allCategories' | transloco }}</option>
+
+        @for (category of categories(); track category.id) {
+          <option [value]="category.id">{{ category.name }}</option>
+        }
+      </select>
+    </label>
+
+    <label class="level-field">
+      <span class="sr-only">{{ 'supplyAlerts.filters.level' | transloco }}</span>
+
+      <i class="pi pi-filter"></i>
+
+      <select
+        #levelSelect
+        [value]="selectedLevel() ?? ''"
+        (change)="onLevelChange(levelSelect.value)"
+      >
+        <option value="">{{ 'supplyAlerts.filters.allLevels' | transloco }}</option>
+        <option value="AGOTADO">{{ 'supplyAlerts.filters.levelAGOTADO' | transloco }}</option>
+        <option value="BAJO">{{ 'supplyAlerts.filters.levelBAJO' | transloco }}</option>
+      </select>
+    </label>
+
+    @if (hasActiveFilters()) {
+      <button class="clear-filters-button" type="button" (click)="clearFilters()">
+        <i class="pi pi-filter-slash"></i>
+        {{ 'supplyAlerts.filters.clear' | transloco }}
+      </button>
+    }
+  </div>
+
+  <app-form-feedback [message]="errorMessage()" />
+
+  @if (isLoading()) {
+    <div class="state-panel">
+      <i class="pi pi-spin pi-spinner"></i>
+      <span>{{ 'common.loading' | transloco }}</span>
+    </div>
+  } @else if (!errorMessage() && totalAlerts() === 0 && !hasActiveFilters()) {
+    <div class="state-panel state-panel--empty">
+      <span class="state-panel__icon state-panel__icon--ok">
+        <i class="pi pi-check-circle"></i>
+      </span>
+
+      <strong>{{ 'supplyAlerts.empty.title' | transloco }}</strong>
+
+      <p>{{ 'supplyAlerts.empty.description' | transloco }}</p>
+    </div>
+  } @else if (!errorMessage() && filteredAlerts().length === 0 && hasActiveFilters()) {
+    <div class="state-panel state-panel--empty">
+      <span class="state-panel__icon">
+        <i class="pi pi-search"></i>
+      </span>
+
+      <strong>{{ 'supplyAlerts.noResults.title' | transloco }}</strong>
+
+      <p>{{ 'supplyAlerts.noResults.description' | transloco }}</p>
+    </div>
+  } @else if (filteredAlerts().length > 0) {
+    <div class="alerts-list">
+      @for (alert of filteredAlerts(); track alert.supplyId) {
+        <article class="alert-card">
+          <div class="alert-card__header">
+            <div class="alert-card__badges">
+              <span class="alert-badge" [class]="'alert-badge ' + levelClass(alert.alertLevel)">
+                {{ levelKey(alert.alertLevel) | transloco }}
+              </span>
+
+              <span
+                class="priority-badge"
+                [class.priority-badge--critical]="alert.priority === 'CRITICA'"
+              >
+                <i class="pi pi-bolt"></i>
+                {{ priorityKey(alert.priority) | transloco }}
+              </span>
+            </div>
+
+            <span class="alert-card__date">
+              <i class="pi pi-clock"></i>
+              {{ formatDateTime(alert.timestamp) }}
+            </span>
+          </div>
+
+          <div class="alert-card__supply">
+            <div>
+              <span class="alert-card__code">{{ alert.supplyCode }}</span>
+              <h3>{{ alert.supplyName }}</h3>
+            </div>
+
+            <span class="category-pill">
+              <i class="pi pi-tag"></i>
+              {{ alert.categoryName }}
+            </span>
+          </div>
+
+          <div class="alert-card__stats">
+            <div class="stat-item">
+              <span>{{ 'supplyAlerts.card.currentStock' | transloco }}</span>
+              <strong [class.stat-item--danger]="alert.alertLevel === 'AGOTADO'">
+                {{ formatStock(alert.currentStock) }}
+                {{ alert.measurementUnitAbbreviation }}
+              </strong>
+            </div>
+
+            <div class="stat-item">
+              <span>{{ 'supplyAlerts.card.minimumStock' | transloco }}</span>
+              <strong>
+                {{ formatStock(alert.minimumStock) }}
+                {{ alert.measurementUnitAbbreviation }}
+              </strong>
+            </div>
+
+            <div class="stat-item">
+              <span>{{ 'supplyAlerts.card.deficit' | transloco }}</span>
+              <strong>
+                {{ formatStock(alert.deficit) }}
+                {{ alert.measurementUnitAbbreviation }}
+              </strong>
+            </div>
+          </div>
+
+          <p class="alert-card__message">
+            <i class="pi pi-info-circle"></i>
+            {{ alert.message }}
+          </p>
+        </article>
+      }
+    </div>
+  }
+</section>

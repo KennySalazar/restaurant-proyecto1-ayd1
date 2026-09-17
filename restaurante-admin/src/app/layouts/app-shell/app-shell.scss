@@ -20,13 +20,7 @@
    ========================================== */
 
 .app-shell__sidebar {
-  background:
-    linear-gradient(
-      180deg,
-      var(--restaurant-dark) 0%,
-      #352720 60%,
-      #281e1a 100%
-    );
+  background: linear-gradient(180deg, var(--restaurant-dark) 0%, #352720 60%, #281e1a 100%);
   box-shadow: 8px 0 30px rgba(47, 36, 31, 0.06);
   color: #ffffff;
   display: flex;
@@ -80,11 +74,7 @@
 
 .profile-avatar {
   align-items: center;
-  background: linear-gradient(
-    135deg,
-    var(--restaurant-accent),
-    var(--restaurant-gold)
-  );
+  background: linear-gradient(135deg, var(--restaurant-accent), var(--restaurant-gold));
   border-radius: 50%;
   color: #ffffff;
   display: inline-flex;
@@ -322,10 +312,260 @@
 .app-shell__content {
   margin: 0 auto;
   max-width: 94rem;
-  padding:
-    clamp(2rem, 4vw, 3.7rem)
-    clamp(1.5rem, 4vw, 4rem);
+  padding: clamp(2rem, 4vw, 3.7rem) clamp(1.5rem, 4vw, 4rem);
   width: 100%;
+}
+
+/* ==========================================
+   NOTIFICACIONES
+   ========================================== */
+
+.topbar-actions {
+  align-items: center;
+  display: flex;
+  gap: 1rem;
+}
+
+.notification-area {
+  position: relative;
+}
+
+.notification-bell {
+  align-items: center;
+  background: var(--restaurant-cream);
+  border: 1px solid var(--restaurant-border);
+  border-radius: 999px;
+  color: var(--restaurant-muted);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  height: 2.35rem;
+  justify-content: center;
+  position: relative;
+  transition:
+    background-color 0.18s ease,
+    color 0.18s ease;
+  width: 2.35rem;
+}
+
+.notification-bell:hover {
+  background: #f3ebe5;
+  color: var(--restaurant-accent);
+}
+
+.notification-bell__badge {
+  align-items: center;
+  background: #c94f3d;
+  border: 2px solid #ffffff;
+  border-radius: 999px;
+  color: #ffffff;
+  display: inline-flex;
+  font-size: 0.58rem;
+  font-weight: 800;
+  height: 1.15rem;
+  justify-content: center;
+  min-width: 1.15rem;
+  padding: 0 0.25rem;
+  position: absolute;
+  right: -0.2rem;
+  top: -0.25rem;
+}
+
+.notification-backdrop {
+  background: rgba(35, 25, 21, 0.28);
+  inset: 0;
+  position: fixed;
+  z-index: 30;
+}
+
+.notification-panel {
+  background: #ffffff;
+  border: 1px solid var(--restaurant-border);
+  border-radius: 1rem;
+  box-shadow: 0 22px 55px rgba(47, 36, 31, 0.18);
+  display: flex;
+  flex-direction: column;
+  max-height: min(32rem, 78vh);
+  overflow: hidden;
+  position: absolute;
+  right: 0;
+  top: calc(100% + 0.75rem);
+  width: min(25rem, 86vw);
+  z-index: 31;
+}
+
+.notification-panel__header {
+  align-items: flex-start;
+  border-bottom: 1px solid var(--restaurant-border);
+  display: flex;
+  gap: 0.75rem;
+  justify-content: space-between;
+  padding: 1rem 1.1rem 0.9rem;
+}
+
+.notification-panel__header span,
+.notification-panel__header h3 {
+  display: block;
+  margin: 0;
+}
+
+.notification-panel__header span {
+  color: var(--restaurant-accent);
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.notification-panel__header h3 {
+  color: var(--restaurant-text);
+  font-size: 0.9rem;
+  margin-top: 0.25rem;
+}
+
+.mark-all-button {
+  align-items: center;
+  background: #f7eee7;
+  border: 0;
+  border-radius: 0.6rem;
+  color: #9d4d30;
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 0.66rem;
+  font-weight: 750;
+  gap: 0.35rem;
+  min-height: 2rem;
+  padding: 0.45rem 0.65rem;
+}
+
+.mark-all-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.notification-panel__body {
+  overflow-y: auto;
+}
+
+.notification-states {
+  align-items: center;
+  color: var(--restaurant-muted);
+  display: flex;
+  flex-direction: column;
+  font-size: 0.74rem;
+  gap: 0.45rem;
+  padding: 2rem 1rem;
+  text-align: center;
+}
+
+.notification-states i {
+  color: var(--restaurant-accent);
+  font-size: 1.2rem;
+  margin-bottom: 0.4rem;
+}
+
+.notification-states strong {
+  color: var(--restaurant-text);
+}
+
+.notification-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.notification-list li {
+  border-bottom: 1px solid #f3ece6;
+}
+
+.notification-list li:last-child {
+  border-bottom: 0;
+}
+
+.notification-item {
+  align-items: flex-start;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  gap: 0.65rem;
+  padding: 0.9rem 1.1rem;
+  text-align: left;
+  transition: background-color 0.15s ease;
+  width: 100%;
+}
+
+.notification-item:hover {
+  background: #fdfaf7;
+}
+
+.notification-item__dot {
+  align-items: center;
+  color: var(--restaurant-accent);
+  display: inline-flex;
+  flex: 0 0 0.9rem;
+  font-size: 0.6rem;
+  justify-content: center;
+  padding-top: 0.15rem;
+}
+
+.notification-item__body {
+  display: grid;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.notification-item__body strong {
+  color: var(--restaurant-text);
+  font-size: 0.76rem;
+}
+
+.notification-item.is-unread .notification-item__body strong {
+  font-weight: 800;
+}
+
+.notification-item__body p {
+  color: var(--restaurant-muted);
+  font-size: 0.72rem;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.notification-item__time {
+  align-items: center;
+  color: #a08f86;
+  display: inline-flex;
+  font-size: 0.64rem;
+  gap: 0.35rem;
+  margin-top: 0.25rem;
+}
+
+.notification-panel__footer {
+  border-top: 1px solid var(--restaurant-border);
+  padding: 0.7rem;
+}
+
+.alerts-link {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 0.6rem;
+  color: var(--restaurant-accent);
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 750;
+  gap: 0.45rem;
+  justify-content: center;
+  padding: 0.6rem;
+  width: 100%;
+}
+
+.alerts-link:hover {
+  background: #f7eee7;
 }
 
 /* ==========================================

@@ -26,9 +26,7 @@ export const routes: Routes = [
       {
         path: 'login',
         loadComponent: () =>
-          import('./pages/auth/login/login').then(
-            (module) => module.LoginPageComponent,
-          ),
+          import('./pages/auth/login/login').then((module) => module.LoginPageComponent),
       },
       {
         path: 'login-verify',
@@ -40,9 +38,7 @@ export const routes: Routes = [
       {
         path: 'recovery',
         loadComponent: () =>
-          import('./pages/auth/recovery/recovery').then(
-            (module) => module.RecoveryPageComponent,
-          ),
+          import('./pages/auth/recovery/recovery').then((module) => module.RecoveryPageComponent),
       },
       {
         path: 'recovery-reset',
@@ -56,9 +52,7 @@ export const routes: Routes = [
   {
     path: 'app',
     loadComponent: () =>
-      import('./layouts/app-shell/app-shell').then(
-        (module) => module.AppShellComponent,
-      ),
+      import('./layouts/app-shell/app-shell').then((module) => module.AppShellComponent),
     canActivate: [authGuard, roleGuard],
     canActivateChild: [authChildGuard],
     data: { roles: ['ADMIN'] },
@@ -75,6 +69,74 @@ export const routes: Routes = [
             (module) => module.DashboardPageComponent,
           ),
       },
+
+      {
+        path: 'tables',
+        loadComponent: () =>
+          import('./pages/protected/tables/tables').then((module) => module.TablesPageComponent),
+      },
+
+      {
+        path: 'supplies',
+        loadComponent: () =>
+          import('./pages/protected/supplies/supplies').then(
+            (module) => module.SuppliesPageComponent,
+          ),
+      },
+
+      {
+        path: 'menu',
+        loadComponent: () =>
+          import('./pages/protected/menu/menu').then((module) => module.MenuPageComponent),
+      },
+
+      {
+        path: 'supply-alerts',
+        loadComponent: () =>
+          import('./pages/protected/supply-alerts/supply-alerts').then(
+            (module) => module.SupplyAlertsPageComponent,
+          ),
+      },
+
+      {
+        path: 'configuration',
+        loadComponent: () =>
+          import('./pages/protected/configuration/configuration').then(
+            (module) => module.ConfigurationPageComponent,
+          ),
+      },
+
+      {
+        path: 'occupancy',
+        loadComponent: () =>
+          import('./pages/protected/occupancy/occupancy').then(
+            (module) => module.OccupancyPageComponent,
+          ),
+      },
+
+      {
+        path: 'reservations',
+        loadComponent: () =>
+          import('./pages/protected/reservations/reservations').then(
+            (module) => module.ReservationsPageComponent,
+          ),
+      },
+
+      {
+        path: 'waitlist',
+        loadComponent: () =>
+          import('./pages/protected/waitlist/waitlist').then(
+            (module) => module.WaitlistPageComponent,
+          ),
+      },
+
+      {
+        path: 'employees',
+        loadComponent: () =>
+          import('./pages/protected/employees/employees').then(
+            (module) => module.EmployeesPageComponent,
+          ),
+      },
       {
         path: 'security',
         loadComponent: () =>
@@ -85,9 +147,7 @@ export const routes: Routes = [
       {
         path: 'admin',
         loadComponent: () =>
-          import('./pages/protected/admin/admin').then(
-            (module) => module.AdminPageComponent,
-          ),
+          import('./pages/protected/admin/admin').then((module) => module.AdminPageComponent),
       },
     ],
   },

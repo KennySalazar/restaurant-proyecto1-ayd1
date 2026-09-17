@@ -1,0 +1,307 @@
+<app-page-heading
+  eyebrowKey="configuration.eyebrow"
+  titleKey="configuration.title"
+  descriptionKey="configuration.description"
+/>
+
+<section class="configuration-card">
+  <header class="configuration-card__header">
+    <span class="configuration-card__icon">
+      <i class="pi pi-percentage"></i>
+    </span>
+
+    <div>
+      <span class="configuration-card__eyebrow">
+        {{ 'configuration.tip.eyebrow' | transloco }}
+      </span>
+
+      <h2>
+        {{ 'configuration.tip.title' | transloco }}
+      </h2>
+
+      <p>
+        {{ 'configuration.tip.description' | transloco }}
+      </p>
+    </div>
+  </header>
+
+  <app-form-feedback [message]="errorMessage()" />
+
+  @if (isLoading()) {
+    <div class="loading-state">
+      <i class="pi pi-spin pi-spinner"></i>
+      {{ 'common.loading' | transloco }}
+    </div>
+  } @else {
+    @if (configuration(); as current) {
+      <div class="current-configuration">
+        <div>
+          <span>
+            {{ 'configuration.tip.current' | transloco }}
+          </span>
+
+          <strong>{{ current.porcentaje }}%</strong>
+        </div>
+
+        <div>
+          <span>
+            {{ 'configuration.tip.status' | transloco }}
+          </span>
+
+          <strong
+            class="status-badge"
+            [class.status-badge--disabled]="!isTipEnabled()"
+          >
+            <i
+              class="pi"
+              [class.pi-check-circle]="isTipEnabled()"
+              [class.pi-ban]="!isTipEnabled()"
+            ></i>
+
+            {{
+              (isTipEnabled()
+                ? 'configuration.tip.enabled'
+                : 'configuration.tip.disabled'
+              ) | transloco
+            }}
+          </strong>
+        </div>
+
+        <div>
+          <span>
+            {{ 'configuration.tip.since' | transloco }}
+          </span>
+
+          <strong>
+            {{ current.vigenteDesde | date:'dd/MM/yyyy HH:mm' }}
+          </strong>
+        </div>
+      </div>
+    }
+
+    <form
+      class="tip-form"
+      [formGroup]="tipForm"
+      (ngSubmit)="saveTipConfiguration()"
+      novalidate
+    >
+      <div class="form-field">
+        <label for="tip-percentage">
+          {{ 'configuration.tip.percentage' | transloco }}
+        </label>
+
+        <div class="percentage-input">
+          <input
+            id="tip-percentage"
+            type="number"
+            formControlName="porcentaje"
+            min="0"
+            max="100"
+            step="0.01"
+          />
+
+          <span>%</span>
+        </div>
+
+        @if (percentageInvalid()) {
+          <small class="field-error" role="alert">
+            {{ 'configuration.tip.invalidPercentage' | transloco }}
+          </small>
+        }
+
+        <small class="field-hint">
+          {{ 'configuration.tip.hint' | transloco }}
+        </small>
+      </div>
+
+      <div class="tip-notice">
+        <i class="pi pi-info-circle"></i>
+
+        <span>
+          {{ 'configuration.tip.notice' | transloco }}
+        </span>
+      </div>
+
+      <button
+        class="save-button"
+        type="submit"
+        [disabled]="isSaving()"
+      >
+        @if (isSaving()) {
+          <i class="pi pi-spin pi-spinner"></i>
+          {{ 'configuration.tip.saving' | transloco }}
+        } @else {
+          <i class="pi pi-check"></i>
+          {{ 'configuration.tip.save' | transloco }}
+        }
+      </button>
+    </form>
+  }
+</section>
+
+<section class="configuration-card configuration-card--spaced">
+  <header class="configuration-card__header">
+    <span class="configuration-card__icon">
+      <i class="pi pi-star"></i>
+    </span>
+
+    <div>
+      <span class="configuration-card__eyebrow">
+        {{ 'configuration.loyalty.eyebrow' | transloco }}
+      </span>
+
+      <h2>
+        {{
+          'configuration.loyalty.accumulation.title'
+            | transloco
+        }}
+      </h2>
+
+      <p>
+        {{
+          'configuration.loyalty.accumulation.description'
+            | transloco
+        }}
+      </p>
+    </div>
+  </header>
+
+  <app-form-feedback
+    [message]="pointsErrorMessage()"
+  />
+
+  @if (isPointsLoading()) {
+    <div class="loading-state">
+      <i class="pi pi-spin pi-spinner"></i>
+      {{ 'common.loading' | transloco }}
+    </div>
+  } @else {
+    @if (pointsConfiguration(); as current) {
+      <div class="current-configuration">
+        <div>
+          <span>
+            {{
+              'configuration.loyalty.accumulation.current'
+                | transloco
+            }}
+          </span>
+
+          <strong>
+            {{ current.puntosPorMoneda }}
+          </strong>
+        </div>
+
+        <div>
+          <span>
+            {{
+              'configuration.loyalty.accumulation.status'
+                | transloco
+            }}
+          </span>
+
+          <strong class="status-badge">
+            <i class="pi pi-check-circle"></i>
+
+            {{
+              'configuration.loyalty.accumulation.active'
+                | transloco
+            }}
+          </strong>
+        </div>
+
+        <div>
+          <span>
+            {{
+              'configuration.loyalty.accumulation.since'
+                | transloco
+            }}
+          </span>
+
+          <strong>
+            {{
+              current.vigenteDesde
+                | date:'dd/MM/yyyy HH:mm'
+            }}
+          </strong>
+        </div>
+      </div>
+    }
+
+    <form
+      class="tip-form"
+      [formGroup]="pointsForm"
+      (ngSubmit)="savePointsConfiguration()"
+      novalidate
+    >
+      <div class="form-field">
+        <label for="points-per-currency">
+          {{
+            'configuration.loyalty.accumulation.pointsPerCurrency'
+              | transloco
+          }}
+        </label>
+
+        <div class="points-input">
+          <input
+            id="points-per-currency"
+            type="number"
+            formControlName="puntosPorMoneda"
+            min="0.0001"
+            step="0.0001"
+          />
+
+          <span>pts.</span>
+        </div>
+
+        @if (pointsPerCurrencyInvalid()) {
+          <small class="field-error" role="alert">
+            {{
+              'configuration.loyalty.accumulation.invalid'
+                | transloco
+            }}
+          </small>
+        }
+
+        <small class="field-hint">
+          {{
+            'configuration.loyalty.accumulation.hint'
+              | transloco
+          }}
+        </small>
+      </div>
+
+      <div class="tip-notice">
+        <i class="pi pi-info-circle"></i>
+
+        <span>
+          {{
+            'configuration.loyalty.accumulation.notice'
+              | transloco
+          }}
+        </span>
+      </div>
+
+      <button
+        class="save-button"
+        type="submit"
+        [disabled]="isPointsSaving()"
+      >
+        @if (isPointsSaving()) {
+          <i class="pi pi-spin pi-spinner"></i>
+
+          {{
+            'configuration.loyalty.accumulation.saving'
+              | transloco
+          }}
+        } @else {
+          <i class="pi pi-check"></i>
+
+          {{
+            'configuration.loyalty.accumulation.save'
+              | transloco
+          }}
+        }
+      </button>
+    </form>
+  }
+</section>
