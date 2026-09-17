@@ -146,6 +146,8 @@
       "retired": "Retirada"
     },
     "actions": {
+      "register": "Registrar mesa",
+      "edit": "Editar mesa",
       "view": "Ver detalle",
       "close": "Cerrar detalle",
       "retire": "Retirar",
@@ -155,6 +157,42 @@
       "eyebrow": "Detalle de mesa",
       "title": "Mesa"
     },
+
+    "registration": {
+  "eyebrow": "Nueva mesa",
+  "title": "Registrar mesa",
+  "description": "Ingresa la información de la nueva mesa del restaurante.",
+  "fields": {
+    "number": "Número de mesa",
+    "capacity": "Capacidad",
+    "zone": "Zona",
+    "selectZone": "Selecciona una zona",
+    "loadingZones": "Cargando zonas..."
+  },
+  "validation": {
+    "number": "Ingresa un número de mesa válido de hasta 20 caracteres.",
+    "capacity": "La capacidad debe ser mayor que cero.",
+    "zone": "Selecciona una zona."
+  },
+  "initialStateNotice": "La mesa se registrará inicialmente con estado Libre y quedará disponible para nuevas operaciones.",
+  "save": "Registrar mesa",
+  "saving": "Registrando...",
+  "successTitle": "Mesa registrada",
+  "successMessage": "La mesa {{number}} fue registrada correctamente."
+    },
+  "update": {
+    "eyebrow": "Edición de mesa",
+    "title": "Editar mesa",
+    "description": "Actualiza la configuración de la mesa seleccionada.",
+    "notice": "Los cambios actualizarán el número, la capacidad y la zona de la mesa. El estado operativo actual no será modificado.",
+    "save": "Guardar cambios",
+    "saving": "Guardando...",
+    "successTitle": "Mesa actualizada",
+    "successMessage": "La mesa {{number}} fue actualizada correctamente."
+
+},
+
+
     "retirement": {
       "eyebrow": "Retiro de mesa",
       "title": "¿Retirar la mesa {{number}}?",
@@ -955,6 +993,8 @@
     "actions": {
       "view": "Ver detalle",
       "close": "Cerrar detalle",
+      "register": "Registrar empleado",
+      "edit": "Editar empleado",
       "refresh": "Actualizar",
       "deactivate": "Desactivar",
       "alreadyDisabled": "Desactivado"
@@ -963,6 +1003,46 @@
       "eyebrow": "Detalle de empleado",
       "name": "Nombre completo"
     },
+    "registration": {
+  "eyebrow": "Registro de empleado",
+  "title": "Registrar empleado",
+  "description": "Ingresa los datos del nuevo empleado y asigna su rol operativo.",
+  "fields": {
+    "code": "Código de empleado",
+    "hireDate": "Fecha de contratación",
+    "firstName": "Nombres",
+    "lastName": "Apellidos",
+    "email": "Correo electrónico",
+    "password": "Contraseña",
+    "role": "Rol operativo",
+    "selectRole": "Selecciona un rol",
+    "loadingRoles": "Cargando roles..."
+  },
+  "validation": {
+    "code": "Ingresa un código de empleado válido.",
+    "firstName": "Ingresa los nombres del empleado.",
+    "lastName": "Ingresa los apellidos del empleado.",
+    "email": "Ingresa un correo electrónico válido.",
+    "password": "La contraseña no cumple la política requerida.",
+    "role": "Selecciona un rol operativo."
+  },
+  "passwordHint": "Debe tener entre 8 y 72 caracteres e incluir al menos una mayúscula, una minúscula y un número.",
+  "notice": "El correo será utilizado como identificador de acceso del empleado.",
+  "save": "Registrar empleado",
+  "saving": "Registrando...",
+  "successTitle": "Empleado registrado",
+  "successMessage": "{{name}} fue registrado correctamente."
+},
+"update": {
+  "eyebrow": "Edición de empleado",
+  "title": "Editar empleado",
+  "description": "Actualiza la información y el rol operativo del empleado seleccionado.",
+  "notice": "El estado del empleado se administra de forma independiente. Esta edición no activa ni desactiva su cuenta.",
+  "save": "Guardar cambios",
+  "saving": "Guardando...",
+  "successTitle": "Empleado actualizado",
+  "successMessage": "{{name}} fue actualizado correctamente."
+},
     "deactivation": {
       "eyebrow": "Desactivación de empleado",
       "title": "¿Desactivar a {{name}}?",

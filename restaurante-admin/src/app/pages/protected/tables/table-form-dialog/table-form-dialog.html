@@ -1,0 +1,185 @@
+@if (open) {
+  <div class="registration-backdrop" role="presentation">
+    <section
+      class="registration-dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="table-form-dialog-title"
+    >
+      <header class="registration-dialog__header">
+        <div>
+          <span class="registration-dialog__eyebrow">
+            {{
+              (table
+                ? 'tables.update.eyebrow'
+                : 'tables.registration.eyebrow'
+              ) | transloco
+            }}
+          </span>
+
+          <h2 id="table-form-dialog-title">
+            {{
+              (table
+                ? 'tables.update.title'
+                : 'tables.registration.title'
+              ) | transloco
+            }}
+          </h2>
+
+          <p>
+            {{
+              (table
+                ? 'tables.update.description'
+                : 'tables.registration.description'
+              ) | transloco
+            }}
+          </p>
+        </div>
+
+        <button
+          class="close-button"
+          type="button"
+          [attr.aria-label]="'common.cancel' | transloco"
+          [disabled]="isSaving()"
+          (click)="close()"
+        >
+          <i class="pi pi-times"></i>
+        </button>
+      </header>
+
+      <app-form-feedback [message]="serverMessage()" />
+
+      <form
+        class="registration-form"
+        [formGroup]="registrationForm"
+        (ngSubmit)="submit()"
+        novalidate
+      >
+        <div class="form-grid">
+          <div class="form-field">
+            <label for="table-number">
+              {{ 'tables.registration.fields.number' | transloco }}
+            </label>
+
+            <input
+              id="table-number"
+              type="text"
+              formControlName="numero"
+              maxlength="20"
+              autocomplete="off"
+            />
+
+            @if (invalid('numero')) {
+              <small class="field-error">
+                {{ 'tables.registration.validation.number' | transloco }}
+              </small>
+            }
+          </div>
+
+          <div class="form-field">
+            <label for="table-capacity">
+              {{ 'tables.registration.fields.capacity' | transloco }}
+            </label>
+
+            <input
+              id="table-capacity"
+              type="number"
+              formControlName="capacidad"
+              min="1"
+              step="1"
+            />
+
+            @if (invalid('capacidad')) {
+              <small class="field-error">
+                {{ 'tables.registration.validation.capacity' | transloco }}
+              </small>
+            }
+          </div>
+
+          <div class="form-field form-field--span-2">
+            <label for="table-zone">
+              {{ 'tables.registration.fields.zone' | transloco }}
+            </label>
+
+            <select
+              id="table-zone"
+              formControlName="zonaId"
+              [disabled]="isLoadingZones()"
+            >
+              <option [ngValue]="0">
+                {{
+                  (isLoadingZones()
+                    ? 'tables.registration.fields.loadingZones'
+                    : 'tables.registration.fields.selectZone'
+                  ) | transloco
+                }}
+              </option>
+
+              @for (zone of zones(); track zone.id) {
+                <option [ngValue]="zone.id">
+                  {{ zone.nombre }}
+                </option>
+              }
+            </select>
+
+            @if (invalid('zonaId')) {
+              <small class="field-error">
+                {{ 'tables.registration.validation.zone' | transloco }}
+              </small>
+            }
+          </div>
+        </div>
+
+        <div class="registration-notice">
+          <i class="pi pi-info-circle"></i>
+
+          <span>
+            {{
+              (table
+                ? 'tables.update.notice'
+                : 'tables.registration.initialStateNotice'
+              ) | transloco
+            }}
+          </span>
+        </div>
+
+        <footer class="registration-dialog__actions">
+          <button
+            class="cancel-button"
+            type="button"
+            [disabled]="isSaving()"
+            (click)="close()"
+          >
+            {{ 'common.cancel' | transloco }}
+          </button>
+
+          <button
+            class="save-button"
+            type="submit"
+            [disabled]="isSaving() || isLoadingZones()"
+          >
+            @if (isSaving()) {
+              <i class="pi pi-spin pi-spinner"></i>
+
+              {{
+                (table
+                  ? 'tables.update.saving'
+                  : 'tables.registration.saving'
+                ) | transloco
+              }}
+            } @else {
+              <i class="pi pi-check"></i>
+
+              {{
+                (table
+                  ? 'tables.update.save'
+                  : 'tables.registration.save'
+                ) | transloco
+              }}
+            }
+          </button>
+        </footer>
+      </form>
+    </section>
+  </div>
+}

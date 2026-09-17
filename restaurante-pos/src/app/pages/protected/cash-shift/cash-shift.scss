@@ -1,0 +1,255 @@
+.cash-shift-layout {
+  display: grid;
+  gap: 1.5rem;
+  max-width: 880px;
+}
+
+.cash-shift-card,
+.shift-success {
+  border: 1px solid var(--surface-border, #e2e8f0);
+  border-radius: 1rem;
+  background: #fff;
+  padding: 1.5rem;
+}
+
+.register-list {
+  display: grid;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.register-card {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  padding: 1rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.85rem;
+}
+
+.register-card--occupied {
+  background: #f8fafc;
+  opacity: 0.72;
+}
+
+.register-card__icon {
+  display: grid;
+  width: 2.75rem;
+  height: 2.75rem;
+  place-items: center;
+  border-radius: 0.75rem;
+  background: #fff7ed;
+  font-size: 1.15rem;
+}
+
+.register-card__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.register-card__heading {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.register-card__heading > div {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.register-card__heading span,
+.register-card__body small {
+  color: #64748b;
+}
+
+.register-status {
+  padding: 0.35rem 0.65rem;
+  border-radius: 999px;
+  background: #dcfce7;
+  color: #166534 !important;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.register-status--occupied {
+  background: #fee2e2;
+  color: #991b1b !important;
+}
+
+.cash-shift-form {
+  display: grid;
+  gap: 1.25rem;
+  margin-top: 1.5rem;
+}
+
+.form-field {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.form-field label {
+  font-weight: 600;
+}
+
+.form-field select,
+.form-field textarea,
+.currency-input input {
+  width: 100%;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.65rem;
+  background: #fff;
+  padding: 0.75rem 0.85rem;
+  font: inherit;
+}
+
+.form-field select:focus,
+.form-field textarea:focus,
+.currency-input input:focus {
+  border-color: #f97316;
+  outline: none;
+}
+
+.currency-input {
+  display: flex;
+  align-items: stretch;
+}
+
+.currency-input > span {
+  display: grid;
+  place-items: center;
+  min-width: 3rem;
+  border: 1px solid #cbd5e1;
+  border-right: 0;
+  border-radius: 0.65rem 0 0 0.65rem;
+  background: #f8fafc;
+  font-weight: 700;
+}
+
+.currency-input input {
+  border-radius: 0 0.65rem 0.65rem 0;
+}
+
+.field-error {
+  color: #b91c1c;
+  font-size: 0.8rem;
+}
+
+.primary-button {
+  display: inline-flex;
+  gap: 0.55rem;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.9rem;
+  border: 0;
+  border-radius: 0.7rem;
+  background: #ea580c;
+  color: #fff;
+  padding: 0.75rem 1.2rem;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.primary-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.cash-shift-state {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 1rem;
+  border-radius: 0.75rem;
+  background: #f8fafc;
+}
+
+.cash-shift-state--warning {
+  background: #fff7ed;
+  color: #9a3412;
+}
+
+.shift-success {
+  display: flex;
+  gap: 1.25rem;
+  max-width: 880px;
+}
+
+.shift-success__icon {
+  display: grid;
+  flex: 0 0 3.25rem;
+  width: 3.25rem;
+  height: 3.25rem;
+  place-items: center;
+  border-radius: 50%;
+  background: #dcfce7;
+  color: #166534;
+  font-size: 1.35rem;
+}
+
+.shift-success__content {
+  flex: 1;
+}
+
+.shift-success__eyebrow {
+  color: #166534;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.shift-success__content h2 {
+  margin: 0.3rem 0;
+}
+
+.shift-success__content p {
+  margin: 0 0 1.25rem;
+  color: #64748b;
+}
+
+.shift-success__details {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.shift-success__details div {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.85rem;
+  border-radius: 0.7rem;
+  background: #f8fafc;
+}
+
+.shift-success__details span {
+  color: #64748b;
+  font-size: 0.75rem;
+}
+
+@media (max-width: 760px) {
+  .shift-success__details {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .register-card__heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 520px) {
+  .cash-shift-card,
+  .shift-success {
+    padding: 1rem;
+  }
+
+  .shift-success {
+    flex-direction: column;
+  }
+
+  .shift-success__details {
+    grid-template-columns: 1fr;
+  }
+}

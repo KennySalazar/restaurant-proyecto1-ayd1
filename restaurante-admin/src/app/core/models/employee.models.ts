@@ -6,7 +6,31 @@ export interface Employee {
   nombres: string;
   apellidos: string;
   email: string;
-  fechaContratacion: string;
+  fechaContratacion: string | null;
   rol: OperationalRole;
   habilitado: boolean;
+}
+
+export interface OperationalRoleOption {
+  codigo: OperationalRole;
+  nombre: string;
+}
+
+export interface CreateEmployeeRequest {
+  codigoEmpleado: string;
+  nombres: string;
+  apellidos: string;
+  email: string;
+  password: string;
+  fechaContratacion: string | null;
+  rol: OperationalRole;
+}
+
+export interface UpdateEmployeeRequest {
+  codigoEmpleado: string;
+  nombres: string;
+  apellidos: string;
+  email: string;
+  fechaContratacion: string | null;
+  rol: OperationalRole;
 }

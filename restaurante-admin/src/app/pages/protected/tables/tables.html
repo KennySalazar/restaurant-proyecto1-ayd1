@@ -40,25 +40,30 @@
 </section>
 
 <section class="tables-panel">
-  <header class="tables-panel__header">
-    <div>
-      <h2>{{ 'tables.list.title' | transloco }}</h2>
-      <p>{{ 'tables.list.description' | transloco }}</p>
-    </div>
+  <div class="tables-panel__header-actions">
+  <button
+    class="registration-button"
+    type="button"
+    (click)="openRegistration()"
+  >
+    <i class="pi pi-plus"></i>
+    {{ 'tables.actions.register' | transloco }}
+  </button>
 
-    <button
-      class="refresh-button"
-      type="button"
-      [disabled]="isLoading()"
-      (click)="loadTables()"
-    >
-      <i
-        class="pi pi-refresh"
-        [class.pi-spin]="isLoading()"
-      ></i>
-      {{ 'tables.list.refresh' | transloco }}
-    </button>
-  </header>
+  <button
+    class="refresh-button"
+    type="button"
+    [disabled]="isLoading()"
+    (click)="loadTables()"
+  >
+    <i
+      class="pi pi-refresh"
+      [class.pi-spin]="isLoading()"
+    ></i>
+
+    {{ 'tables.list.refresh' | transloco }}
+  </button>
+</div>
 
   <app-form-feedback [message]="errorMessage()" />
 
@@ -182,6 +187,13 @@
   }
 </section>
 
+<app-table-form-dialog
+  [table]="editingTable()"
+  [open]="registrationDialogOpen()"
+  (saved)="handleTableSaved($event)"
+  (dismissed)="closeRegistration()"
+/>
+
 @if (selectedTable(); as table) {
   <section class="table-detail">
     <header class="table-detail__header">
@@ -193,14 +205,27 @@
         </h2>
       </div>
 
-      <button
-        class="close-button"
-        type="button"
-        [attr.aria-label]="'tables.actions.close' | transloco"
-        (click)="closeDetails()"
-      >
-        <i class="pi pi-times"></i>
-      </button>
+      <div class="table-detail__actions">
+  @if (table.activo) {
+    <button
+      class="edit-button"
+      type="button"
+      (click)="openEdition(table)"
+    >
+      <i class="pi pi-pencil"></i>
+      {{ 'tables.actions.edit' | transloco }}
+    </button>
+  }
+
+  <button
+    class="close-button"
+    type="button"
+    [attr.aria-label]="'tables.actions.close' | transloco"
+    (click)="closeDetails()"
+  >
+    <i class="pi pi-times"></i>
+  </button>
+</div>
     </header>
 
     <div class="detail-grid">

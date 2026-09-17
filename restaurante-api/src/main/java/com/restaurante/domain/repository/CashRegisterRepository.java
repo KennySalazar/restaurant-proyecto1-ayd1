@@ -3,6 +3,7 @@ package com.restaurante.domain.repository;
 import com.restaurante.domain.model.CashRegister;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface CashRegisterRepository
@@ -10,6 +11,10 @@ public interface CashRegisterRepository
 
     Optional<CashRegister> findByIdAndRestaurantIdAndActiveTrue(
             Long id,
+            Long restaurantId
+    );
+
+    List<CashRegister> findByRestaurantIdAndActiveTrueOrderByNameAsc(
             Long restaurantId
     );
 }

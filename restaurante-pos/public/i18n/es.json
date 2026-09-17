@@ -20,6 +20,7 @@
   "nav": {
     "workspace": "Operación",
     "dashboard": "Inicio",
+    "cashShift": "Caja",
     "account": "Mi cuenta",
     "logout": "Cerrar sesión",
     "secureSession": "Sesión activa",
@@ -98,6 +99,36 @@
     "securityDescription": "Consulta y actualiza las credenciales de tu cuenta.",
     "adminAction": "Operación",
     "adminDescription": "Accede a las herramientas disponibles para tu puesto."
+  },
+
+  "cashShift": {
+    "eyebrow": "Operación de caja",
+    "title": "Abrir turno de caja",
+    "description": "Selecciona una caja disponible y registra el monto inicial de efectivo para comenzar tu turno.",
+    "register": "Caja",
+    "registerPlaceholder": "Selecciona una caja",
+    "available": "Disponible",
+    "occupied": "Ocupada",
+    "location": "Ubicación",
+    "initialAmount": "Monto inicial de efectivo",
+    "initialAmountPlaceholder": "0.00",
+    "notes": "Observaciones",
+    "notesPlaceholder": "Agrega una observación opcional sobre la apertura",
+    "loadingRegisters": "Consultando cajas disponibles...",
+    "noRegisters": "No hay cajas activas disponibles para este restaurante.",
+    "noAvailableRegisters": "Todas las cajas se encuentran ocupadas. No es posible abrir un nuevo turno en este momento.",
+    "submit": "Abrir turno",
+    "opening": "Abriendo turno...",
+    "successTitle": "Turno abierto correctamente",
+    "successDescription": "Tu turno de caja está activo. Ya puedes procesar cobros.",
+    "shift": "Turno",
+    "status": "Estado",
+    "openedAt": "Apertura",
+    "validation": {
+      "registerRequired": "Selecciona una caja.",
+      "amountRequired": "Ingresa el monto inicial de efectivo.",
+      "amountMinimum": "El monto inicial no puede ser negativo."
+    }
   },
   "security": {
     "eyebrow": "Cuenta personal",
