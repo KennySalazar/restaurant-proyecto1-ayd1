@@ -541,6 +541,21 @@ public class SubaccountService {
         return getSubaccountsByAccountId(account.getId(), authentication);
     }
 
+    @Transactional(readOnly = true)
+    public List<SubaccountResponse> getPendingSubaccountsByAccountId(
+            Long accountId,
+            Authentication authentication) {
+
+        return getSubaccountsByAccountId(
+                accountId,
+                authentication
+        )
+                .stream()
+                .filter(subaccount ->
+                        "PENDIENTE".equals(subaccount.estado()))
+                .toList();
+    }
+
     private Account getValidAccountForSplit(Long accountId, Long restaurantId) {
         Account account = accountRepository.findByIdAndRestaurantId(accountId, restaurantId)
                 .orElseThrow(() -> new ApiException(
