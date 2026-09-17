@@ -20,7 +20,7 @@ def request(path, method='GET', data=None, headers=None):
     req=urllib.request.Request(base+path, method=method,
         data=None if data is None else json.dumps(data).encode(), headers=headers or {})
     try:
-        with urllib.request.urlopen(req, timeout=20) as r: return r.status, r.read(), r.headers
+        with urllib.request.urlopen(req, timeout=5) as r: return r.status, r.read(), r.headers
     except urllib.error.HTTPError as e: return e.code, e.read(), e.headers
 try:
     docker('network', 'create', network)
