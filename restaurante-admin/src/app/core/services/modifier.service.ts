@@ -19,7 +19,11 @@ export class ModifierService {
   private readonly http = inject(HttpClient);
   private readonly modifiersUrl = `${environment.apiBaseUrl}/admin/modifiers`;
 
-  listModifiers(dishId?: number | null, search?: string | null): Observable<ModifierSummary[]> {
+  listModifiers(
+    dishId?: number | null,
+    search?: string | null,
+    active?: boolean | null,
+  ): Observable<ModifierSummary[]> {
     let params = new HttpParams();
 
     if (dishId != null) {
@@ -28,6 +32,10 @@ export class ModifierService {
 
     if (search && search.trim().length > 0) {
       params = params.set('search', search.trim());
+    }
+
+    if (active != null) {
+      params = params.set('active', active);
     }
 
     return this.http.get<ModifierSummary[]>(this.modifiersUrl, { params });

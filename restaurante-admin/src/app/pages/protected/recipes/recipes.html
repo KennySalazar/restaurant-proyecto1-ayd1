@@ -31,7 +31,7 @@
     <section class="summary-grid">
       <article class="summary-card">
         <span class="summary-card__icon">
-          <i class="pi pi-cutlery"></i>
+          <i class="pi pi-book"></i>
         </span>
         <div>
           <span>{{ 'recipes.dishes.summary.total' | transloco }}</span>
@@ -301,6 +301,281 @@
         }
       </section>
     </div>
+  } @else if (activeTab() === 'modifiers') {
+    <section class="summary-grid">
+      <article class="summary-card">
+        <span class="summary-card__icon">
+          <i class="pi pi-plus"></i>
+        </span>
+        <div>
+          <span>{{ 'recipes.modifiers.summary.total' | transloco }}</span>
+          <strong>{{ modifierTotal() }}</strong>
+        </div>
+      </article>
+
+      <article class="summary-card">
+        <span class="summary-card__icon summary-card__icon--active">
+          <i class="pi pi-check-circle"></i>
+        </span>
+        <div>
+          <span>{{ 'recipes.modifiers.summary.withRecipe' | transloco }}</span>
+          <strong>{{ modifiersWithRecipe() }}</strong>
+        </div>
+      </article>
+
+      <article class="summary-card">
+        <span class="summary-card__icon summary-card__icon--out-of-stock">
+          <i class="pi pi-clock"></i>
+        </span>
+        <div>
+          <span>{{ 'recipes.modifiers.summary.withoutRecipe' | transloco }}</span>
+          <strong>{{ modifiersWithoutRecipe() }}</strong>
+        </div>
+      </article>
+    </section>
+
+    <div class="recipes-layout">
+      <section class="recipes-panel">
+        <div class="recipes-panel__header">
+          <div>
+            <h2>{{ 'recipes.modifiers.list.title' | transloco }}</h2>
+            <p>{{ 'recipes.modifiers.list.description' | transloco }}</p>
+          </div>
+        </div>
+
+        <div class="filters-bar">
+          <div class="search-field">
+            <i class="pi pi-search"></i>
+            <input
+              type="search"
+              [value]="modifierSearchTerm()"
+              (input)="updateModifierSearch($any($event.target).value)"
+              [placeholder]="'recipes.modifiers.list.searchPlaceholder' | transloco"
+            />
+            @if (modifierSearchTerm()) {
+              <button
+                class="search-field__clear"
+                type="button"
+                (click)="clearModifierSearch()"
+                aria-label="Clear search"
+              >
+                <i class="pi pi-times"></i>
+              </button>
+            }
+          </div>
+        </div>
+
+        <div class="table-wrapper">
+          <table class="restaurant-table">
+            <thead>
+              <tr>
+                <th>{{ 'recipes.modifiers.columns.modifier' | transloco }}</th>
+                <th>{{ 'recipes.modifiers.columns.price' | transloco }}</th>
+                <th>{{ 'recipes.modifiers.columns.recipe' | transloco }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (modifier of filteredModifiers(); track modifier.id) {
+                <tr
+                  class="restaurant-table__row"
+                  [class.restaurant-table__row--selected]="selectedModifierId() === modifier.id"
+                  (click)="selectModifier(modifier.id)"
+                >
+                  <td>
+                    <div class="dish-cell">
+                      <strong>{{ modifier.name }}</strong>
+                      <small>{{ modifier.code }}</small>
+                    </div>
+                  </td>
+                  <td>
+                    <span class="cost-value">{{ formatCost(modifier.additionalPrice) }}</span>
+                  </td>
+                  <td>
+                    @if (modifierHasRecipe(modifier)) {
+                      <div class="recipe-cell">
+                        <span class="recipe-badge recipe-badge--has">
+                          <i class="pi pi-check"></i>
+                          {{ 'recipes.modifiers.status.has' | transloco }}
+                        </span>
+                        <button
+                          class="row-action row-action--view"
+                          type="button"
+                          (click)="selectModifier(modifier.id)"
+                        >
+                          <i class="pi pi-eye"></i>
+                          {{ 'recipes.modifiers.actions.view' | transloco }}
+                        </button>
+                      </div>
+                    } @else {
+                      <div class="recipe-cell">
+                        <span class="recipe-badge recipe-badge--without">
+                          <i class="pi pi-plus"></i>
+                          {{ 'recipes.modifiers.status.without' | transloco }}
+                        </span>
+                        <button
+                          class="row-action row-action--define"
+                          type="button"
+                          (click)="openDefineModifier(modifier)"
+                        >
+                          <i class="pi pi-plus"></i>
+                          {{ 'recipes.modifiers.actions.define' | transloco }}
+                        </button>
+                      </div>
+                    }
+                  </td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="3">
+                    <div class="state-panel state-panel--empty">
+                      <i class="pi pi-shopping-bag"></i>
+                      <span>{{ 'recipes.modifiers.list.noResults' | transloco }}</span>
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="recipes-panel recipe-detail">
+        @if (selectedModifier()) {
+          @if (isModifierRecipeLoading()) {
+            <div class="state-panel">
+              <i class="pi pi-spin pi-spinner"></i>
+              <span>{{ 'common.loading' | transloco }}</span>
+            </div>
+          } @else if (selectedModifierRecipe()) {
+            <div class="recipe-detail__header">
+              <div>
+                <span class="registration-dialog__eyebrow">{{
+                  'recipes.modifiers.detail.eyebrow' | transloco
+                }}</span>
+                <h2>{{ selectedModifier()!.name }}</h2>
+                <p>{{ selectedModifier()!.code }}</p>
+              </div>
+              <div class="recipe-detail__header-actions">
+                <button
+                  class="row-action row-action--update"
+                  type="button"
+                  (click)="openUpdateModifier(selectedModifier()!)"
+                >
+                  <i class="pi pi-pencil"></i>
+                  {{ 'recipes.modifiers.actions.update' | transloco }}
+                </button>
+                <span class="recipe-version-chip">
+                  {{
+                    'recipes.detail.version'
+                      | transloco: { number: selectedModifierRecipe()!.versionNumber }
+                  }}
+                </span>
+              </div>
+            </div>
+
+            <div class="recipe-summary-grid">
+              <div class="recipe-summary-item">
+                <span>{{ 'recipes.modifiers.detail.summary.totalCost' | transloco }}</span>
+                <strong>{{ formatCost(selectedModifierRecipe()!.totalCost) }}</strong>
+              </div>
+              <div class="recipe-summary-item">
+                <span>{{ 'recipes.modifiers.detail.summary.additionalPrice' | transloco }}</span>
+                <strong>{{ formatCost(selectedModifierRecipe()!.additionalPrice) }}</strong>
+              </div>
+              <div class="recipe-summary-item">
+                <span>{{ 'recipes.modifiers.detail.summary.grossMargin' | transloco }}</span>
+                <strong>{{ formatCost(modifierGrossMargin(selectedModifierRecipe()!)) }}</strong>
+              </div>
+              <div class="recipe-summary-item">
+                <span>{{ 'recipes.modifiers.detail.summary.marginPercentage' | transloco }}</span>
+                <strong
+                  >{{
+                    formatQuantity(modifierMarginPercentage(selectedModifierRecipe()!))
+                  }}%</strong
+                >
+              </div>
+            </div>
+
+            <dl class="recipe-meta">
+              <dt>{{ 'recipes.detail.summary.effectiveFrom' | transloco }}</dt>
+              <dd>{{ formatDate(selectedModifierRecipe()!.effectiveFrom) }}</dd>
+              <dt>{{ 'recipes.detail.summary.changeReason' | transloco }}</dt>
+              <dd>
+                {{
+                  selectedModifierRecipe()!.changeReason ??
+                    ('recipes.detail.summary.noValue' | transloco)
+                }}
+              </dd>
+            </dl>
+
+            <div class="table-wrapper">
+              <table class="restaurant-table restaurant-table--sm">
+                <thead>
+                  <tr>
+                    <th>{{ 'recipes.detail.columns.supply' | transloco }}</th>
+                    <th>{{ 'recipes.detail.columns.quantity' | transloco }}</th>
+                    <th>{{ 'recipes.detail.columns.unitCost' | transloco }}</th>
+                    <th>{{ 'recipes.detail.columns.subtotal' | transloco }}</th>
+                    <th>{{ 'recipes.detail.columns.notes' | transloco }}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (ingredient of selectedModifierRecipe()!.ingredients; track ingredient.id) {
+                    <tr>
+                      <td>
+                        <div class="supply-cell">
+                          <strong>{{ ingredient.supplyName }}</strong>
+                          <small>{{ ingredient.supplyCode }}</small>
+                        </div>
+                      </td>
+                      <td>
+                        <span class="quantity-cell">
+                          {{ formatQuantity(ingredient.quantity) }}
+                          <small>{{ ingredient.measurementUnitAbbreviation }}</small>
+                        </span>
+                      </td>
+                      <td>
+                        <span class="cost-value">{{ formatCost(ingredient.unitCost) }}</span>
+                      </td>
+                      <td>
+                        <span class="cost-value">{{ formatCost(ingredient.subtotalCost) }}</span>
+                      </td>
+                      <td>
+                        <span class="notes-cell">{{ ingredient.notes ?? '-' }}</span>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          } @else {
+            <div class="state-panel state-panel--empty recipe-detail__empty">
+              <span class="state-panel__icon">
+                <i class="pi pi-book"></i>
+              </span>
+              <strong>{{ 'recipes.modifiers.detail.withoutTitle' | transloco }}</strong>
+              <p>{{ 'recipes.modifiers.detail.withoutDescription' | transloco }}</p>
+              <button
+                class="primary-button primary-button--inline"
+                type="button"
+                (click)="openDefineModifier(selectedModifier()!)"
+              >
+                <i class="pi pi-plus"></i>
+                {{ 'recipes.modifiers.actions.define' | transloco }}
+              </button>
+            </div>
+          }
+        } @else {
+          <div class="state-panel state-panel--empty recipe-detail__empty">
+            <span class="state-panel__icon">
+              <i class="pi pi-book"></i>
+            </span>
+            <strong>{{ 'recipes.modifiers.detail.selectHint' | transloco }}</strong>
+            <p>{{ 'recipes.modifiers.detail.selectHintDescription' | transloco }}</p>
+          </div>
+        }
+      </section>
+    </div>
   } @else {
     <section class="recipes-panel">
       <div class="state-panel state-panel--empty">
@@ -314,7 +589,7 @@
   }
 }
 
-@if (isDefineOpen() && defineDish()) {
+@if (isDefineOpen() && (defineDish() || defineModifier())) {
   <div class="registration-backdrop" (click)="isSavingDefine() ? null : closeDefine()">
     <form
       class="registration-dialog registration-dialog--wide"
@@ -330,21 +605,36 @@
           <h2>
             {{
               (isUpdatingRecipe() ? 'recipes.update.title' : 'recipes.define.title')
-                | transloco: { name: defineDish()!.name }
+                | transloco: { name: defineModifier()?.name ?? defineDish()!.name }
             }}
           </h2>
           <p>
             {{
-              (isUpdatingRecipe() ? 'recipes.update.description' : 'recipes.define.description')
-                | transloco
+              (defineModifier()
+                ? isUpdatingRecipe()
+                  ? 'recipes.modifier.update.description'
+                  : 'recipes.modifier.define.description'
+                : isUpdatingRecipe()
+                  ? 'recipes.update.description'
+                  : 'recipes.define.description'
+              ) | transloco
             }}
           </p>
-          <small class="supply-card">
-            {{ 'recipes.define.fields.supplyCard.category' | transloco }}:
-            {{ defineDish()!.categoryName }} ·
-            {{ 'recipes.define.fields.supplyCard.price' | transloco }}:
-            {{ formatCost(defineDish()!.salePrice ?? 0) }}
-          </small>
+          @if (defineModifier()) {
+            <small class="supply-card">
+              {{ 'recipes.modifier.fields.supplyCard.code' | transloco }}:
+              {{ defineModifier()!.code }} ·
+              {{ 'recipes.modifier.fields.supplyCard.price' | transloco }}:
+              {{ formatCost(defineModifier()!.additionalPrice) }}
+            </small>
+          } @else {
+            <small class="supply-card">
+              {{ 'recipes.define.fields.supplyCard.category' | transloco }}:
+              {{ defineDish()!.categoryName }} ·
+              {{ 'recipes.define.fields.supplyCard.price' | transloco }}:
+              {{ formatCost(defineDish()!.salePrice ?? 0) }}
+            </small>
+          }
         </div>
 
         <button

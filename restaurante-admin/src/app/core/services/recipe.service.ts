@@ -5,8 +5,11 @@ import { catchError } from 'rxjs/operators';
 
 import { environment } from '../../../environments/environment';
 import {
+  DefineModifierRecipeRequest,
   DefineRecipeRequest,
   DishSummary,
+  ModifierRecipe,
+  ModifierRecipeRegistrationResponse,
   Recipe,
   RecipeRegistrationResponse,
   RecipeUpdateResponse,
@@ -19,6 +22,7 @@ import {
 export class RecipeService {
   private readonly http = inject(HttpClient);
   private readonly dishesUrl = `${environment.apiBaseUrl}/admin/dishes`;
+  private readonly modifiersUrl = `${environment.apiBaseUrl}/admin/modifiers`;
 
   listDishes(
     categoryId?: number | null,
@@ -60,5 +64,21 @@ export class RecipeService {
 
   updateDishRecipe(dishId: number, request: UpdateRecipeRequest): Observable<RecipeUpdateResponse> {
     return this.http.put<RecipeUpdateResponse>(`${this.dishesUrl}/${dishId}/recipe`, request);
+  }
+
+  getModifierRecipe(modifierId: number): Observable<ModifierRecipe | null> {
+    return this.http
+      .get<ModifierRecipe>(`${this.modifiersUrl}/${modifierId}/recipe`)
+      .pipe(catchError(() => of(null)));
+  }
+
+  defineModifierRecipe(
+    modifierId: number,
+    request: DefineModifierRecipeRequest,
+  ): Observable<ModifierRecipeRegistrationResponse> {
+    return this.http.post<ModifierRecipeRegistrationResponse>(
+      `${this.modifiersUrl}/${modifierId}/recipe`,
+      request,
+    );
   }
 }

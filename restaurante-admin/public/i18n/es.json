@@ -623,6 +623,74 @@
         "message": "La receta de {{dish}} fue actualizada en la versión {{version}}."
       }
     },
+    "modifier": {
+      "eyebrow": "Producción",
+      "fields": {
+        "supplyCard": {
+          "code": "Código",
+          "price": "Precio adicional"
+        }
+      },
+      "define": {
+        "description": "Asocia los insumos y cantidades adicionales que se consumen cuando se aplica el modificador.",
+        "warning": {
+          "title": "Receta ya definida",
+          "alreadyDefined": "El modificador {{name}} ya tiene una receta vigente. Use la actualización de la receta para modificarla."
+        },
+        "success": {
+          "title": "Receta definida",
+          "message": "La receta del modificador {{name}} fue definida en la versión {{version}}."
+        }
+      },
+      "update": {
+        "description": "Modifica los insumos o cantidades de la receta vigente. La versión anterior quedará conservada en el historial.",
+        "success": {
+          "title": "Receta actualizada",
+          "message": "La receta del modificador {{name}} fue actualizada en la versión {{version}}."
+        }
+      }
+    },
+    "modifiers": {
+      "summary": {
+        "total": "Modificadores registrados",
+        "withRecipe": "Con receta",
+        "withoutRecipe": "Sin receta"
+      },
+      "list": {
+        "title": "Modificadores registrados",
+        "description": "Selecciona un modificador para consultar su receta vigente.",
+        "searchPlaceholder": "Buscar por nombre o código",
+        "empty": "Todavía no existen modificadores registrados",
+        "noResults": "Ningún modificador coincide con la búsqueda"
+      },
+      "columns": {
+        "modifier": "Modificador",
+        "price": "Precio adicional",
+        "recipe": "Receta"
+      },
+      "status": {
+        "has": "Con receta",
+        "without": "Sin receta"
+      },
+      "actions": {
+        "define": "Definir receta",
+        "view": "Ver receta",
+        "update": "Actualizar receta"
+      },
+      "detail": {
+        "eyebrow": "Receta vigente",
+        "summary": {
+          "totalCost": "Costo de producción",
+          "additionalPrice": "Precio adicional",
+          "grossMargin": "Margen bruto",
+          "marginPercentage": "Margen %"
+        },
+        "selectHint": "Selecciona un modificador",
+        "selectHintDescription": "Selecciona un modificador de la lista para consultar su receta vigente.",
+        "withoutTitle": "El modificador aún no tiene una receta definida",
+        "withoutDescription": "Defina la receta del modificador indicando los insumos y cantidades adicionales que se consumen al aplicarlo."
+      }
+    },
     "editor": {
       "supply": "Insumo",
       "selectSupply": "Selecciona un insumo",

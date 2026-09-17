@@ -8,6 +8,7 @@ import com.restaurante.web.dto.recipe.DishProductionCostResponse;
 import com.restaurante.web.dto.recipe.ModifierProductionCostResponse;
 import com.restaurante.web.dto.recipe.ModifierRecipeHistoryResponse;
 import com.restaurante.web.dto.recipe.ModifierRecipeRegistrationResponse;
+import com.restaurante.web.dto.recipe.ModifierRecipeResponse;
 import com.restaurante.web.dto.recipe.ModifierRecipeVersionChangeDetailResponse;
 import com.restaurante.web.dto.recipe.RecipeHistoryResponse;
 import com.restaurante.web.dto.recipe.RecipeRegistrationResponse;
@@ -249,6 +250,44 @@ public class AdminRecipeController {
             @Parameter(hidden = true) Authentication authentication) {
         ModifierRecipeRegistrationResponse response = recipeService.defineModifierRecipe(modifierId, request, authentication);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @GetMapping("/admin/modifiers/{modifierId}/recipe")
+    @Operation(
+            summary = "Consultar receta vigente de un modificador",
+            description = "Retorna los insumos y cantidades que componen la receta vigente del modificador."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Receta vigente del modificador consultada exitosamente",
+                    content = @Content(schema = @Schema(implementation = ModifierRecipeResponse.class))
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Identificador de modificador inválido",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "No autenticado o token no provisto",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Acceso denegado (requiere rol ADMIN)",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Modificador no encontrado o sin receta definida",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            )
+    })
+    public ResponseEntity<ModifierRecipeResponse> getActiveModifierRecipe(
+            @Parameter(description = "Identificador único del modificador", required = true)
+            @PathVariable Long modifierId) {
+        return ResponseEntity.ok(recipeService.getActiveModifierRecipe(modifierId));
     }
 
     @GetMapping("/admin/dishes/{dishId}/cost")

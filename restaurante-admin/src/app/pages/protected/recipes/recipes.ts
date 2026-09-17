@@ -9,16 +9,20 @@ import {
 } from '@angular/forms';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { MessageService } from 'primeng/api';
-import { finalize, forkJoin } from 'rxjs';
+import { finalize, forkJoin, Observable } from 'rxjs';
 
 import {
+  DefineModifierRecipeRequest,
   DishSummary,
+  ModifierRecipe,
   Recipe,
   RecipeIngredientEdit,
   UpdateRecipeRequest,
 } from '../../../core/models/recipe.models';
+import { ModifierSummary } from '../../../core/models/modifier.models';
 import { MeasurementUnit, Supply } from '../../../core/models/supply.models';
 import { ApiErrorService } from '../../../core/services/api-error.service';
+import { ModifierService } from '../../../core/services/modifier.service';
 import { RecipeService } from '../../../core/services/recipe.service';
 import { SupplyService } from '../../../core/services/supply.service';
 import { FormFeedbackComponent } from '../../../shared/components/form-feedback/form-feedback';
@@ -43,6 +47,7 @@ export class RecipesPageComponent implements OnInit {
   private readonly formBuilder = inject(FormBuilder);
   private readonly recipeService = inject(RecipeService);
   private readonly supplyService = inject(SupplyService);
+  private readonly modifierService = inject(ModifierService);
   private readonly errors = inject(ApiErrorService);
   private readonly messages = inject(MessageService);
   private readonly transloco = inject(TranslocoService);
@@ -51,7 +56,7 @@ export class RecipesPageComponent implements OnInit {
   readonly activeTab = signal<RecipesTab>('dishes');
 
   readonly tabs: { id: RecipesTab; labelKey: string; icon: string }[] = [
-    { id: 'dishes', labelKey: 'recipes.tabs.dishes', icon: 'pi-cutlery' },
+    { id: 'dishes', labelKey: 'recipes.tabs.dishes', icon: 'pi-book' },
     { id: 'modifiers', labelKey: 'recipes.tabs.modifiers', icon: 'pi-plus' },
     { id: 'costs', labelKey: 'recipes.tabs.costs', icon: 'pi-dollar' },
     { id: 'history', labelKey: 'recipes.tabs.history', icon: 'pi-history' },
@@ -73,6 +78,15 @@ export class RecipesPageComponent implements OnInit {
   readonly defineSubmitted = signal(false);
   readonly defineServerMessage = signal<string | null>(null);
   readonly defineDish = signal<DishSummary | null>(null);
+  readonly defineModifier = signal<ModifierSummary | null>(null);
+
+  readonly modifiers = signal<ModifierSummary[]>([]);
+  readonly isModifiersLoading = signal(false);
+  readonly modifierInitialErrorMessage = signal<string | null>(null);
+  readonly modifierSearchTerm = signal('');
+  readonly selectedModifierId = signal<number | null>(null);
+  readonly selectedModifierRecipe = signal<ModifierRecipe | null>(null);
+  readonly isModifierRecipeLoading = signal(false);
 
   private readonly recipeIngredientsValidator = (
     control: AbstractControl,
@@ -128,6 +142,32 @@ export class RecipesPageComponent implements OnInit {
     () => this.dishes().filter((dish) => !dishHasRecipe(dish)).length,
   );
 
+  readonly selectedModifier = computed(
+    () => this.modifiers().find((modifier) => modifier.id === this.selectedModifierId()) ?? null,
+  );
+
+  readonly filteredModifiers = computed(() => {
+    const term = this.modifierSearchTerm().trim().toLowerCase();
+    if (!term) {
+      return this.modifiers();
+    }
+    return this.modifiers().filter(
+      (modifier) =>
+        modifier.name.toLowerCase().includes(term) ||
+        (modifier.code ?? '').toLowerCase().includes(term),
+    );
+  });
+
+  readonly modifierTotal = computed(() => this.modifiers().length);
+
+  readonly modifiersWithRecipe = computed(
+    () => this.modifiers().filter((modifier) => modifier.hasRecipe).length,
+  );
+
+  readonly modifiersWithoutRecipe = computed(
+    () => this.modifiers().filter((modifier) => !modifier.hasRecipe).length,
+  );
+
   readonly supplyById = computed(() => {
     const map = new Map<number, Supply>();
     for (const supply of this.supplies()) {
@@ -175,19 +215,25 @@ export class RecipesPageComponent implements OnInit {
       dishes: this.recipeService.listDishes(null, null, true),
       supplies: this.supplyService.listSupplies(),
       units: this.supplyService.listMeasurementUnits(),
+      modifiers: this.modifierService.listModifiers(null, null, true),
     })
       .pipe(
         takeUntilDestroyed(this.destroyRef),
         finalize(() => this.isInitialLoading.set(false)),
       )
       .subscribe({
-        next: ({ dishes, supplies, units }) => {
+        next: ({ dishes, supplies, units, modifiers }) => {
           this.dishes.set(dishes);
           this.supplies.set(supplies);
           this.measurementUnits.set(units);
+          this.modifiers.set(modifiers);
           const first = dishes[0];
           if (first) {
             this.selectDish(first.id);
+          }
+          const firstModifier = modifiers[0];
+          if (firstModifier) {
+            this.selectModifier(firstModifier.id);
           }
         },
         error: (error: unknown) => {
@@ -208,8 +254,20 @@ export class RecipesPageComponent implements OnInit {
     this.searchTerm.set('');
   }
 
+  updateModifierSearch(value: string): void {
+    this.modifierSearchTerm.set(value);
+  }
+
+  clearModifierSearch(): void {
+    this.modifierSearchTerm.set('');
+  }
+
   dishHasRecipe(dish: DishSummary | null): boolean {
     return dishHasRecipe(dish);
+  }
+
+  modifierHasRecipe(modifier: ModifierSummary | null | undefined): boolean {
+    return !!modifier?.hasRecipe;
   }
 
   selectDish(dishId: number): void {
@@ -225,7 +283,24 @@ export class RecipesPageComponent implements OnInit {
       .subscribe((recipe) => this.selectedRecipe.set(recipe));
   }
 
+  selectModifier(modifierId: number): void {
+    this.selectedModifierId.set(modifierId);
+    this.selectedModifierRecipe.set(null);
+    this.isModifierRecipeLoading.set(true);
+    this.recipeService
+      .getModifierRecipe(modifierId)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.isModifierRecipeLoading.set(false)),
+      )
+      .subscribe((recipe) => this.selectedModifierRecipe.set(recipe));
+  }
+
   readonly isUpdatingRecipe = computed(() => {
+    const modifier = this.defineModifier();
+    if (modifier != null) {
+      return modifier.hasRecipe;
+    }
     const dish = this.defineDish();
     return dish != null && dishHasRecipe(dish);
   });
@@ -240,6 +315,7 @@ export class RecipesPageComponent implements OnInit {
       return;
     }
 
+    this.defineModifier.set(null);
     this.defineDish.set(dish);
     this.prepareDefineForm([
       { supplyId: null, quantity: null, measurementUnitId: null, notes: null },
@@ -252,7 +328,43 @@ export class RecipesPageComponent implements OnInit {
       return;
     }
 
+    this.defineModifier.set(null);
     this.defineDish.set(dish);
+    this.prepareDefineForm(
+      recipe.ingredients.map((ing) => ({
+        supplyId: ing.supplyId,
+        quantity: ing.quantity,
+        measurementUnitId: ing.measurementUnitId,
+        notes: ing.notes,
+      })),
+    );
+  }
+
+  openDefineModifier(modifier: ModifierSummary): void {
+    if (modifier.hasRecipe) {
+      const title = this.transloco.translate('recipes.modifier.define.warning.title');
+      const detail = this.transloco.translate('recipes.modifier.define.warning.alreadyDefined', {
+        name: modifier.name,
+      });
+      this.messages.add({ severity: 'warn', summary: title, detail });
+      return;
+    }
+
+    this.defineDish.set(null);
+    this.defineModifier.set(modifier);
+    this.prepareDefineForm([
+      { supplyId: null, quantity: null, measurementUnitId: null, notes: null },
+    ]);
+  }
+
+  openUpdateModifier(modifier: ModifierSummary): void {
+    const recipe = this.selectedModifierRecipe();
+    if (!modifier.hasRecipe || !recipe) {
+      return;
+    }
+
+    this.defineDish.set(null);
+    this.defineModifier.set(modifier);
     this.prepareDefineForm(
       recipe.ingredients.map((ing) => ({
         supplyId: ing.supplyId,
@@ -291,21 +403,26 @@ export class RecipesPageComponent implements OnInit {
       return;
     }
 
+    const modifier = this.defineModifier();
     const dish = this.defineDish();
-    if (!dish) {
+    if (!modifier && !dish) {
       return;
     }
 
     this.isSavingDefine.set(true);
     const updating = this.isUpdatingRecipe();
-    const request: UpdateRecipeRequest = {
+    const request: UpdateRecipeRequest | DefineModifierRecipeRequest = {
       ingredients: ingredientsControl.value ?? [],
       changeReason: this.defineForm.controls.changeReason.value?.trim() || null,
     };
 
-    const submission = updating
-      ? this.recipeService.updateDishRecipe(dish.id, request)
-      : this.recipeService.defineDishRecipe(dish.id, request);
+    const submission = (
+      modifier
+        ? this.recipeService.defineModifierRecipe(modifier.id, request)
+        : updating
+          ? this.recipeService.updateDishRecipe(dish!.id, request as UpdateRecipeRequest)
+          : this.recipeService.defineDishRecipe(dish!.id, request as UpdateRecipeRequest)
+    ) as Observable<{ recipe: { versionNumber: number } }>;
 
     submission
       .pipe(
@@ -316,18 +433,36 @@ export class RecipesPageComponent implements OnInit {
         next: (response) => {
           this.isDefineOpen.set(false);
           const summary = this.transloco.translate(
-            updating ? 'recipes.update.success.title' : 'recipes.define.success.title',
+            modifier
+              ? updating
+                ? 'recipes.modifier.update.success.title'
+                : 'recipes.modifier.define.success.title'
+              : updating
+                ? 'recipes.update.success.title'
+                : 'recipes.define.success.title',
           );
           const detail = this.transloco.translate(
-            updating ? 'recipes.update.success.message' : 'recipes.define.success.message',
+            modifier
+              ? updating
+                ? 'recipes.modifier.update.success.message'
+                : 'recipes.modifier.define.success.message'
+              : updating
+                ? 'recipes.update.success.message'
+                : 'recipes.define.success.message',
             {
-              dish: dish.name,
+              dish: dish?.name,
+              name: modifier?.name ?? dish?.name,
               version: response.recipe.versionNumber,
             },
           );
           this.messages.add({ severity: 'success', summary, detail });
-          this.selectDish(dish.id);
-          this.reloadDishes();
+          if (modifier) {
+            this.selectModifier(modifier.id);
+            this.reloadModifiers();
+          } else {
+            this.selectDish(dish!.id);
+            this.reloadDishes();
+          }
         },
         error: (error: unknown) => {
           this.defineServerMessage.set(this.errors.getMessage(error));
@@ -337,6 +472,17 @@ export class RecipesPageComponent implements OnInit {
 
   hasIngredientsError(): boolean {
     return this.defineForm.controls.ingredients.invalid;
+  }
+
+  modifierGrossMargin(recipe: ModifierRecipe): number {
+    return recipe.additionalPrice - recipe.totalCost;
+  }
+
+  modifierMarginPercentage(recipe: ModifierRecipe): number {
+    if (!recipe.additionalPrice) {
+      return 0;
+    }
+    return ((recipe.additionalPrice - recipe.totalCost) / recipe.additionalPrice) * 100;
   }
 
   formatCost(value: number): string {
@@ -371,6 +517,16 @@ export class RecipesPageComponent implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (dishes) => this.dishes.set(dishes),
+        error: () => undefined,
+      });
+  }
+
+  private reloadModifiers(): void {
+    this.modifierService
+      .listModifiers(null, null, true)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (modifiers) => this.modifiers.set(modifiers),
         error: () => undefined,
       });
   }

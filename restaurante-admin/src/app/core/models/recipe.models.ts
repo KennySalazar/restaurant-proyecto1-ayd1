@@ -73,3 +73,51 @@ export interface RecipeUpdateResponse {
   message: string;
   recipe: Recipe;
 }
+
+export interface ModifierIngredient {
+  id: number;
+  supplyId: number;
+  supplyCode: string;
+  supplyName: string;
+  quantity: number;
+  measurementUnitId: number | null;
+  measurementUnitName: string;
+  measurementUnitAbbreviation: string;
+  adjustmentType: string;
+  unitCost: number;
+  subtotalCost: number;
+  notes: string | null;
+}
+
+export interface ModifierRecipe {
+  id: number;
+  modifierId: number;
+  modifierCode: string;
+  modifierName: string;
+  additionalPrice: number;
+  versionNumber: number;
+  status: string;
+  changeReason: string | null;
+  effectiveFrom: string;
+  totalCost: number;
+  ingredients: ModifierIngredient[];
+  createdById: number | null;
+  createdAt: string;
+}
+
+export interface ModifierIngredientEdit {
+  supplyId: number | null;
+  quantity: number | null;
+  measurementUnitId: number | null;
+  notes: string | null;
+}
+
+export interface DefineModifierRecipeRequest {
+  ingredients: ModifierIngredientEdit[];
+  changeReason?: string | null;
+}
+
+export interface ModifierRecipeRegistrationResponse {
+  message: string;
+  recipe: ModifierRecipe;
+}
