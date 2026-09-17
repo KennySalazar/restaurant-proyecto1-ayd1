@@ -17,10 +17,19 @@ import {
   DishCostSummary,
   DishProductionCost,
   DishSummary,
+  ModifierIngredient,
+  ModifierIngredientChange,
   ModifierProductionCost,
   ModifierRecipe,
+  ModifierRecipeHistory,
+  ModifierRecipeVersionChangeDetail,
   Recipe,
+  RecipeHistory,
+  RecipeIngredient,
+  RecipeIngredientChange,
+  RecipeIngredientChangeType,
   RecipeIngredientEdit,
+  RecipeVersionChangeDetail,
   UpdateRecipeRequest,
 } from '../../../core/models/recipe.models';
 import { ModifierSummary } from '../../../core/models/modifier.models';
@@ -35,6 +44,64 @@ import { PageHeadingComponent } from '../../../shared/components/page-heading/pa
 
 type RecipesTab = 'dishes' | 'modifiers' | 'costs' | 'history';
 
+interface HistoryVersionView {
+  versionNumber: number;
+  status: string;
+  changeReason: string | null;
+  effectiveFrom: string;
+  totalCost: number;
+  ingredientCount: number;
+  added: number;
+  removed: number;
+  modified: number;
+}
+
+interface HistorySummaryView {
+  name: string;
+  code: string;
+  currentVersionNumber: number | null;
+  totalVersions: number;
+  hasSubsequentChanges: boolean;
+  versions: HistoryVersionView[];
+}
+
+interface HistoryChangeRow {
+  supplyCode: string;
+  supplyName: string;
+  changeType: RecipeIngredientChangeType;
+  previousQuantity: number | null;
+  previousUnitName: string | null;
+  newQuantity: number | null;
+  newUnitName: string | null;
+  costDifference: number;
+  notes: string | null;
+}
+
+interface HistoryCompositionRow {
+  supplyCode: string;
+  supplyName: string;
+  quantity: number;
+  unitAbbreviation: string;
+  subtotalCost: number;
+  notes: string | null;
+  adjustmentType: string | null;
+}
+
+interface HistoryVersionDetailView {
+  versionNumber: number;
+  status: string;
+  changeReason: string | null;
+  effectiveFrom: string;
+  totalCost: number;
+  previousVersionNumber: number | null;
+  previousTotalCost: number | null;
+  totalCostDifference: number | null;
+  changes: HistoryChangeRow[];
+  previousComposition: HistoryCompositionRow[];
+  newComposition: HistoryCompositionRow[];
+  createdAt: string;
+}
+
 @Component({
   selector: 'app-recipes-page',
   imports: [
@@ -45,7 +112,7 @@ type RecipesTab = 'dishes' | 'modifiers' | 'costs' | 'history';
     TranslocoPipe,
   ],
   templateUrl: './recipes.html',
-  styleUrl: './recipes.scss',
+  styleUrls: ['./recipes.scss', './recipes-history.scss'],
 })
 export class RecipesPageComponent implements OnInit {
   private readonly formBuilder = inject(FormBuilder);
@@ -103,6 +170,21 @@ export class RecipesPageComponent implements OnInit {
   readonly isDishCostDetailLoading = signal(false);
   readonly costDetailErrorMessage = signal<string | null>(null);
   readonly selectedCostModifierId = signal<number | null>(null);
+
+  readonly selectedHistoryType = signal<'dish' | 'modifier' | null>(null);
+  readonly selectedHistoryDishId = signal<number | null>(null);
+  readonly selectedHistoryModifierId = signal<number | null>(null);
+
+  readonly selectedDishHistory = signal<RecipeHistory | null>(null);
+  readonly selectedModifierHistory = signal<ModifierRecipeHistory | null>(null);
+  readonly isHistoryLoading = signal(false);
+  readonly historyErrorMessage = signal<string | null>(null);
+
+  readonly selectedHistoryVersionNumber = signal<number | null>(null);
+  readonly selectedHistoryVersionDetail = signal<RecipeVersionChangeDetail | null>(null);
+  readonly selectedModifierVersionDetail = signal<ModifierRecipeVersionChangeDetail | null>(null);
+  readonly isVersionDetailLoading = signal(false);
+  readonly versionDetailErrorMessage = signal<string | null>(null);
 
   private readonly recipeIngredientsValidator = (
     control: AbstractControl,
@@ -201,6 +283,105 @@ export class RecipesPageComponent implements OnInit {
     }
     const total = costs.reduce((sum, cost) => sum + (cost.marginPercentage ?? 0), 0);
     return total / costs.length;
+  });
+
+  readonly historyDishes = computed(() => this.dishes().filter((dish) => dishHasRecipe(dish)));
+
+  readonly historyModifiers = computed(() =>
+    this.modifiers().filter((modifier) => modifier.hasRecipe),
+  );
+
+  readonly selectedHistoryDish = computed(
+    () => this.dishes().find((dish) => dish.id === this.selectedHistoryDishId()) ?? null,
+  );
+
+  readonly selectedHistoryModifier = computed(
+    () =>
+      this.modifiers().find((modifier) => modifier.id === this.selectedHistoryModifierId()) ?? null,
+  );
+
+  readonly historySummary = computed<HistorySummaryView | null>(() => {
+    const dishHistory = this.selectedDishHistory();
+    if (dishHistory) {
+      return {
+        name: dishHistory.dishName,
+        code: dishHistory.dishCode,
+        currentVersionNumber: dishHistory.currentVersionNumber,
+        totalVersions: dishHistory.totalVersions,
+        hasSubsequentChanges: dishHistory.hasSubsequentChanges,
+        versions: dishHistory.versions.map((version) => ({
+          versionNumber: version.versionNumber,
+          status: version.status,
+          changeReason: version.changeReason,
+          effectiveFrom: version.effectiveFrom,
+          totalCost: version.totalCost,
+          ingredientCount: version.ingredientCount,
+          added: version.changes.filter((c) => c.changeType === 'AGREGADO').length,
+          removed: version.changes.filter((c) => c.changeType === 'RETIRADO').length,
+          modified: version.changes.filter((c) => c.changeType === 'MODIFICADO').length,
+        })),
+      };
+    }
+    const modifierHistory = this.selectedModifierHistory();
+    if (modifierHistory) {
+      return {
+        name: modifierHistory.modifierName,
+        code: modifierHistory.modifierCode,
+        currentVersionNumber: modifierHistory.currentVersionNumber,
+        totalVersions: modifierHistory.totalVersions,
+        hasSubsequentChanges: modifierHistory.hasSubsequentChanges,
+        versions: modifierHistory.versions.map((version) => ({
+          versionNumber: version.versionNumber,
+          status: version.status,
+          changeReason: version.changeReason,
+          effectiveFrom: version.effectiveFrom,
+          totalCost: version.totalCost,
+          ingredientCount: version.ingredientCount,
+          added: version.changes.filter((c) => c.changeType === 'AGREGADO').length,
+          removed: version.changes.filter((c) => c.changeType === 'RETIRADO').length,
+          modified: version.changes.filter((c) => c.changeType === 'MODIFICADO').length,
+        })),
+      };
+    }
+    return null;
+  });
+
+  readonly historyVersionDetail = computed<HistoryVersionDetailView | null>(() => {
+    const dishDetail = this.selectedHistoryVersionDetail();
+    if (dishDetail) {
+      return buildHistoryVersionDetailView(
+        dishDetail.versionNumber,
+        dishDetail.status,
+        dishDetail.changeReason,
+        dishDetail.effectiveFrom,
+        dishDetail.totalCost,
+        dishDetail.previousVersionNumber,
+        dishDetail.previousTotalCost,
+        dishDetail.totalCostDifference,
+        dishDetail.changes,
+        dishDetail.previousComposition,
+        dishDetail.newComposition,
+        dishDetail.createdAt,
+      );
+    }
+    const modifierDetail = this.selectedModifierVersionDetail();
+    if (modifierDetail) {
+      return buildHistoryVersionDetailView(
+        modifierDetail.versionNumber,
+        modifierDetail.status,
+        modifierDetail.changeReason,
+        modifierDetail.effectiveFrom,
+        modifierDetail.totalCost,
+        modifierDetail.previousVersionNumber,
+        modifierDetail.previousTotalCost,
+        modifierDetail.totalCostDifference,
+        modifierDetail.changes,
+        modifierDetail.previousComposition,
+        modifierDetail.newComposition,
+        modifierDetail.createdAt,
+      );
+    }
+    return null;
   });
 
   readonly supplyById = computed(() => {
@@ -346,6 +527,115 @@ export class RecipesPageComponent implements OnInit {
 
   formatPercent(value: number): string {
     return `${this.formatQuantity(value)} %`;
+  }
+
+  private clearHistorySelection(): void {
+    this.selectedHistoryType.set(null);
+    this.selectedHistoryDishId.set(null);
+    this.selectedHistoryModifierId.set(null);
+    this.selectedDishHistory.set(null);
+    this.selectedModifierHistory.set(null);
+    this.selectedHistoryVersionNumber.set(null);
+    this.selectedHistoryVersionDetail.set(null);
+    this.selectedModifierVersionDetail.set(null);
+  }
+
+  selectHistoryDish(dishId: number): void {
+    this.clearHistorySelection();
+    this.selectedHistoryType.set('dish');
+    this.selectedHistoryDishId.set(dishId);
+    this.historyErrorMessage.set(null);
+    this.isHistoryLoading.set(true);
+    this.recipeService
+      .getDishRecipeHistory(dishId)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.isHistoryLoading.set(false)),
+      )
+      .subscribe({
+        next: (history) => {
+          this.selectedDishHistory.set(history);
+          const latest = history.versions.length
+            ? history.versions[history.versions.length - 1].versionNumber
+            : null;
+          if (latest != null) {
+            this.selectHistoryVersion(latest);
+          }
+        },
+        error: (error: unknown) => this.historyErrorMessage.set(this.errors.getMessage(error)),
+      });
+  }
+
+  selectHistoryModifier(modifierId: number): void {
+    this.clearHistorySelection();
+    this.selectedHistoryType.set('modifier');
+    this.selectedHistoryModifierId.set(modifierId);
+    this.historyErrorMessage.set(null);
+    this.isHistoryLoading.set(true);
+    this.recipeService
+      .getModifierRecipeHistory(modifierId)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.isHistoryLoading.set(false)),
+      )
+      .subscribe({
+        next: (history) => {
+          this.selectedModifierHistory.set(history);
+          const latest = history.versions.length
+            ? history.versions[history.versions.length - 1].versionNumber
+            : null;
+          if (latest != null) {
+            this.selectHistoryVersion(latest);
+          }
+        },
+        error: (error: unknown) => this.historyErrorMessage.set(this.errors.getMessage(error)),
+      });
+  }
+
+  selectHistoryVersion(versionNumber: number): void {
+    this.selectedHistoryVersionNumber.set(versionNumber);
+    this.versionDetailErrorMessage.set(null);
+    this.isVersionDetailLoading.set(true);
+
+    const dishId = this.selectedHistoryDishId();
+    const modifierId = this.selectedHistoryModifierId();
+
+    let request: Observable<unknown>;
+    if (modifierId != null) {
+      request = this.recipeService.getModifierRecipeVersionDetail(modifierId, versionNumber);
+    } else if (dishId != null) {
+      request = this.recipeService.getDishRecipeVersionDetail(dishId, versionNumber);
+    } else {
+      this.isVersionDetailLoading.set(false);
+      return;
+    }
+
+    const isModifier = modifierId != null;
+    request
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.isVersionDetailLoading.set(false)),
+      )
+      .subscribe({
+        next: (detail) => {
+          if (isModifier) {
+            this.selectedModifierVersionDetail.set(detail as ModifierRecipeVersionChangeDetail);
+          } else {
+            this.selectedHistoryVersionDetail.set(detail as RecipeVersionChangeDetail);
+          }
+        },
+        error: (error: unknown) =>
+          this.versionDetailErrorMessage.set(this.errors.getMessage(error)),
+      });
+  }
+
+  formatSigned(value: number): string {
+    const formatted = this.formatCost(Math.abs(value));
+    return value < 0 ? `-${formatted}` : `+${formatted}`;
+  }
+
+  changeChipClass(changeType: string): string {
+    return (changeType ?? 'SIN_CAMBIOS').toLowerCase();
   }
 
   updateSearch(value: string): void {
@@ -559,6 +849,7 @@ export class RecipesPageComponent implements OnInit {
           );
           this.messages.add({ severity: 'success', summary, detail });
           this.costsLoaded.set(false);
+          this.clearHistorySelection();
           if (modifier) {
             this.selectModifier(modifier.id);
             this.reloadModifiers();
@@ -640,4 +931,59 @@ function dishHasRecipe(dish: DishSummary | null | undefined): boolean {
     return false;
   }
   return dish.unavailabilityReason !== 'SIN_RECETA';
+}
+
+type AnyIngredientChange = RecipeIngredientChange | ModifierIngredientChange;
+type AnyCompositionRow = RecipeIngredient | ModifierIngredient;
+
+function buildHistoryVersionDetailView(
+  versionNumber: number,
+  status: string,
+  changeReason: string | null,
+  effectiveFrom: string,
+  totalCost: number,
+  previousVersionNumber: number | null,
+  previousTotalCost: number | null,
+  totalCostDifference: number | null,
+  changes: AnyIngredientChange[],
+  previousComposition: AnyCompositionRow[],
+  newComposition: AnyCompositionRow[],
+  createdAt: string,
+): HistoryVersionDetailView {
+  const mapComposition = (rows: AnyCompositionRow[] | null | undefined): HistoryCompositionRow[] =>
+    (rows ?? []).map((row) => ({
+      supplyCode: row.supplyCode,
+      supplyName: row.supplyName,
+      quantity: row.quantity,
+      unitAbbreviation: row.measurementUnitAbbreviation,
+      subtotalCost: row.subtotalCost,
+      notes: row.notes,
+      adjustmentType:
+        'adjustmentType' in row ? (row as { adjustmentType: string }).adjustmentType : null,
+    }));
+
+  return {
+    versionNumber,
+    status,
+    changeReason,
+    effectiveFrom,
+    totalCost,
+    previousVersionNumber,
+    previousTotalCost,
+    totalCostDifference,
+    changes: (changes ?? []).map((change) => ({
+      supplyCode: change.supplyCode,
+      supplyName: change.supplyName,
+      changeType: change.changeType,
+      previousQuantity: change.previousQuantity,
+      previousUnitName: change.previousUnitName,
+      newQuantity: change.newQuantity,
+      newUnitName: change.newUnitName,
+      costDifference: change.costDifference,
+      notes: change.notes,
+    })),
+    previousComposition: mapComposition(previousComposition),
+    newComposition: mapComposition(newComposition),
+    createdAt,
+  };
 }

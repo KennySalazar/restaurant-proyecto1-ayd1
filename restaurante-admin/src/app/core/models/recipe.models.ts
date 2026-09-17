@@ -178,3 +178,134 @@ export interface ModifierProductionCost {
   ingredients: ProductionCostIngredient[];
   calculatedAt: string;
 }
+
+export type RecipeIngredientChangeType = 'AGREGADO' | 'RETIRADO' | 'MODIFICADO' | 'SIN_CAMBIOS';
+
+export interface RecipeIngredientChange {
+  supplyId: number;
+  supplyCode: string;
+  supplyName: string;
+  changeType: RecipeIngredientChangeType;
+  previousQuantity: number | null;
+  previousUnitName: string | null;
+  newQuantity: number | null;
+  newUnitName: string | null;
+  quantityDifference: number | null;
+  costDifference: number;
+  notes: string | null;
+}
+
+export interface RecipeVersionHistoryItem {
+  versionId: number;
+  versionNumber: number;
+  status: string;
+  changeReason: string | null;
+  effectiveFrom: string;
+  effectiveTo: string | null;
+  totalCost: number;
+  salePrice: number | null;
+  grossMargin: number | null;
+  marginPercentage: number | null;
+  ingredientCount: number;
+  ingredients: RecipeIngredient[];
+  changes: RecipeIngredientChange[];
+  createdById: number | null;
+  createdAt: string;
+}
+
+export interface RecipeHistory {
+  dishId: number;
+  dishCode: string;
+  dishName: string;
+  currentVersionNumber: number | null;
+  totalVersions: number;
+  hasSubsequentChanges: boolean;
+  message: string;
+  versions: RecipeVersionHistoryItem[];
+}
+
+export interface RecipeVersionChangeDetail {
+  dishId: number;
+  dishCode: string;
+  dishName: string;
+  versionId: number;
+  versionNumber: number;
+  status: string;
+  changeReason: string | null;
+  effectiveFrom: string;
+  effectiveTo: string | null;
+  totalCost: number;
+  previousVersionNumber: number | null;
+  previousTotalCost: number | null;
+  totalCostDifference: number | null;
+  previousComposition: RecipeIngredient[];
+  newComposition: RecipeIngredient[];
+  changes: RecipeIngredientChange[];
+  createdById: number | null;
+  createdAt: string;
+}
+
+export interface ModifierIngredientChange {
+  supplyId: number;
+  supplyCode: string;
+  supplyName: string;
+  changeType: RecipeIngredientChangeType;
+  previousAdjustmentType: string | null;
+  previousQuantity: number | null;
+  previousUnitName: string | null;
+  newAdjustmentType: string | null;
+  newQuantity: number | null;
+  newUnitName: string | null;
+  quantityDifference: number | null;
+  costDifference: number;
+  notes: string | null;
+}
+
+export interface ModifierRecipeVersionHistoryItem {
+  versionId: number;
+  versionNumber: number;
+  status: string;
+  changeReason: string | null;
+  effectiveFrom: string;
+  effectiveTo: string | null;
+  totalCost: number;
+  ingredientCount: number;
+  ingredients: ModifierIngredient[];
+  changes: ModifierIngredientChange[];
+  createdById: number | null;
+  createdAt: string;
+}
+
+export interface ModifierRecipeHistory {
+  modifierId: number;
+  modifierCode: string;
+  modifierName: string;
+  additionalPrice: number;
+  currentVersionNumber: number | null;
+  totalVersions: number;
+  hasSubsequentChanges: boolean;
+  message: string;
+  versions: ModifierRecipeVersionHistoryItem[];
+}
+
+export interface ModifierRecipeVersionChangeDetail {
+  modifierId: number;
+  modifierCode: string;
+  modifierName: string;
+  additionalPrice: number;
+  versionId: number;
+  versionNumber: number;
+  status: string;
+  changeReason: string | null;
+  effectiveFrom: string;
+  effectiveTo: string | null;
+  totalCost: number;
+  previousVersionNumber: number | null;
+  previousTotalCost: number | null;
+  totalCostDifference: number | null;
+  previousComposition: ModifierIngredient[];
+  newComposition: ModifierIngredient[];
+  changes: ModifierIngredientChange[];
+  createdById: number | null;
+  createdAt: string;
+}

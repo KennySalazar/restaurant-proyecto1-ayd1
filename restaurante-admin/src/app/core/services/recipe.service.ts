@@ -12,10 +12,14 @@ import {
   DishSummary,
   ModifierProductionCost,
   ModifierRecipe,
+  ModifierRecipeHistory,
   ModifierRecipeRegistrationResponse,
+  ModifierRecipeVersionChangeDetail,
   Recipe,
+  RecipeHistory,
   RecipeRegistrationResponse,
   RecipeUpdateResponse,
+  RecipeVersionChangeDetail,
   UpdateRecipeRequest,
 } from '../models/recipe.models';
 
@@ -95,5 +99,33 @@ export class RecipeService {
 
   getModifierProductionCost(modifierId: number): Observable<ModifierProductionCost> {
     return this.http.get<ModifierProductionCost>(`${this.modifiersUrl}/${modifierId}/cost`);
+  }
+
+  getDishRecipeHistory(dishId: number): Observable<RecipeHistory> {
+    return this.http.get<RecipeHistory>(`${this.dishesUrl}/${dishId}/recipe/history`);
+  }
+
+  getDishRecipeVersionDetail(
+    dishId: number,
+    versionNumber: number,
+  ): Observable<RecipeVersionChangeDetail> {
+    return this.http.get<RecipeVersionChangeDetail>(
+      `${this.dishesUrl}/${dishId}/recipe/versions/${versionNumber}`,
+    );
+  }
+
+  getModifierRecipeHistory(modifierId: number): Observable<ModifierRecipeHistory> {
+    return this.http.get<ModifierRecipeHistory>(
+      `${this.modifiersUrl}/${modifierId}/recipe/history`,
+    );
+  }
+
+  getModifierRecipeVersionDetail(
+    modifierId: number,
+    versionNumber: number,
+  ): Observable<ModifierRecipeVersionChangeDetail> {
+    return this.http.get<ModifierRecipeVersionChangeDetail>(
+      `${this.modifiersUrl}/${modifierId}/recipe/versions/${versionNumber}`,
+    );
   }
 }

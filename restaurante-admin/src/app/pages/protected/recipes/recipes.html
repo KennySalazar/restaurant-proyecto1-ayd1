@@ -957,6 +957,446 @@
         </section>
       </div>
     }
+  } @else if (activeTab() === 'history') {
+    <div class="recipes-layout">
+      <section class="recipes-panel recipes-panel--history-list">
+        <section class="recipes-subsection">
+          <div class="recipes-panel__header">
+            <div>
+              <h2>{{ 'recipes.history.dishes.title' | transloco }}</h2>
+              <p>{{ 'recipes.history.dishes.description' | transloco }}</p>
+            </div>
+          </div>
+
+          @if (historyDishes().length > 0) {
+            <div class="table-wrapper">
+              <table class="restaurant-table">
+                <thead>
+                  <tr>
+                    <th>{{ 'recipes.history.columns.item' | transloco }}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (dish of historyDishes(); track dish.id) {
+                    <tr
+                      class="restaurant-table__row"
+                      [class.restaurant-table__row--selected]="selectedHistoryDishId() === dish.id"
+                      (click)="selectHistoryDish(dish.id)"
+                    >
+                      <td>
+                        <div class="dish-cell">
+                          <strong>{{ dish.name }}</strong>
+                          <small>{{ dish.code }}</small>
+                        </div>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          } @else {
+            <div class="state-panel state-panel--empty">
+              <span class="state-panel__icon">
+                <i class="pi pi-book"></i>
+              </span>
+              <strong>{{ 'recipes.history.dishes.empty' | transloco }}</strong>
+              <p>{{ 'recipes.history.dishes.emptyDescription' | transloco }}</p>
+            </div>
+          }
+        </section>
+
+        <section class="recipes-subsection">
+          <div class="recipes-panel__header">
+            <div>
+              <h2>{{ 'recipes.history.modifiers.title' | transloco }}</h2>
+              <p>{{ 'recipes.history.modifiers.description' | transloco }}</p>
+            </div>
+          </div>
+
+          @if (historyModifiers().length > 0) {
+            <div class="table-wrapper">
+              <table class="restaurant-table">
+                <thead>
+                  <tr>
+                    <th>{{ 'recipes.history.columns.modifier' | transloco }}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (modifier of historyModifiers(); track modifier.id) {
+                    <tr
+                      class="restaurant-table__row"
+                      [class.restaurant-table__row--selected]="
+                        selectedHistoryModifierId() === modifier.id
+                      "
+                      (click)="selectHistoryModifier(modifier.id)"
+                    >
+                      <td>
+                        <div class="dish-cell">
+                          <strong>{{ modifier.name }}</strong>
+                          <small>{{ modifier.code }}</small>
+                        </div>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          } @else {
+            <div class="state-panel state-panel--empty">
+              <span class="state-panel__icon">
+                <i class="pi pi-plus"></i>
+              </span>
+              <strong>{{ 'recipes.history.modifiers.empty' | transloco }}</strong>
+              <p>{{ 'recipes.history.modifiers.emptyDescription' | transloco }}</p>
+            </div>
+          }
+        </section>
+      </section>
+
+      <section class="recipes-panel recipes-panel--history-detail recipe-detail">
+        @if (isHistoryLoading()) {
+          <div class="state-panel">
+            <i class="pi pi-spin pi-spinner"></i>
+            <span>{{ 'common.loading' | transloco }}</span>
+          </div>
+        } @else if (historyErrorMessage()) {
+          <app-form-feedback type="error" [message]="historyErrorMessage()!" />
+        } @else if (historySummary()) {
+          @if (!historySummary()!.hasSubsequentChanges) {
+            <div class="state-panel state-panel--info">
+              <span class="state-panel__icon">
+                <i class="pi pi-info-circle"></i>
+              </span>
+              <strong>{{ 'recipes.history.noChanges.title' | transloco }}</strong>
+              <p>{{ 'recipes.history.noChanges.description' | transloco }}</p>
+            </div>
+          }
+
+          <div class="recipe-detail__header">
+            <div>
+              <span class="registration-dialog__eyebrow">{{
+                'recipes.history.detail.eyebrow' | transloco
+              }}</span>
+              <h2>{{ historySummary()!.name }}</h2>
+              <p>{{ historySummary()!.code }}</p>
+            </div>
+            <div class="recipe-detail__header-actions">
+              <span class="recipe-version-chip">v{{ historySummary()!.currentVersionNumber }}</span>
+            </div>
+          </div>
+
+          <div class="recipe-summary-grid">
+            <div class="recipe-summary-item">
+              <span>{{ 'recipes.history.detail.summary.current' | transloco }}</span>
+              <strong>v{{ historySummary()!.currentVersionNumber }}</strong>
+            </div>
+            <div class="recipe-summary-item">
+              <span>{{ 'recipes.history.detail.summary.totalVersions' | transloco }}</span>
+              <strong>{{ historySummary()!.totalVersions }}</strong>
+            </div>
+            @if (historySummary()!.versions.length > 0) {
+              <div class="recipe-summary-item">
+                <span>{{ 'recipes.history.detail.summary.latestCost' | transloco }}</span>
+                <strong>{{
+                  formatCost(
+                    historySummary()!.versions[historySummary()!.versions.length - 1].totalCost
+                  )
+                }}</strong>
+              </div>
+              <div class="recipe-summary-item">
+                <span>{{ 'recipes.history.detail.summary.lastChange' | transloco }}</span>
+                <strong>{{
+                  formatDate(
+                    historySummary()!.versions[historySummary()!.versions.length - 1].effectiveFrom
+                  )
+                }}</strong>
+              </div>
+            }
+          </div>
+
+          <div class="history-timeline">
+            @for (version of historySummary()!.versions; track version.versionNumber) {
+              <button
+                class="history-version-row"
+                type="button"
+                [class.history-version-row--selected]="
+                  selectedHistoryVersionNumber() === version.versionNumber
+                "
+                (click)="selectHistoryVersion(version.versionNumber)"
+              >
+                <span class="history-version-row__badge">v{{ version.versionNumber }}</span>
+                <div class="history-version-row__main">
+                  <div class="history-version-row__title">
+                    <span>{{ 'recipes.history.status.' + version.status | transloco }}</span>
+                    <small>{{
+                      version.changeReason ?? ('recipes.history.noReason' | transloco)
+                    }}</small>
+                  </div>
+                  <div class="history-version-row__chips">
+                    @if (version.added > 0) {
+                      <span class="change-chip change-chip--agregado">
+                        +{{ version.added }} {{ 'recipes.history.changes.added' | transloco }}
+                      </span>
+                    }
+                    @if (version.removed > 0) {
+                      <span class="change-chip change-chip--retirado">
+                        -{{ version.removed }} {{ 'recipes.history.changes.removed' | transloco }}
+                      </span>
+                    }
+                    @if (version.modified > 0) {
+                      <span class="change-chip change-chip--modificado">
+                        {{ version.modified }} {{ 'recipes.history.changes.modified' | transloco }}
+                      </span>
+                    }
+                    @if (
+                      version.versionNumber === 1 &&
+                      version.added === 0 &&
+                      version.removed === 0 &&
+                      version.modified === 0
+                    ) {
+                      <span class="change-chip change-chip--initial">{{
+                        'recipes.history.changes.initial' | transloco
+                      }}</span>
+                    }
+                  </div>
+                </div>
+                <div class="history-version-row__side">
+                  <strong>{{ formatCost(version.totalCost) }}</strong>
+                  <small>{{ formatDate(version.effectiveFrom) }}</small>
+                </div>
+              </button>
+            }
+          </div>
+
+          @if (isVersionDetailLoading()) {
+            <div class="state-panel">
+              <i class="pi pi-spin pi-spinner"></i>
+              <span>{{ 'common.loading' | transloco }}</span>
+            </div>
+          } @else if (versionDetailErrorMessage()) {
+            <app-form-feedback type="error" [message]="versionDetailErrorMessage()!" />
+          } @else if (historyVersionDetail()) {
+            <div class="history-detail">
+              <div class="history-detail__changes-header">
+                <h3>{{ 'recipes.history.detail.changesTitle' | transloco }}</h3>
+                @if (historyVersionDetail()!.previousVersionNumber != null) {
+                  <span class="history-detail__subtitle">{{
+                    'recipes.history.detail.versionsCompared'
+                      | transloco
+                        : {
+                            previous: historyVersionDetail()!.previousVersionNumber,
+                            current: historyVersionDetail()!.versionNumber,
+                          }
+                  }}</span>
+                }
+              </div>
+
+              @if (historyVersionDetail()!.changes.length > 0) {
+                <div class="table-wrapper">
+                  <table class="restaurant-table restaurant-table--sm">
+                    <thead>
+                      <tr>
+                        <th>{{ 'recipes.history.detail.columns.supply' | transloco }}</th>
+                        <th>{{ 'recipes.history.detail.columns.type' | transloco }}</th>
+                        <th>{{ 'recipes.history.detail.columns.previous' | transloco }}</th>
+                        <th>{{ 'recipes.history.detail.columns.current' | transloco }}</th>
+                        <th>{{ 'recipes.history.detail.columns.difference' | transloco }}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (change of historyVersionDetail()!.changes; track change.supplyCode) {
+                        <tr>
+                          <td>
+                            <div class="supply-cell">
+                              <strong>{{ change.supplyName }}</strong>
+                              <small>{{ change.supplyCode }}</small>
+                            </div>
+                          </td>
+                          <td>
+                            <span
+                              class="change-chip change-chip--{{
+                                changeChipClass(change.changeType)
+                              }}"
+                              >{{
+                                'recipes.history.changeTypes.' + change.changeType | transloco
+                              }}</span
+                            >
+                          </td>
+                          <td>
+                            @if (change.previousQuantity != null) {
+                              <span class="quantity-cell">
+                                {{ formatQuantity(change.previousQuantity) }}
+                                <small>{{ change.previousUnitName }}</small>
+                              </span>
+                            } @else {
+                              <span class="notes-cell">—</span>
+                            }
+                          </td>
+                          <td>
+                            @if (change.newQuantity != null) {
+                              <span class="quantity-cell">
+                                {{ formatQuantity(change.newQuantity) }}
+                                <small>{{ change.newUnitName }}</small>
+                              </span>
+                            } @else {
+                              <span class="notes-cell">—</span>
+                            }
+                          </td>
+                          <td>
+                            <span
+                              class="cost-value"
+                              [class.cost-value--negative]="change.costDifference < 0"
+                            >
+                              {{ formatSigned(change.costDifference) }}
+                            </span>
+                          </td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              } @else {
+                <p class="history-empty-composition">
+                  {{ 'recipes.history.detail.noChangesRows' | transloco }}
+                </p>
+              }
+
+              <div class="history-composition-grid">
+                <section class="history-composition">
+                  <header class="history-composition__header">
+                    <h4>
+                      {{
+                        'recipes.history.detail.previousComposition'
+                          | transloco
+                            : { number: historyVersionDetail()!.previousVersionNumber ?? 0 }
+                      }}
+                    </h4>
+                  </header>
+                  @if (historyVersionDetail()!.previousComposition.length > 0) {
+                    <div class="table-wrapper">
+                      <table class="restaurant-table restaurant-table--sm">
+                        <thead>
+                          <tr>
+                            <th>{{ 'recipes.history.detail.columns.ingredient' | transloco }}</th>
+                            <th>{{ 'recipes.history.detail.columns.quantity' | transloco }}</th>
+                            <th>{{ 'recipes.history.detail.columns.cost' | transloco }}</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          @for (
+                            row of historyVersionDetail()!.previousComposition;
+                            track row.supplyCode
+                          ) {
+                            <tr>
+                              <td>
+                                <div class="supply-cell">
+                                  <strong>{{ row.supplyName }}</strong>
+                                  <small>{{ row.supplyCode }}</small>
+                                </div>
+                              </td>
+                              <td>
+                                <span class="quantity-cell">
+                                  {{ formatQuantity(row.quantity) }}
+                                  <small>{{ row.unitAbbreviation }}</small>
+                                  @if (row.adjustmentType) {
+                                    <span class="adjustment-badge">{{
+                                      'recipes.history.adjustments.' + row.adjustmentType
+                                        | transloco
+                                    }}</span>
+                                  }
+                                </span>
+                              </td>
+                              <td>
+                                <span class="cost-value">{{ formatCost(row.subtotalCost) }}</span>
+                              </td>
+                            </tr>
+                          }
+                        </tbody>
+                      </table>
+                    </div>
+                  } @else {
+                    <p class="history-empty-composition">
+                      {{ 'recipes.history.detail.noPreviousComposition' | transloco }}
+                    </p>
+                  }
+                </section>
+
+                <section class="history-composition">
+                  <header class="history-composition__header">
+                    <h4>
+                      {{
+                        'recipes.history.detail.newComposition'
+                          | transloco: { number: historyVersionDetail()!.versionNumber }
+                      }}
+                    </h4>
+                  </header>
+                  @if (historyVersionDetail()!.newComposition.length > 0) {
+                    <div class="table-wrapper">
+                      <table class="restaurant-table restaurant-table--sm">
+                        <thead>
+                          <tr>
+                            <th>{{ 'recipes.history.detail.columns.ingredient' | transloco }}</th>
+                            <th>{{ 'recipes.history.detail.columns.quantity' | transloco }}</th>
+                            <th>{{ 'recipes.history.detail.columns.cost' | transloco }}</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          @for (
+                            row of historyVersionDetail()!.newComposition;
+                            track row.supplyCode
+                          ) {
+                            <tr>
+                              <td>
+                                <div class="supply-cell">
+                                  <strong>{{ row.supplyName }}</strong>
+                                  <small>{{ row.supplyCode }}</small>
+                                </div>
+                              </td>
+                              <td>
+                                <span class="quantity-cell">
+                                  {{ formatQuantity(row.quantity) }}
+                                  <small>{{ row.unitAbbreviation }}</small>
+                                  @if (row.adjustmentType) {
+                                    <span class="adjustment-badge">{{
+                                      'recipes.history.adjustments.' + row.adjustmentType
+                                        | transloco
+                                    }}</span>
+                                  }
+                                </span>
+                              </td>
+                              <td>
+                                <span class="cost-value">{{ formatCost(row.subtotalCost) }}</span>
+                              </td>
+                            </tr>
+                          }
+                        </tbody>
+                      </table>
+                    </div>
+                  } @else {
+                    <p class="history-empty-composition">
+                      {{ 'recipes.history.detail.noNewComposition' | transloco }}
+                    </p>
+                  }
+                </section>
+              </div>
+
+              <p class="history-detail__footer">
+                <span>{{ 'recipes.history.detail.registeredAt' | transloco }}</span>
+                <strong>{{ formatDate(historyVersionDetail()!.createdAt) }}</strong>
+              </p>
+            </div>
+          }
+        } @else {
+          <div class="state-panel state-panel--empty recipe-detail__empty">
+            <span class="state-panel__icon">
+              <i class="pi pi-history"></i>
+            </span>
+            <strong>{{ 'recipes.history.detail.selectHint' | transloco }}</strong>
+            <p>{{ 'recipes.history.detail.selectHintDescription' | transloco }}</p>
+          </div>
+        }
+      </section>
+    </div>
   } @else {
     <section class="recipes-panel">
       <div class="state-panel state-panel--empty">

@@ -1067,7 +1067,7 @@ public class RecipeService {
         Integer previousVersionNumber = null;
         BigDecimal previousTotalCost = null;
         BigDecimal totalCostDifference = null;
-        List<RecipeIngredientResponse> previousComposition = null;
+        List<RecipeIngredientResponse> previousComposition = Collections.emptyList();
         List<RecipeIngredientChangeResponse> changes = Collections.emptyList();
 
         if (versionNumber > 1) {
@@ -1239,7 +1239,7 @@ public class RecipeService {
         Integer previousVersionNumber = null;
         BigDecimal previousTotalCost = null;
         BigDecimal totalCostDifference = null;
-        List<ModifierIngredientResponse> previousComposition = null;
+        List<ModifierIngredientResponse> previousComposition = Collections.emptyList();
         List<ModifierIngredientChangeResponse> changes = Collections.emptyList();
 
         if (versionNumber > 1) {

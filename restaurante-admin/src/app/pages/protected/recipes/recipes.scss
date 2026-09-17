@@ -109,9 +109,12 @@
   margin-top: 2.5rem;
 }
 
-.recipes-subsection .recipes-panel__header {
-  padding-left: 0;
-  padding-right: 0;
+.recipes-panel--history-list .recipes-subsection:first-child {
+  margin-top: 0;
+}
+
+.recipes-panel--history-list .recipes-subsection + .recipes-subsection {
+  margin-top: 1.5rem;
 }
 
 .recipes-panel__header {
@@ -483,6 +486,15 @@
   font-size: 0.95rem;
 }
 
+.recipes-panel--history-detail .recipe-summary-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.recipes-panel--history-detail .recipe-summary-item:last-child strong {
+  font-size: 0.82rem;
+  line-height: 1.35;
+}
+
 .recipe-meta {
   border-bottom: 1px solid #f0e9e3;
   border-top: 1px solid #f0e9e3;
@@ -687,6 +699,10 @@
   }
 
   .recipe-summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .recipes-panel--history-detail .recipe-summary-grid {
     grid-template-columns: 1fr;
   }
 }

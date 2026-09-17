@@ -60,7 +60,6 @@
       "description": "Ingresa tus credenciales para acceder al panel administrativo del restaurante.",
       "submit": "Iniciar sesión"
     },
-
     "loginVerify": {
       "kicker": "Verificación de seguridad",
       "title": "Confirma tu acceso",
@@ -111,7 +110,6 @@
     "adminAction": "Verificar administración",
     "adminDescription": "Comprueba que tu sesión tiene permisos de administrador."
   },
-
   "tables": {
     "eyebrow": "Configuración del restaurante",
     "title": "Mesas registradas",
@@ -157,7 +155,6 @@
       "eyebrow": "Detalle de mesa",
       "title": "Mesa"
     },
-
     "retirement": {
       "eyebrow": "Retiro de mesa",
       "title": "¿Retirar la mesa {{number}}?",
@@ -172,7 +169,6 @@
       "alreadyRetiredMessage": "La mesa seleccionada ya se encuentra retirada."
     }
   },
-
   "supplies": {
     "eyebrow": "Catálogo de insumos",
     "title": "Catálogo de insumos",
@@ -286,7 +282,6 @@
       }
     }
   },
-
   "waitlist": {
     "eyebrow": "Reservas y lista de espera",
     "title": "Lista de espera",
@@ -347,7 +342,6 @@
       "description": "Verifica la conexión e intenta nuevamente."
     }
   },
-
   "supplyAlerts": {
     "eyebrow": "Inventario",
     "title": "Alertas de inventario bajo",
@@ -393,7 +387,6 @@
       "description": "Ninguna alerta coincide con los filtros aplicados."
     }
   },
-
   "supplyEntries": {
     "eyebrow": "Inventario",
     "title": "Registrar entrada de inventario",
@@ -439,7 +432,6 @@
       "message": "Se registraron {{quantity}} {{unit}} de {{name}}. El stock disponible ahora es {{stock}} {{unit}}."
     }
   },
-
   "supplyWastes": {
     "eyebrow": "Inventario",
     "title": "Registrar merma",
@@ -487,7 +479,6 @@
       "alertNote": "Se generó una alerta de inventario bajo."
     }
   },
-
   "notifications": {
     "bellLabel": "Notificaciones",
     "headerEyebrow": "Centro de notificaciones",
@@ -498,7 +489,6 @@
     "emptyDescription": "Cuando existan notificaciones aparecerán aquí.",
     "goToAlerts": "Ver todas las alertas"
   },
-
   "recipes": {
     "eyebrow": "Producción",
     "title": "Catálogo de recetas",
@@ -760,9 +750,81 @@
       "empty": "Aún no hay insumos en la receta. Agrega el primero.",
       "partialCost": "Costo",
       "costConverted": "El costo se calculará con la conversión al guardar."
+    },
+    "history": {
+      "dishes": {
+        "title": "Platillos con receta",
+        "description": "Selecciona un platillo para consultar el historial de cambios de su receta.",
+        "empty": "No hay platillos con receta",
+        "emptyDescription": "Los platillos con receta definida aparecerán aquí para consultar sus cambios."
+      },
+      "modifiers": {
+        "title": "Modificadores con receta",
+        "description": "Selecciona un modificador para consultar el historial de cambios de su receta.",
+        "empty": "No hay modificadores con receta",
+        "emptyDescription": "Los modificadores con receta definida aparecerán aquí para consultar sus cambios."
+      },
+      "columns": {
+        "item": "Platillo",
+        "modifier": "Modificador"
+      },
+      "status": {
+        "VIGENTE": "Vigente",
+        "HISTORICA": "Histórica",
+        "BORRADOR": "Borrador"
+      },
+      "noReason": "Sin motivo registrado",
+      "noChanges": {
+        "title": "Sin cambios posteriores",
+        "description": "Esta receta no ha sido modificada desde su creación. La composición vigente está disponible en la sección de recetas."
+      },
+      "changes": {
+        "added": "agregado(s)",
+        "removed": "retirado(s)",
+        "modified": "modificado(s)",
+        "initial": "Versión inicial"
+      },
+      "detail": {
+        "eyebrow": "Historial de la receta",
+        "summary": {
+          "current": "Versión vigente",
+          "totalVersions": "Total de versiones",
+          "latestCost": "Costo vigente",
+          "lastChange": "Último cambio"
+        },
+        "changesTitle": "Cambios respecto a la versión anterior",
+        "versionsCompared": "Comparando v{{previous}} → v{{current}}",
+        "columns": {
+          "supply": "Insumo",
+          "type": "Tipo de cambio",
+          "previous": "Anterior",
+          "current": "Nueva",
+          "difference": "Δ costo",
+          "ingredient": "Insumo",
+          "quantity": "Cantidad",
+          "cost": "Subtotal"
+        },
+        "noChangesRows": "No hay cambios entre estas versiones.",
+        "previousComposition": "Composición anterior (v{{number}})",
+        "newComposition": "Nueva composición (v{{number}})",
+        "noPreviousComposition": "Sin composición anterior: es la versión inicial.",
+        "noNewComposition": "Sin composición nueva.",
+        "registeredAt": "Registrado el",
+        "selectHint": "Selecciona un platillo o modificador",
+        "selectHintDescription": "Selecciona un elemento de la lista para consultar el historial de cambios de su receta."
+      },
+      "changeTypes": {
+        "AGREGADO": "Agregado",
+        "RETIRADO": "Retirado",
+        "MODIFICADO": "Modificado",
+        "SIN_CAMBIOS": "Sin cambios"
+      },
+      "adjustments": {
+        "AGREGAR": "agregar",
+        "RETIRAR": "retirar"
+      }
     }
   },
-
   "reservations": {
     "eyebrow": "Reservas y disponibilidad",
     "title": "Registrar una reserva",
@@ -814,7 +876,6 @@
       "message": "La reserva {{code}} fue registrada correctamente para la mesa {{table}}."
     }
   },
-
   "configuration": {
     "eyebrow": "Configuración del restaurante",
     "title": "Configuración",
@@ -858,7 +919,6 @@
       }
     }
   },
-
   "employees": {
     "eyebrow": "Configuración del restaurante",
     "title": "Empleados registrados",
@@ -917,7 +977,6 @@
       "alreadyDisabledMessage": "El empleado seleccionado ya se encuentra desactivado."
     }
   },
-
   "occupancy": {
     "eyebrow": "Operación en tiempo real",
     "title": "Panel de ocupación",
