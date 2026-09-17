@@ -1,0 +1,100 @@
+<app-page-heading
+  eyebrowKey="tables.eyebrow"
+  titleKey="tables.title"
+  descriptionKey="tables.description"
+/>
+
+<section class="tables-toolbar">
+  <div class="status-summary">
+    @for (status of statuses; track status) {
+      <article [class]="'summary-chip summary-chip--' + status.toLowerCase()">
+        <span class="summary-chip__icon">
+          <i [class]="'pi ' + statusIcon(status)"></i>
+        </span>
+
+        <div>
+          <strong>{{ counts()[status] }}</strong>
+          <span>{{ 'tables.summary.' + status | transloco }}</span>
+        </div>
+      </article>
+    }
+  </div>
+
+  <div class="tables-actions">
+    @if (lastUpdated(); as updatedAt) {
+      <span class="last-updated">
+        <i class="pi pi-clock"></i>
+        {{ 'tables.lastUpdated' | transloco }}
+        {{ updatedAt | date: 'HH:mm:ss' }}
+      </span>
+    }
+
+    <button
+      class="secondary-button secondary-button--light"
+      type="button"
+      [disabled]="loading()"
+      (click)="load()"
+    >
+      <i
+        class="pi"
+        [class.pi-spin]="loading()"
+        [class.pi-spinner]="loading()"
+        [class.pi-refresh]="!loading()"
+      ></i>
+      <span>{{ 'tables.refresh' | transloco }}</span>
+    </button>
+  </div>
+</section>
+
+<app-form-feedback [message]="loadError()" />
+
+@if (loading() && activeTables().length === 0) {
+  <div class="empty-state">
+    <i class="pi pi-spin pi-spinner"></i>
+    <p>{{ 'tables.loading' | transloco }}</p>
+  </div>
+} @else if (activeTables().length === 0) {
+  <div class="empty-state">
+    <i class="pi pi-info-circle"></i>
+    <p>{{ 'tables.empty' | transloco }}</p>
+  </div>
+} @else {
+  @for (group of zoneGroups(); track group.key) {
+    <section class="zone-section">
+      <header class="zone-heading">
+        <h2>
+          <i class="pi pi-map-marker"></i>
+          {{ group.nombre || ('tables.withoutZone' | transloco) }}
+        </h2>
+
+        <span class="zone-count">
+          {{ group.tables.length }}
+          {{ 'tables.tablesCount' | transloco }}
+        </span>
+      </header>
+
+      <div class="tables-grid">
+        @for (table of group.tables; track table.id) {
+          <article [class]="statusCardClass(table.estado)">
+            <div class="table-card__top">
+              <span class="table-card__number">{{ table.numero }}</span>
+
+              <span class="table-card__status">
+                <i [class]="'pi ' + statusIcon(table.estado)"></i>
+                {{ statusLabelKey(table.estado) | transloco }}
+              </span>
+            </div>
+
+            <div class="table-card__meta">
+              <span>
+                <i class="pi pi-users"></i>
+                {{ table.capacidad }}
+                {{ 'tables.capacity' | transloco }}
+              </span>
+            </div>
+          </article>
+        }
+      </div>
+    </section>
+  }
+}

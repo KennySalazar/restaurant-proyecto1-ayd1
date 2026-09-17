@@ -19,6 +19,12 @@ const NAVIGATION: readonly NavigationItem[] = [
     icon: 'pi-home',
   },
   {
+    path: '/app/mesas',
+    labelKey: 'nav.tables',
+    icon: 'pi-th-large',
+    roles: ['WAITER'],
+  },
+  {
     path: '/app/caja/turno',
     labelKey: 'nav.cashShift',
     icon: 'pi-credit-card',
@@ -33,13 +39,7 @@ const NAVIGATION: readonly NavigationItem[] = [
 
 @Component({
   selector: 'app-shell',
-  imports: [
-    BrandMarkComponent,
-    RouterLink,
-    RouterLinkActive,
-    RouterOutlet,
-    TranslocoPipe,
-  ],
+  imports: [BrandMarkComponent, RouterLink, RouterLinkActive, RouterOutlet, TranslocoPipe],
   templateUrl: './app-shell.html',
   styleUrl: './app-shell.scss',
 })

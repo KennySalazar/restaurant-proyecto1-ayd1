@@ -20,6 +20,7 @@
   "nav": {
     "workspace": "Operación",
     "dashboard": "Inicio",
+    "tables": "Mesas",
     "cashShift": "Caja",
     "account": "Mi cuenta",
     "logout": "Cerrar sesión",
@@ -101,6 +102,30 @@
     "adminDescription": "Accede a las herramientas disponibles para tu puesto."
   },
 
+  "tables": {
+    "eyebrow": "Salón",
+    "title": "Estado de mesas",
+    "description": "Consulta el estado actual de cada mesa para saber a cuáles puedes sentar clientes o dar seguimiento.",
+    "refresh": "Actualizar",
+    "lastUpdated": "Actualizado",
+    "loading": "Consultando el estado de las mesas...",
+    "empty": "Todavía no hay mesas activas configuradas. Registra las mesas desde la aplicación administrativa.",
+    "withoutZone": "Sin zona",
+    "tablesCount": "mesas",
+    "capacity": "personas",
+    "summary": {
+      "LIBRE": "Libres",
+      "RESERVADA": "Reservadas",
+      "OCUPADA": "Ocupadas",
+      "CUENTA_SOLICITADA": "Cuenta solicitada"
+    },
+    "status": {
+      "LIBRE": "Libre",
+      "RESERVADA": "Reservada",
+      "OCUPADA": "Ocupada",
+      "CUENTA_SOLICITADA": "Cuenta solicitada"
+    }
+  },
   "cashShift": {
     "eyebrow": "Operación de caja",
     "title": "Abrir turno de caja",
