@@ -9,15 +9,30 @@
       <header class="registration-dialog__header">
         <div>
           <span class="registration-dialog__eyebrow">
-            {{ 'tables.registration.eyebrow' | transloco }}
+            {{
+              (table
+                ? 'tables.update.eyebrow'
+                : 'tables.registration.eyebrow'
+              ) | transloco
+            }}
           </span>
 
           <h2 id="table-form-dialog-title">
-            {{ 'tables.registration.title' | transloco }}
+            {{
+              (table
+                ? 'tables.update.title'
+                : 'tables.registration.title'
+              ) | transloco
+            }}
           </h2>
 
           <p>
-            {{ 'tables.registration.description' | transloco }}
+            {{
+              (table
+                ? 'tables.update.description'
+                : 'tables.registration.description'
+              ) | transloco
+            }}
           </p>
         </div>
 
@@ -119,7 +134,12 @@
           <i class="pi pi-info-circle"></i>
 
           <span>
-            {{ 'tables.registration.initialStateNotice' | transloco }}
+            {{
+              (table
+                ? 'tables.update.notice'
+                : 'tables.registration.initialStateNotice'
+              ) | transloco
+            }}
           </span>
         </div>
 
@@ -140,10 +160,22 @@
           >
             @if (isSaving()) {
               <i class="pi pi-spin pi-spinner"></i>
-              {{ 'tables.registration.saving' | transloco }}
+
+              {{
+                (table
+                  ? 'tables.update.saving'
+                  : 'tables.registration.saving'
+                ) | transloco
+              }}
             } @else {
               <i class="pi pi-check"></i>
-              {{ 'tables.registration.save' | transloco }}
+
+              {{
+                (table
+                  ? 'tables.update.save'
+                  : 'tables.registration.save'
+                ) | transloco
+              }}
             }
           </button>
         </footer>

@@ -24,3 +24,9 @@ export interface CreateTableRequest {
   zonaId: number;
   estadoInicial: TableStatus;
 }
+
+export interface UpdateTableRequest {
+  numero: string;
+  capacidad: number;
+  zonaId: number;
+}
