@@ -84,6 +84,12 @@ public interface ReservationRepository
             OffsetDateTime from
     );
 
+    List<Reservation> findByRestaurantIdAndStatusInAndEndDateTimeAfterOrderByStartDateTimeAsc(
+            Long restaurantId,
+            Collection<ReservationStatus> statuses,
+            OffsetDateTime now
+    );
+
     @Query("""
     SELECT r
     FROM Reservation r

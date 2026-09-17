@@ -355,7 +355,7 @@ public class ReservationService {
         OffsetDateTime now = OffsetDateTime.now(GUATEMALA);
 
         return reservations
-                .findAllByRestaurantIdAndStatusInAndStartDateTimeGreaterThanEqualOrderByStartDateTimeAsc(
+                .findByRestaurantIdAndStatusInAndEndDateTimeAfterOrderByStartDateTimeAsc(
                         context.restaurantId(),
                         List.of(
                                 ReservationStatus.PENDIENTE,

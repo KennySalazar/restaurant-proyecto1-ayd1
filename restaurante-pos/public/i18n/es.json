@@ -124,6 +124,54 @@
       "RESERVADA": "Reservada",
       "OCUPADA": "Ocupada",
       "CUENTA_SOLICITADA": "Cuenta solicitada"
+    },
+    "actions": {
+      "openAccount": "Abrir cuenta",
+      "seatReservation": "Sentar reserva",
+      "seatWaitlist": "Lista de espera",
+      "inService": "En servicio"
+    },
+    "dialogs": {
+      "table": "Mesa {{numero}} · {{capacidad}} personas",
+      "cancel": "Cancelar",
+      "people": "Cantidad de personas",
+      "peoplePlaceholder": "Personas",
+      "notes": "Observaciones",
+      "notesPlaceholder": "Notas opcionales",
+      "validation": {
+        "peopleMinimum": "La cantidad de personas debe ser al menos 1.",
+        "reservationRequired": "Selecciona una reserva.",
+        "waitlistRequired": "Selecciona un cliente en espera."
+      },
+      "openAccount": {
+        "title": "Abrir cuenta",
+        "submit": "Abrir cuenta"
+      },
+      "reservation": {
+        "title": "Sentar reserva",
+        "loading": "Buscando reservas para esta mesa...",
+        "empty": "No hay reservas activas para esta mesa en este momento.",
+        "field": "Reserva",
+        "placeholder": "Selecciona una reserva",
+        "submit": "Sentar cliente"
+      },
+      "waitlist": {
+        "title": "Sentar desde lista de espera",
+        "loading": "Consultando la lista de espera...",
+        "empty": "No hay clientes en espera compatibles con esta mesa.",
+        "suggested": "Cliente sugerido",
+        "field": "Cliente en espera",
+        "placeholder": "Selecciona un cliente",
+        "submit": "Sentar cliente"
+      }
+    },
+    "success": {
+      "accountTitle": "Cuenta abierta correctamente",
+      "reservationTitle": "Reserva sentada correctamente",
+      "waitlistTitle": "Cliente sentado correctamente",
+      "table": "Mesa",
+      "people": "personas",
+      "dismiss": "Cerrar"
     }
   },
   "cashShift": {

@@ -250,3 +250,193 @@
     justify-content: space-between;
   }
 }
+
+.table-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.table-card__actions .action-button {
+  flex: 1 1 6rem;
+  font-size: 0.72rem;
+  min-height: 2.4rem;
+  padding: 0.45rem 0.6rem;
+  width: auto;
+}
+
+.table-card__in-service {
+  align-items: center;
+  color: #88776e;
+  display: inline-flex;
+  font-size: 0.7rem;
+  gap: 0.35rem;
+}
+
+.operation-success {
+  align-items: center;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 0.9rem;
+  display: flex;
+  gap: 0.9rem;
+  margin-bottom: 1.4rem;
+  padding: 0.9rem 1.1rem;
+}
+
+.operation-success__icon {
+  align-items: center;
+  background: #dcfce7;
+  border-radius: 50%;
+  color: #166534;
+  display: inline-flex;
+  flex: 0 0 2.4rem;
+  font-size: 1rem;
+  height: 2.4rem;
+  justify-content: center;
+}
+
+.operation-success__content {
+  display: grid;
+  flex: 1;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.operation-success__content strong {
+  color: #166534;
+  font-size: 0.85rem;
+}
+
+.operation-success__details {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.9rem;
+}
+
+.operation-success__details span {
+  align-items: center;
+  color: #3f6212;
+  display: inline-flex;
+  font-size: 0.72rem;
+  gap: 0.3rem;
+}
+
+.operation-success__dismiss {
+  background: transparent;
+  border: 0;
+  color: #166534;
+  cursor: pointer;
+  padding: 0.3rem;
+}
+
+.dialog-context {
+  align-items: center;
+  color: #88776e;
+  display: inline-flex;
+  font-size: 0.75rem;
+  gap: 0.35rem;
+  margin: 0 0 1rem;
+}
+
+.dialog-form {
+  display: grid;
+  gap: 1rem;
+}
+
+.dialog-form .form-field {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.dialog-form .form-field label {
+  color: #2f2926;
+  font-size: 0.78rem;
+  font-weight: 650;
+}
+
+.dialog-form .form-field select,
+.dialog-form .form-field textarea,
+.dialog-form .form-field input {
+  background: #fff;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.65rem;
+  font: inherit;
+  padding: 0.65rem 0.75rem;
+  width: 100%;
+}
+
+.dialog-form .form-field select:focus,
+.dialog-form .form-field textarea:focus,
+.dialog-form .form-field input:focus {
+  border-color: #b85c38;
+  outline: none;
+}
+
+.field-error {
+  color: #b91c1c;
+  font-size: 0.72rem;
+}
+
+.dialog-actions {
+  display: flex;
+  gap: 0.6rem;
+  justify-content: flex-end;
+  margin-top: 0.5rem;
+}
+
+.dialog-actions .primary-button,
+.dialog-actions .secondary-button {
+  min-height: 2.6rem;
+  width: auto;
+}
+
+.dialog-state {
+  align-items: center;
+  background: #f8fafc;
+  border-radius: 0.75rem;
+  color: #817169;
+  display: flex;
+  gap: 0.6rem;
+  padding: 0.9rem 1rem;
+}
+
+.dialog-state--warning {
+  background: #fff7ed;
+  color: #9a3412;
+}
+
+.waitlist-suggestion {
+  align-items: center;
+  background: #fef3c7;
+  border: 1px solid #fde68a;
+  border-radius: 0.75rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.8rem;
+  margin-bottom: 1rem;
+  padding: 0.7rem 0.85rem;
+}
+
+.waitlist-suggestion strong {
+  color: #92400e;
+  font-size: 0.85rem;
+}
+
+.waitlist-suggestion span {
+  align-items: center;
+  color: #92400e;
+  display: inline-flex;
+  font-size: 0.72rem;
+  gap: 0.3rem;
+}
+
+.waitlist-suggestion__badge {
+  background: #92400e;
+  border-radius: 999px;
+  color: #fffbeb !important;
+  font-size: 0.6rem !important;
+  font-weight: 800;
+  padding: 0.2rem 0.5rem;
+  text-transform: uppercase;
+}

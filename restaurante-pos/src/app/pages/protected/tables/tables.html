@@ -46,6 +46,52 @@
   </div>
 </section>
 
+@if (operationSummary(); as summary) {
+  <section class="operation-success">
+    <span class="operation-success__icon">
+      <i class="pi pi-check"></i>
+    </span>
+
+    <div class="operation-success__content">
+      <strong>{{ summary.titleKey | transloco }}</strong>
+
+      <div class="operation-success__details">
+        <span>
+          <i class="pi pi-hashtag"></i>
+          {{ 'tables.success.table' | transloco }} {{ summary.numeroMesa }}
+        </span>
+
+        <span>
+          <i class="pi pi-file"></i>
+          {{ summary.numeroCuenta }}
+        </span>
+
+        <span>
+          <i class="pi pi-users"></i>
+          {{ summary.cantidadPersonas }}
+          {{ 'tables.success.people' | transloco }}
+        </span>
+
+        @if (summary.cliente) {
+          <span>
+            <i class="pi pi-user"></i>
+            {{ summary.cliente }}
+          </span>
+        }
+      </div>
+    </div>
+
+    <button
+      class="operation-success__dismiss"
+      type="button"
+      [attr.aria-label]="'tables.success.dismiss' | transloco"
+      (click)="dismissSummary()"
+    >
+      <i class="pi pi-times"></i>
+    </button>
+  </section>
+}
+
 <app-form-feedback [message]="loadError()" />
 
 @if (loading() && activeTables().length === 0) {
@@ -92,9 +138,388 @@
                 {{ 'tables.capacity' | transloco }}
               </span>
             </div>
+
+            <div class="table-card__actions">
+              @switch (table.estado) {
+                @case ('LIBRE') {
+                  <button
+                    class="primary-button action-button"
+                    type="button"
+                    (click)="openAccountDialog(table)"
+                  >
+                    <i class="pi pi-plus"></i>
+                    <span>{{ 'tables.actions.openAccount' | transloco }}</span>
+                  </button>
+
+                  <button
+                    class="secondary-button action-button"
+                    type="button"
+                    (click)="openWaitlistDialog(table)"
+                  >
+                    <i class="pi pi-hourglass"></i>
+                    <span>{{ 'tables.actions.seatWaitlist' | transloco }}</span>
+                  </button>
+                }
+
+                @case ('RESERVADA') {
+                  <button
+                    class="primary-button action-button"
+                    type="button"
+                    (click)="openReservationDialog(table)"
+                  >
+                    <i class="pi pi-calendar-plus"></i>
+                    <span>{{ 'tables.actions.seatReservation' | transloco }}</span>
+                  </button>
+                }
+
+                @default {
+                  <span class="table-card__in-service">
+                    <i class="pi pi-lock"></i>
+                    {{ 'tables.actions.inService' | transloco }}
+                  </span>
+                }
+              }
+            </div>
           </article>
         }
       </div>
     </section>
   }
+}
+
+@if (dialog() === 'open-account' && selectedTable(); as table) {
+  <p-dialog
+    [visible]="true"
+    [modal]="true"
+    [dismissableMask]="true"
+    [draggable]="false"
+    [resizable]="false"
+    [closeOnEscape]="true"
+    [style]="{ width: '32rem', maxWidth: '95vw' }"
+    [header]="'tables.dialogs.openAccount.title' | transloco"
+    (visibleChange)="closeDialog()"
+  >
+    <p class="dialog-context">
+      <i class="pi pi-map-marker"></i>
+      {{ 'tables.dialogs.table' | transloco: { numero: table.numero, capacidad: table.capacidad } }}
+    </p>
+
+    <app-form-feedback [message]="dialogError()" />
+
+    <form
+      class="dialog-form"
+      [formGroup]="openAccountForm"
+      (ngSubmit)="submitOpenAccount()"
+      novalidate
+    >
+      <div class="form-field">
+        <label for="open-account-people">
+          {{ 'tables.dialogs.people' | transloco }}
+        </label>
+
+        <input
+          id="open-account-people"
+          pInputText
+          type="number"
+          min="1"
+          formControlName="cantidadPersonas"
+          [placeholder]="'tables.dialogs.peoplePlaceholder' | transloco"
+        />
+
+        @if (openAccountForm.controls.cantidadPersonas.hasError('min')) {
+          <small class="field-error">
+            {{ 'tables.dialogs.validation.peopleMinimum' | transloco }}
+          </small>
+        }
+      </div>
+
+      <div class="form-field">
+        <label for="open-account-notes">
+          {{ 'tables.dialogs.notes' | transloco }}
+        </label>
+
+        <textarea
+          id="open-account-notes"
+          rows="3"
+          formControlName="observaciones"
+          [placeholder]="'tables.dialogs.notesPlaceholder' | transloco"
+        ></textarea>
+      </div>
+
+      <div class="dialog-actions">
+        <button class="secondary-button" type="button" (click)="closeDialog()">
+          <span>{{ 'tables.dialogs.cancel' | transloco }}</span>
+        </button>
+
+        <button class="primary-button" type="submit" [disabled]="submitting()">
+          @if (submitting()) {
+            <i class="pi pi-spin pi-spinner"></i>
+          } @else {
+            <i class="pi pi-check"></i>
+          }
+          <span>{{ 'tables.dialogs.openAccount.submit' | transloco }}</span>
+        </button>
+      </div>
+    </form>
+  </p-dialog>
+}
+
+@if (dialog() === 'reservation' && selectedTable(); as table) {
+  <p-dialog
+    [visible]="true"
+    [modal]="true"
+    [dismissableMask]="true"
+    [draggable]="false"
+    [resizable]="false"
+    [closeOnEscape]="true"
+    [style]="{ width: '34rem', maxWidth: '95vw' }"
+    [header]="'tables.dialogs.reservation.title' | transloco"
+    (visibleChange)="closeDialog()"
+  >
+    <p class="dialog-context">
+      <i class="pi pi-map-marker"></i>
+      {{ 'tables.dialogs.table' | transloco: { numero: table.numero, capacidad: table.capacidad } }}
+    </p>
+
+    <app-form-feedback [message]="dialogError()" />
+
+    @if (loadingReservations()) {
+      <div class="dialog-state">
+        <i class="pi pi-spin pi-spinner"></i>
+        <span>{{ 'tables.dialogs.reservation.loading' | transloco }}</span>
+      </div>
+    } @else if (tableReservations().length === 0) {
+      <div class="dialog-state dialog-state--warning">
+        <i class="pi pi-info-circle"></i>
+        <span>{{ 'tables.dialogs.reservation.empty' | transloco }}</span>
+      </div>
+    } @else {
+      <form
+        class="dialog-form"
+        [formGroup]="reservationForm"
+        (ngSubmit)="submitReservation()"
+        novalidate
+      >
+        <div class="form-field">
+          <label for="reservation-select">
+            {{ 'tables.dialogs.reservation.field' | transloco }}
+          </label>
+
+          <select
+            id="reservation-select"
+            formControlName="reservaId"
+            (change)="onReservationChange()"
+          >
+            <option [ngValue]="null">
+              {{ 'tables.dialogs.reservation.placeholder' | transloco }}
+            </option>
+
+            @for (reservation of tableReservations(); track reservation.id) {
+              <option [ngValue]="reservation.id">
+                {{ reservation.codigoReserva }} · {{ reservation.nombreCliente }} ·
+                {{ reservation.cantidadPersonas }} pax ·
+                {{ reservation.fechaHoraInicio | date: 'HH:mm' }}
+              </option>
+            }
+          </select>
+
+          @if (
+            (submitted() || reservationForm.controls.reservaId.touched) &&
+            reservationForm.controls.reservaId.hasError('required')
+          ) {
+            <small class="field-error">
+              {{ 'tables.dialogs.validation.reservationRequired' | transloco }}
+            </small>
+          }
+        </div>
+
+        <div class="form-field">
+          <label for="reservation-people">
+            {{ 'tables.dialogs.people' | transloco }}
+          </label>
+
+          <input
+            id="reservation-people"
+            pInputText
+            type="number"
+            min="1"
+            formControlName="cantidadPersonas"
+            [placeholder]="'tables.dialogs.peoplePlaceholder' | transloco"
+          />
+
+          @if (reservationForm.controls.cantidadPersonas.hasError('min')) {
+            <small class="field-error">
+              {{ 'tables.dialogs.validation.peopleMinimum' | transloco }}
+            </small>
+          }
+        </div>
+
+        <div class="form-field">
+          <label for="reservation-notes">
+            {{ 'tables.dialogs.notes' | transloco }}
+          </label>
+
+          <textarea
+            id="reservation-notes"
+            rows="3"
+            formControlName="notas"
+            [placeholder]="'tables.dialogs.notesPlaceholder' | transloco"
+          ></textarea>
+        </div>
+
+        <div class="dialog-actions">
+          <button class="secondary-button" type="button" (click)="closeDialog()">
+            <span>{{ 'tables.dialogs.cancel' | transloco }}</span>
+          </button>
+
+          <button class="primary-button" type="submit" [disabled]="submitting()">
+            @if (submitting()) {
+              <i class="pi pi-spin pi-spinner"></i>
+            } @else {
+              <i class="pi pi-check"></i>
+            }
+            <span>{{ 'tables.dialogs.reservation.submit' | transloco }}</span>
+          </button>
+        </div>
+      </form>
+    }
+  </p-dialog>
+}
+
+@if (dialog() === 'waitlist' && selectedTable(); as table) {
+  <p-dialog
+    [visible]="true"
+    [modal]="true"
+    [dismissableMask]="true"
+    [draggable]="false"
+    [resizable]="false"
+    [closeOnEscape]="true"
+    [style]="{ width: '34rem', maxWidth: '95vw' }"
+    [header]="'tables.dialogs.waitlist.title' | transloco"
+    (visibleChange)="closeDialog()"
+  >
+    <p class="dialog-context">
+      <i class="pi pi-map-marker"></i>
+      {{ 'tables.dialogs.table' | transloco: { numero: table.numero, capacidad: table.capacidad } }}
+    </p>
+
+    <app-form-feedback [message]="dialogError()" />
+
+    @if (loadingWaitlist()) {
+      <div class="dialog-state">
+        <i class="pi pi-spin pi-spinner"></i>
+        <span>{{ 'tables.dialogs.waitlist.loading' | transloco }}</span>
+      </div>
+    } @else if (compatibleWaitlist().length === 0) {
+      <div class="dialog-state dialog-state--warning">
+        <i class="pi pi-info-circle"></i>
+        <span>{{ 'tables.dialogs.waitlist.empty' | transloco }}</span>
+      </div>
+    } @else {
+      @if (waitlistSuggestion(); as suggestion) {
+        <div class="waitlist-suggestion">
+          <span class="waitlist-suggestion__badge">
+            {{ 'tables.dialogs.waitlist.suggested' | transloco }}
+          </span>
+
+          <strong>{{ suggestion.nombreCliente }}</strong>
+
+          <span>
+            <i class="pi pi-users"></i>
+            {{ suggestion.cantidadPersonas }}
+            {{ 'tables.success.people' | transloco }}
+          </span>
+
+          @if (suggestion.telefonoCliente) {
+            <span>
+              <i class="pi pi-phone"></i>
+              {{ suggestion.telefonoCliente }}
+            </span>
+          }
+        </div>
+      }
+
+      <form class="dialog-form" [formGroup]="waitlistForm" (ngSubmit)="submitWaitlist()" novalidate>
+        <div class="form-field">
+          <label for="waitlist-select">
+            {{ 'tables.dialogs.waitlist.field' | transloco }}
+          </label>
+
+          <select
+            id="waitlist-select"
+            formControlName="listaEsperaId"
+            (change)="onWaitlistChange()"
+          >
+            <option [ngValue]="null">
+              {{ 'tables.dialogs.waitlist.placeholder' | transloco }}
+            </option>
+
+            @for (entry of compatibleWaitlist(); track entry.id) {
+              <option [ngValue]="entry.id">
+                {{ entry.nombreCliente }} · {{ entry.cantidadPersonas }} pax
+              </option>
+            }
+          </select>
+
+          @if (
+            (submitted() || waitlistForm.controls.listaEsperaId.touched) &&
+            waitlistForm.controls.listaEsperaId.hasError('required')
+          ) {
+            <small class="field-error">
+              {{ 'tables.dialogs.validation.waitlistRequired' | transloco }}
+            </small>
+          }
+        </div>
+
+        <div class="form-field">
+          <label for="waitlist-people">
+            {{ 'tables.dialogs.people' | transloco }}
+          </label>
+
+          <input
+            id="waitlist-people"
+            pInputText
+            type="number"
+            min="1"
+            formControlName="cantidadPersonas"
+            [placeholder]="'tables.dialogs.peoplePlaceholder' | transloco"
+          />
+
+          @if (waitlistForm.controls.cantidadPersonas.hasError('min')) {
+            <small class="field-error">
+              {{ 'tables.dialogs.validation.peopleMinimum' | transloco }}
+            </small>
+          }
+        </div>
+
+        <div class="form-field">
+          <label for="waitlist-notes">
+            {{ 'tables.dialogs.notes' | transloco }}
+          </label>
+
+          <textarea
+            id="waitlist-notes"
+            rows="3"
+            formControlName="notas"
+            [placeholder]="'tables.dialogs.notesPlaceholder' | transloco"
+          ></textarea>
+        </div>
+
+        <div class="dialog-actions">
+          <button class="secondary-button" type="button" (click)="closeDialog()">
+            <span>{{ 'tables.dialogs.cancel' | transloco }}</span>
+          </button>
+
+          <button class="primary-button" type="submit" [disabled]="submitting()">
+            @if (submitting()) {
+              <i class="pi pi-spin pi-spinner"></i>
+            } @else {
+              <i class="pi pi-check"></i>
+            }
+            <span>{{ 'tables.dialogs.waitlist.submit' | transloco }}</span>
+          </button>
+        </div>
+      </form>
+    }
+  </p-dialog>
 }
