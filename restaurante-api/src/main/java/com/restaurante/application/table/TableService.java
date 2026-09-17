@@ -273,6 +273,38 @@ public class TableService {
         return toResponse(saved);
     }
 
+    @Transactional
+    public TableResponse reactivateTable(
+            Long tableId,
+            Authentication authentication) {
+
+        Long restaurantId = getRestaurantId(authentication);
+
+        RestaurantTable table = tables
+                .findByIdAndRestaurantId(tableId, restaurantId)
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "table_not_found",
+                        "Mesa no encontrada",
+                        "La mesa seleccionada no existe"
+                ));
+
+        if (table.isActive()) {
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "table_already_active",
+                    "Mesa ya activa",
+                    "La mesa seleccionada ya se encuentra activa"
+            );
+        }
+
+        table.reactivate();
+
+        RestaurantTable saved = tables.save(table);
+
+        return toResponse(saved);
+    }
+
     @Transactional(readOnly = true)
     public List<OccupancyPanelTableResponse> getOccupancyPanel(
             Authentication authentication) {
