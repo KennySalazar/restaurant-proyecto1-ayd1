@@ -1,15 +1,13 @@
 package com.restaurante.web.cash;
 
 import com.restaurante.application.cash.CashShiftService;
-import com.restaurante.web.dto.cash.CashShiftResponse;
-import com.restaurante.web.dto.cash.CloseCashShiftRequest;
-import com.restaurante.web.dto.cash.CloseCashShiftResponse;
-import com.restaurante.web.dto.cash.OpenCashShiftRequest;
+import com.restaurante.web.dto.cash.*;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
@@ -54,6 +52,15 @@ public class CashShiftController {
                 shiftId,
                 request,
                 authentication
+        );
+    }
+
+    @GetMapping("/actual")
+    public ResponseEntity<CurrentCashShiftResponse> getCurrentShift(
+            Authentication authentication) {
+
+        return ResponseEntity.ok(
+                cashShiftService.getCurrentShift(authentication)
         );
     }
 }
