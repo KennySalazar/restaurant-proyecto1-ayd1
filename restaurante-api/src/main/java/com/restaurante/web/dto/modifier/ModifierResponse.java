@@ -29,6 +29,9 @@ public record ModifierResponse(
         @Schema(description = "Estado activo del modificador", example = "true")
         Boolean active,
 
+        @Schema(description = "Indica si el modificador cuenta con una receta vigente", example = "false")
+        Boolean hasRecipe,
+
         @Schema(description = "Platillos asociados al modificador")
         List<ModifierDishItemResponse> associatedDishes,
 

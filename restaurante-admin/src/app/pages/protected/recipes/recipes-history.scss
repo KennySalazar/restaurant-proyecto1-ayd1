@@ -1,0 +1,257 @@
+.state-panel--info {
+  background: #f7f1e9;
+
+  strong {
+    color: #6b5647;
+  }
+
+  p {
+    color: #93827a;
+  }
+
+  .state-panel__icon {
+    background: #efe3d2;
+    color: #a8794a;
+  }
+}
+
+.cost-value--negative {
+  color: #a04737;
+}
+
+.recipes-panel--history-detail {
+  align-self: start;
+  max-height: calc(100vh - 10rem);
+  overflow-y: auto;
+  scrollbar-color: #d9b8a8 transparent;
+  scrollbar-width: thin;
+}
+
+.history-timeline {
+  display: grid;
+  gap: 0.6rem;
+  padding: 1.25rem 1.5rem;
+}
+
+.history-version-row {
+  align-items: center;
+  background: #fbf6f1;
+  border: 1px solid #ecdfd4;
+  border-radius: 0.85rem;
+  cursor: pointer;
+  display: grid;
+  font: inherit;
+  gap: 0.9rem;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  padding: 0.8rem 1rem;
+  text-align: left;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
+
+  &:hover {
+    background: #f5ebe1;
+  }
+
+  &--selected {
+    background: #f3e6d9;
+    border-color: #c98f63;
+  }
+}
+
+.history-version-row__badge {
+  align-items: center;
+  background: #e7ddd3;
+  border-radius: 0.5rem;
+  color: #5d4a3e;
+  display: inline-flex;
+  font-size: 0.72rem;
+  font-weight: 800;
+  justify-content: center;
+  min-width: 2rem;
+  padding: 0.25rem 0.5rem;
+}
+
+.history-version-row__main {
+  display: grid;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+.history-version-row__title {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+
+  span {
+    color: #2f2926;
+    font-size: 0.85rem;
+    font-weight: 700;
+  }
+
+  small {
+    color: #88776e;
+    font-size: 0.75rem;
+  }
+}
+
+.history-version-row__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.history-version-row__side {
+  display: grid;
+  gap: 0.2rem;
+  justify-items: end;
+
+  strong {
+    color: #2f2926;
+    font-size: 0.82rem;
+    white-space: nowrap;
+  }
+
+  small {
+    color: #88776e;
+    font-size: 0.7rem;
+  }
+}
+
+.change-chip {
+  background: #eee7e0;
+  border-radius: 999px;
+  color: #5d4a3e;
+  display: inline-flex;
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 0.22rem 0.6rem;
+  white-space: nowrap;
+
+  &--agregado {
+    background: #eaf5ea;
+    color: #3f7c48;
+  }
+
+  &--retirado {
+    background: #fae8e5;
+    color: #a04737;
+  }
+
+  &--modificado {
+    background: #fdf3e0;
+    color: #a06a1f;
+  }
+
+  &--initial {
+    background: #eef0f4;
+    color: #5a6472;
+  }
+
+  &--sin_cambios {
+    background: #eee7e0;
+    color: #5d4a3e;
+  }
+}
+
+.adjustment-badge {
+  background: #ede0d3;
+  border-radius: 0.35rem;
+  color: #8a5a38;
+  font-size: 0.6rem;
+  font-weight: 700;
+  margin-left: 0.1rem;
+  padding: 0.1rem 0.35rem;
+  text-transform: lowercase;
+}
+
+.history-detail {
+  display: grid;
+  gap: 1rem;
+  padding: 1.25rem 1.5rem;
+}
+
+.history-detail__changes-header {
+  display: grid;
+  gap: 0.25rem;
+
+  h3 {
+    color: #2f2926;
+    font-size: 1rem;
+  }
+}
+
+.history-detail__subtitle {
+  color: #88776e;
+  font-size: 0.75rem;
+}
+
+.history-empty-composition {
+  color: #88776e;
+  font-size: 0.8rem;
+  font-style: italic;
+  padding: 0.75rem 0;
+}
+
+.history-composition-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.history-composition {
+  background: #fbf8f4;
+  border: 1px solid #ecdfd4;
+  border-radius: 0.85rem;
+  min-width: 0;
+  padding: 0.9rem;
+}
+
+.history-composition .restaurant-table--sm {
+  min-width: 100%;
+}
+
+.history-composition__header {
+  align-items: center;
+  border-bottom: 1px solid #eee3d8;
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.6rem;
+  padding-bottom: 0.5rem;
+
+  h4 {
+    color: #4f4137;
+    font-size: 0.8rem;
+  }
+}
+
+.history-detail__footer {
+  align-items: baseline;
+  color: #88776e;
+  display: flex;
+  font-size: 0.72rem;
+  gap: 0.35rem;
+}
+
+.history-detail__footer strong {
+  color: #5d4a3e;
+}
+
+@media (max-width: 900px) {
+  .recipes-panel--history-detail {
+    max-height: none;
+    overflow-y: visible;
+  }
+}
+
+@media (max-width: 560px) {
+  .history-version-row {
+    grid-template-columns: 1fr;
+    justify-items: start;
+  }
+
+  .history-version-row__side {
+    justify-items: start;
+  }
+}

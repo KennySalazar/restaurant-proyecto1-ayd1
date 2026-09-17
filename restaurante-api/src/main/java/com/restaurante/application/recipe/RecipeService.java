@@ -630,6 +630,42 @@ public class RecipeService {
     }
 
     /**
+     * Consulta la receta vigente de un modificador.
+     *
+     * @param modifierId Identificador único del modificador
+     * @return Detalle de la receta vigente con sus insumos y cantidades
+     */
+    @Transactional(readOnly = true)
+    public ModifierRecipeResponse getActiveModifierRecipe(Long modifierId) {
+        if (modifierId == null) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "missing_modifier_id",
+                    "Modificador no especificado",
+                    "Debe indicar el identificador del modificador para consultar su receta"
+            );
+        }
+
+        Modifier modifier = modifierRepository.findById(modifierId)
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "modifier_not_found",
+                        "Modificador no encontrado",
+                        "No se encontró un modificador con el identificador " + modifierId
+                ));
+
+        ModifierRecipeVersion activeVersion = modifierRecipeVersionRepository.findActiveByModifierId(modifier.getId())
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "recipe_not_found",
+                        "Receta no definida",
+                        "El modificador aún no tiene una receta definida"
+                ));
+
+        return buildModifierRecipeResponse(activeVersion);
+    }
+
+    /**
      * Calcula automáticamente el costo de producción actual de un platillo con conversión de unidades y desglose de insumos.
      *
      * @param dishId Identificador único del platillo
@@ -1031,7 +1067,7 @@ public class RecipeService {
         Integer previousVersionNumber = null;
         BigDecimal previousTotalCost = null;
         BigDecimal totalCostDifference = null;
-        List<RecipeIngredientResponse> previousComposition = null;
+        List<RecipeIngredientResponse> previousComposition = Collections.emptyList();
         List<RecipeIngredientChangeResponse> changes = Collections.emptyList();
 
         if (versionNumber > 1) {
@@ -1203,7 +1239,7 @@ public class RecipeService {
         Integer previousVersionNumber = null;
         BigDecimal previousTotalCost = null;
         BigDecimal totalCostDifference = null;
-        List<ModifierIngredientResponse> previousComposition = null;
+        List<ModifierIngredientResponse> previousComposition = Collections.emptyList();
         List<ModifierIngredientChangeResponse> changes = Collections.emptyList();
 
         if (versionNumber > 1) {

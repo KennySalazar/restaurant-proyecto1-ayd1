@@ -5,6 +5,7 @@ import com.restaurante.domain.model.DishModifier;
 import com.restaurante.domain.model.Modifier;
 import com.restaurante.domain.repository.DishModifierRepository;
 import com.restaurante.domain.repository.DishRepository;
+import com.restaurante.domain.repository.ModifierRecipeVersionRepository;
 import com.restaurante.domain.repository.ModifierRepository;
 import com.restaurante.exception.ApiException;
 import com.restaurante.web.dto.modifier.AssociateDishesRequest;
@@ -36,13 +37,16 @@ public class ModifierService {
     private final ModifierRepository modifierRepository;
     private final DishModifierRepository dishModifierRepository;
     private final DishRepository dishRepository;
+    private final ModifierRecipeVersionRepository modifierRecipeVersionRepository;
 
     public ModifierService(ModifierRepository modifierRepository,
                            DishModifierRepository dishModifierRepository,
-                           DishRepository dishRepository) {
+                           DishRepository dishRepository,
+                           ModifierRecipeVersionRepository modifierRecipeVersionRepository) {
         this.modifierRepository = modifierRepository;
         this.dishModifierRepository = dishModifierRepository;
         this.dishRepository = dishRepository;
+        this.modifierRecipeVersionRepository = modifierRecipeVersionRepository;
     }
 
     /**
@@ -472,6 +476,7 @@ public class ModifierService {
                 modifier.getDescription(),
                 modifier.getAdditionalPrice(),
                 modifier.isActive(),
+                modifierRecipeVersionRepository.existsActiveByModifierId(modifier.getId()),
                 dishItems,
                 modifier.getCreatedAt(),
                 modifier.getUpdatedAt()

@@ -1,0 +1,1540 @@
+<app-page-heading
+  eyebrowKey="recipes.eyebrow"
+  titleKey="recipes.title"
+  descriptionKey="recipes.description"
+/>
+
+@if (isInitialLoading()) {
+  <div class="state-panel">
+    <i class="pi pi-spin pi-spinner"></i>
+    <span>{{ 'common.loading' | transloco }}</span>
+  </div>
+} @else if (initialErrorMessage()) {
+  <app-form-feedback [message]="initialErrorMessage()" />
+} @else {
+  <div class="recipes-tabs">
+    @for (tab of tabs; track tab.id) {
+      <button
+        class="recipes-tabs__tab"
+        [class.recipes-tabs__tab--active]="activeTab() === tab.id"
+        type="button"
+        (click)="setTab(tab.id)"
+        [attr.aria-selected]="activeTab() === tab.id"
+      >
+        <i class="pi {{ tab.icon }}"></i>
+        {{ tab.labelKey | transloco }}
+      </button>
+    }
+  </div>
+
+  @if (activeTab() === 'dishes') {
+    <section class="summary-grid">
+      <article class="summary-card">
+        <span class="summary-card__icon">
+          <i class="pi pi-book"></i>
+        </span>
+        <div>
+          <span>{{ 'recipes.dishes.summary.total' | transloco }}</span>
+          <strong>{{ dishTotal() }}</strong>
+        </div>
+      </article>
+
+      <article class="summary-card">
+        <span class="summary-card__icon summary-card__icon--active">
+          <i class="pi pi-check-circle"></i>
+        </span>
+        <div>
+          <span>{{ 'recipes.dishes.summary.withRecipe' | transloco }}</span>
+          <strong>{{ dishesWithRecipe() }}</strong>
+        </div>
+      </article>
+
+      <article class="summary-card">
+        <span class="summary-card__icon summary-card__icon--out-of-stock">
+          <i class="pi pi-clock"></i>
+        </span>
+        <div>
+          <span>{{ 'recipes.dishes.summary.withoutRecipe' | transloco }}</span>
+          <strong>{{ dishesWithoutRecipe() }}</strong>
+        </div>
+      </article>
+    </section>
+
+    <div class="recipes-layout">
+      <section class="recipes-panel">
+        <div class="recipes-panel__header">
+          <div>
+            <h2>{{ 'recipes.dishes.list.title' | transloco }}</h2>
+            <p>{{ 'recipes.dishes.list.description' | transloco }}</p>
+          </div>
+        </div>
+
+        <div class="filters-bar">
+          <div class="search-field">
+            <i class="pi pi-search"></i>
+            <input
+              type="search"
+              [value]="searchTerm()"
+              (input)="updateSearch($any($event.target).value)"
+              [placeholder]="'recipes.dishes.list.searchPlaceholder' | transloco"
+            />
+            @if (searchTerm()) {
+              <button
+                class="search-field__clear"
+                type="button"
+                (click)="clearSearch()"
+                aria-label="Clear search"
+              >
+                <i class="pi pi-times"></i>
+              </button>
+            }
+          </div>
+        </div>
+
+        <div class="table-wrapper">
+          <table class="restaurant-table">
+            <thead>
+              <tr>
+                <th>{{ 'recipes.dishes.columns.dish' | transloco }}</th>
+                <th>{{ 'recipes.dishes.columns.category' | transloco }}</th>
+                <th>{{ 'recipes.dishes.columns.price' | transloco }}</th>
+                <th>{{ 'recipes.dishes.columns.recipe' | transloco }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (dish of filteredDishes(); track dish.id) {
+                <tr
+                  class="restaurant-table__row"
+                  [class.restaurant-table__row--selected]="selectedDishId() === dish.id"
+                  (click)="selectDish(dish.id)"
+                >
+                  <td>
+                    <div class="dish-cell">
+                      <strong>{{ dish.name }}</strong>
+                      <small>{{ dish.code }}</small>
+                    </div>
+                  </td>
+                  <td>
+                    <span class="unit-pill">{{ dish.categoryName }}</span>
+                  </td>
+                  <td>
+                    <span class="cost-value">{{ formatCost(dish.salePrice ?? 0) }}</span>
+                  </td>
+                  <td>
+                    @if (dishHasRecipe(dish)) {
+                      <div class="recipe-cell">
+                        <span class="recipe-badge recipe-badge--has">
+                          <i class="pi pi-check"></i>
+                          {{ 'recipes.dishes.status.has' | transloco }}
+                        </span>
+                        <button
+                          class="row-action row-action--view"
+                          type="button"
+                          (click)="selectDish(dish.id)"
+                        >
+                          <i class="pi pi-eye"></i>
+                          {{ 'recipes.dishes.actions.view' | transloco }}
+                        </button>
+                      </div>
+                    } @else {
+                      <div class="recipe-cell">
+                        <span class="recipe-badge recipe-badge--without">
+                          <i class="pi pi-plus"></i>
+                          {{ 'recipes.dishes.status.without' | transloco }}
+                        </span>
+                        <button
+                          class="row-action row-action--define"
+                          type="button"
+                          (click)="openDefine(dish)"
+                        >
+                          <i class="pi pi-plus"></i>
+                          {{ 'recipes.dishes.actions.define' | transloco }}
+                        </button>
+                      </div>
+                    }
+                  </td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="4">
+                    <div class="state-panel state-panel--empty">
+                      <i class="pi pi-shopping-bag"></i>
+                      <span>{{ 'recipes.dishes.list.noResults' | transloco }}</span>
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="recipes-panel recipe-detail">
+        @if (selectedDish()) {
+          @if (isRecipeLoading()) {
+            <div class="state-panel">
+              <i class="pi pi-spin pi-spinner"></i>
+              <span>{{ 'common.loading' | transloco }}</span>
+            </div>
+          } @else if (selectedRecipe()) {
+            <div class="recipe-detail__header">
+              <div>
+                <span class="registration-dialog__eyebrow">{{
+                  'recipes.detail.eyebrow' | transloco
+                }}</span>
+                <h2>{{ selectedDish()!.name }}</h2>
+                <p>{{ selectedDish()!.code }} · {{ selectedDish()!.categoryName }}</p>
+              </div>
+              <div class="recipe-detail__header-actions">
+                <button
+                  class="row-action row-action--update"
+                  type="button"
+                  (click)="openUpdate(selectedDish()!)"
+                >
+                  <i class="pi pi-pencil"></i>
+                  {{ 'recipes.dishes.actions.update' | transloco }}
+                </button>
+                <span class="recipe-version-chip">
+                  {{
+                    'recipes.detail.version'
+                      | transloco: { number: selectedRecipe()!.versionNumber }
+                  }}
+                </span>
+              </div>
+            </div>
+
+            <div class="recipe-summary-grid">
+              <div class="recipe-summary-item">
+                <span>{{ 'recipes.detail.summary.totalCost' | transloco }}</span>
+                <strong>{{ formatCost(selectedRecipe()!.totalCost) }}</strong>
+              </div>
+              <div class="recipe-summary-item">
+                <span>{{ 'recipes.detail.summary.salePrice' | transloco }}</span>
+                <strong>{{ formatCost(selectedRecipe()!.dishSalePrice ?? 0) }}</strong>
+              </div>
+              <div class="recipe-summary-item">
+                <span>{{ 'recipes.detail.summary.grossMargin' | transloco }}</span>
+                <strong>{{ formatCost(selectedRecipe()!.grossMargin ?? 0) }}</strong>
+              </div>
+              <div class="recipe-summary-item">
+                <span>{{ 'recipes.detail.summary.marginPercentage' | transloco }}</span>
+                <strong>{{ formatQuantity(selectedRecipe()!.marginPercentage ?? 0) }}%</strong>
+              </div>
+            </div>
+
+            <dl class="recipe-meta">
+              <dt>{{ 'recipes.detail.summary.effectiveFrom' | transloco }}</dt>
+              <dd>{{ formatDate(selectedRecipe()!.effectiveFrom) }}</dd>
+              <dt>{{ 'recipes.detail.summary.changeReason' | transloco }}</dt>
+              <dd>
+                {{
+                  selectedRecipe()!.changeReason ?? ('recipes.detail.summary.noValue' | transloco)
+                }}
+              </dd>
+            </dl>
+
+            <div class="table-wrapper">
+              <table class="restaurant-table restaurant-table--sm">
+                <thead>
+                  <tr>
+                    <th>{{ 'recipes.detail.columns.supply' | transloco }}</th>
+                    <th>{{ 'recipes.detail.columns.quantity' | transloco }}</th>
+                    <th>{{ 'recipes.detail.columns.unitCost' | transloco }}</th>
+                    <th>{{ 'recipes.detail.columns.subtotal' | transloco }}</th>
+                    <th>{{ 'recipes.detail.columns.notes' | transloco }}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (ingredient of selectedRecipe()!.ingredients; track ingredient.id) {
+                    <tr>
+                      <td>
+                        <div class="supply-cell">
+                          <strong>{{ ingredient.supplyName }}</strong>
+                          <small>{{ ingredient.supplyCode }}</small>
+                        </div>
+                      </td>
+                      <td>
+                        <span class="quantity-cell">
+                          {{ formatQuantity(ingredient.quantity) }}
+                          <small>{{ ingredient.measurementUnitAbbreviation }}</small>
+                        </span>
+                      </td>
+                      <td>
+                        <span class="cost-value">{{ formatCost(ingredient.unitCost) }}</span>
+                      </td>
+                      <td>
+                        <span class="cost-value">{{ formatCost(ingredient.subtotalCost) }}</span>
+                      </td>
+                      <td>
+                        <span class="notes-cell">{{ ingredient.notes ?? '-' }}</span>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          } @else {
+            <div class="state-panel state-panel--empty recipe-detail__empty">
+              <span class="state-panel__icon">
+                <i class="pi pi-book"></i>
+              </span>
+              <strong>{{ 'recipes.detail.withoutTitle' | transloco }}</strong>
+              <p>{{ 'recipes.detail.withoutDescription' | transloco }}</p>
+              <button
+                class="primary-button primary-button--inline"
+                type="button"
+                (click)="openDefine(selectedDish()!)"
+              >
+                <i class="pi pi-plus"></i>
+                {{ 'recipes.dishes.actions.define' | transloco }}
+              </button>
+            </div>
+          }
+        } @else {
+          <div class="state-panel state-panel--empty recipe-detail__empty">
+            <span class="state-panel__icon">
+              <i class="pi pi-shopping-bag"></i>
+            </span>
+            <strong>{{ 'recipes.detail.selectHint' | transloco }}</strong>
+            <p>{{ 'recipes.detail.selectHintDescription' | transloco }}</p>
+          </div>
+        }
+      </section>
+    </div>
+  } @else if (activeTab() === 'modifiers') {
+    <section class="summary-grid">
+      <article class="summary-card">
+        <span class="summary-card__icon">
+          <i class="pi pi-plus"></i>
+        </span>
+        <div>
+          <span>{{ 'recipes.modifiers.summary.total' | transloco }}</span>
+          <strong>{{ modifierTotal() }}</strong>
+        </div>
+      </article>
+
+      <article class="summary-card">
+        <span class="summary-card__icon summary-card__icon--active">
+          <i class="pi pi-check-circle"></i>
+        </span>
+        <div>
+          <span>{{ 'recipes.modifiers.summary.withRecipe' | transloco }}</span>
+          <strong>{{ modifiersWithRecipe() }}</strong>
+        </div>
+      </article>
+
+      <article class="summary-card">
+        <span class="summary-card__icon summary-card__icon--out-of-stock">
+          <i class="pi pi-clock"></i>
+        </span>
+        <div>
+          <span>{{ 'recipes.modifiers.summary.withoutRecipe' | transloco }}</span>
+          <strong>{{ modifiersWithoutRecipe() }}</strong>
+        </div>
+      </article>
+    </section>
+
+    <div class="recipes-layout">
+      <section class="recipes-panel">
+        <div class="recipes-panel__header">
+          <div>
+            <h2>{{ 'recipes.modifiers.list.title' | transloco }}</h2>
+            <p>{{ 'recipes.modifiers.list.description' | transloco }}</p>
+          </div>
+        </div>
+
+        <div class="filters-bar">
+          <div class="search-field">
+            <i class="pi pi-search"></i>
+            <input
+              type="search"
+              [value]="modifierSearchTerm()"
+              (input)="updateModifierSearch($any($event.target).value)"
+              [placeholder]="'recipes.modifiers.list.searchPlaceholder' | transloco"
+            />
+            @if (modifierSearchTerm()) {
+              <button
+                class="search-field__clear"
+                type="button"
+                (click)="clearModifierSearch()"
+                aria-label="Clear search"
+              >
+                <i class="pi pi-times"></i>
+              </button>
+            }
+          </div>
+        </div>
+
+        <div class="table-wrapper">
+          <table class="restaurant-table">
+            <thead>
+              <tr>
+                <th>{{ 'recipes.modifiers.columns.modifier' | transloco }}</th>
+                <th>{{ 'recipes.modifiers.columns.price' | transloco }}</th>
+                <th>{{ 'recipes.modifiers.columns.recipe' | transloco }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (modifier of filteredModifiers(); track modifier.id) {
+                <tr
+                  class="restaurant-table__row"
+                  [class.restaurant-table__row--selected]="selectedModifierId() === modifier.id"
+                  (click)="selectModifier(modifier.id)"
+                >
+                  <td>
+                    <div class="dish-cell">
+                      <strong>{{ modifier.name }}</strong>
+                      <small>{{ modifier.code }}</small>
+                    </div>
+                  </td>
+                  <td>
+                    <span class="cost-value">{{ formatCost(modifier.additionalPrice) }}</span>
+                  </td>
+                  <td>
+                    @if (modifierHasRecipe(modifier)) {
+                      <div class="recipe-cell">
+                        <span class="recipe-badge recipe-badge--has">
+                          <i class="pi pi-check"></i>
+                          {{ 'recipes.modifiers.status.has' | transloco }}
+                        </span>
+                        <button
+                          class="row-action row-action--view"
+                          type="button"
+                          (click)="selectModifier(modifier.id)"
+                        >
+                          <i class="pi pi-eye"></i>
+                          {{ 'recipes.modifiers.actions.view' | transloco }}
+                        </button>
+                      </div>
+                    } @else {
+                      <div class="recipe-cell">
+                        <span class="recipe-badge recipe-badge--without">
+                          <i class="pi pi-plus"></i>
+                          {{ 'recipes.modifiers.status.without' | transloco }}
+                        </span>
+                        <button
+                          class="row-action row-action--define"
+                          type="button"
+                          (click)="openDefineModifier(modifier)"
+                        >
+                          <i class="pi pi-plus"></i>
+                          {{ 'recipes.modifiers.actions.define' | transloco }}
+                        </button>
+                      </div>
+                    }
+                  </td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="3">
+                    <div class="state-panel state-panel--empty">
+                      <i class="pi pi-shopping-bag"></i>
+                      <span>{{ 'recipes.modifiers.list.noResults' | transloco }}</span>
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="recipes-panel recipe-detail">
+        @if (selectedModifier()) {
+          @if (isModifierRecipeLoading()) {
+            <div class="state-panel">
+              <i class="pi pi-spin pi-spinner"></i>
+              <span>{{ 'common.loading' | transloco }}</span>
+            </div>
+          } @else if (selectedModifierRecipe()) {
+            <div class="recipe-detail__header">
+              <div>
+                <span class="registration-dialog__eyebrow">{{
+                  'recipes.modifiers.detail.eyebrow' | transloco
+                }}</span>
+                <h2>{{ selectedModifier()!.name }}</h2>
+                <p>{{ selectedModifier()!.code }}</p>
+              </div>
+              <div class="recipe-detail__header-actions">
+                <button
+                  class="row-action row-action--update"
+                  type="button"
+                  (click)="openUpdateModifier(selectedModifier()!)"
+                >
+                  <i class="pi pi-pencil"></i>
+                  {{ 'recipes.modifiers.actions.update' | transloco }}
+                </button>
+                <span class="recipe-version-chip">
+                  {{
+                    'recipes.detail.version'
+                      | transloco: { number: selectedModifierRecipe()!.versionNumber }
+                  }}
+                </span>
+              </div>
+            </div>
+
+            <div class="recipe-summary-grid">
+              <div class="recipe-summary-item">
+                <span>{{ 'recipes.modifiers.detail.summary.totalCost' | transloco }}</span>
+                <strong>{{ formatCost(selectedModifierRecipe()!.totalCost) }}</strong>
+              </div>
+              <div class="recipe-summary-item">
+                <span>{{ 'recipes.modifiers.detail.summary.additionalPrice' | transloco }}</span>
+                <strong>{{ formatCost(selectedModifierRecipe()!.additionalPrice) }}</strong>
+              </div>
+              <div class="recipe-summary-item">
+                <span>{{ 'recipes.modifiers.detail.summary.grossMargin' | transloco }}</span>
+                <strong>{{ formatCost(modifierGrossMargin(selectedModifierRecipe()!)) }}</strong>
+              </div>
+              <div class="recipe-summary-item">
+                <span>{{ 'recipes.modifiers.detail.summary.marginPercentage' | transloco }}</span>
+                <strong
+                  >{{
+                    formatQuantity(modifierMarginPercentage(selectedModifierRecipe()!))
+                  }}%</strong
+                >
+              </div>
+            </div>
+
+            <dl class="recipe-meta">
+              <dt>{{ 'recipes.detail.summary.effectiveFrom' | transloco }}</dt>
+              <dd>{{ formatDate(selectedModifierRecipe()!.effectiveFrom) }}</dd>
+              <dt>{{ 'recipes.detail.summary.changeReason' | transloco }}</dt>
+              <dd>
+                {{
+                  selectedModifierRecipe()!.changeReason ??
+                    ('recipes.detail.summary.noValue' | transloco)
+                }}
+              </dd>
+            </dl>
+
+            <div class="table-wrapper">
+              <table class="restaurant-table restaurant-table--sm">
+                <thead>
+                  <tr>
+                    <th>{{ 'recipes.detail.columns.supply' | transloco }}</th>
+                    <th>{{ 'recipes.detail.columns.quantity' | transloco }}</th>
+                    <th>{{ 'recipes.detail.columns.unitCost' | transloco }}</th>
+                    <th>{{ 'recipes.detail.columns.subtotal' | transloco }}</th>
+                    <th>{{ 'recipes.detail.columns.notes' | transloco }}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (ingredient of selectedModifierRecipe()!.ingredients; track ingredient.id) {
+                    <tr>
+                      <td>
+                        <div class="supply-cell">
+                          <strong>{{ ingredient.supplyName }}</strong>
+                          <small>{{ ingredient.supplyCode }}</small>
+                        </div>
+                      </td>
+                      <td>
+                        <span class="quantity-cell">
+                          {{ formatQuantity(ingredient.quantity) }}
+                          <small>{{ ingredient.measurementUnitAbbreviation }}</small>
+                        </span>
+                      </td>
+                      <td>
+                        <span class="cost-value">{{ formatCost(ingredient.unitCost) }}</span>
+                      </td>
+                      <td>
+                        <span class="cost-value">{{ formatCost(ingredient.subtotalCost) }}</span>
+                      </td>
+                      <td>
+                        <span class="notes-cell">{{ ingredient.notes ?? '-' }}</span>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          } @else {
+            <div class="state-panel state-panel--empty recipe-detail__empty">
+              <span class="state-panel__icon">
+                <i class="pi pi-book"></i>
+              </span>
+              <strong>{{ 'recipes.modifiers.detail.withoutTitle' | transloco }}</strong>
+              <p>{{ 'recipes.modifiers.detail.withoutDescription' | transloco }}</p>
+              <button
+                class="primary-button primary-button--inline"
+                type="button"
+                (click)="openDefineModifier(selectedModifier()!)"
+              >
+                <i class="pi pi-plus"></i>
+                {{ 'recipes.modifiers.actions.define' | transloco }}
+              </button>
+            </div>
+          }
+        } @else {
+          <div class="state-panel state-panel--empty recipe-detail__empty">
+            <span class="state-panel__icon">
+              <i class="pi pi-book"></i>
+            </span>
+            <strong>{{ 'recipes.modifiers.detail.selectHint' | transloco }}</strong>
+            <p>{{ 'recipes.modifiers.detail.selectHintDescription' | transloco }}</p>
+          </div>
+        }
+      </section>
+    </div>
+  } @else if (activeTab() === 'costs') {
+    @if (isCostsLoading()) {
+      <section class="recipes-panel">
+        <div class="state-panel">
+          <i class="pi pi-spin pi-spinner"></i>
+          <span>{{ 'common.loading' | transloco }}</span>
+        </div>
+      </section>
+    } @else if (costsErrorMessage()) {
+      <section class="recipes-panel">
+        <app-form-feedback type="error" [message]="costsErrorMessage()!" />
+      </section>
+    } @else {
+      <section class="summary-grid">
+        <article class="summary-card">
+          <span class="summary-card__icon">
+            <i class="pi pi-book"></i>
+          </span>
+          <div>
+            <span>{{ 'recipes.costs.summary.dishes' | transloco }}</span>
+            <strong>{{ costDishTotal() }}</strong>
+          </div>
+        </article>
+
+        <article class="summary-card">
+          <span class="summary-card__icon summary-card__icon--active">
+            <i class="pi pi-percentage"></i>
+          </span>
+          <div>
+            <span>{{ 'recipes.costs.summary.averageMargin' | transloco }}</span>
+            <strong>{{ formatPercent(averageMarginPercentage()) }}</strong>
+          </div>
+        </article>
+
+        <article class="summary-card">
+          <span class="summary-card__icon summary-card__icon--out-of-stock">
+            <i class="pi pi-plus"></i>
+          </span>
+          <div>
+            <span>{{ 'recipes.costs.summary.modifiers' | transloco }}</span>
+            <strong>{{ costModifierTotal() }}</strong>
+          </div>
+        </article>
+      </section>
+
+      <div class="recipes-layout">
+        <section class="recipes-panel">
+          <div class="recipes-panel__header">
+            <div>
+              <h2>{{ 'recipes.costs.dishes.title' | transloco }}</h2>
+              <p>{{ 'recipes.costs.dishes.description' | transloco }}</p>
+            </div>
+          </div>
+
+          @if (dishCosts().length > 0) {
+            <div class="table-wrapper">
+              <table class="restaurant-table">
+                <thead>
+                  <tr>
+                    <th>{{ 'recipes.costs.columns.item' | transloco }}</th>
+                    <th>{{ 'recipes.costs.columns.category' | transloco }}</th>
+                    <th class="restaurant-table__num">
+                      {{ 'recipes.costs.columns.price' | transloco }}
+                    </th>
+                    <th class="restaurant-table__num">
+                      {{ 'recipes.costs.columns.cost' | transloco }}
+                    </th>
+                    <th class="restaurant-table__num">
+                      {{ 'recipes.costs.columns.grossMargin' | transloco }}
+                    </th>
+                    <th class="restaurant-table__num">
+                      {{ 'recipes.costs.columns.marginPercentage' | transloco }}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (cost of dishCosts(); track cost.dishId) {
+                    <tr
+                      class="restaurant-table__row"
+                      [class.restaurant-table__row--selected]="selectedCostDishId() === cost.dishId"
+                      (click)="selectCostDish(cost.dishId)"
+                    >
+                      <td>
+                        <div class="dish-cell">
+                          <strong>{{ cost.dishName }}</strong>
+                          <small>{{ cost.dishCode }}</small>
+                        </div>
+                      </td>
+                      <td>{{ cost.categoryName }}</td>
+                      <td class="restaurant-table__num">{{ formatCost(cost.salePrice ?? 0) }}</td>
+                      <td class="restaurant-table__num">
+                        {{ formatCost(cost.totalProductionCost) }}
+                      </td>
+                      <td class="restaurant-table__num">{{ formatCost(cost.grossMargin) }}</td>
+                      <td class="restaurant-table__num">
+                        {{ formatPercent(cost.marginPercentage) }}
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          } @else {
+            <div class="state-panel state-panel--empty">
+              <span class="state-panel__icon">
+                <i class="pi pi-book"></i>
+              </span>
+              <strong>{{ 'recipes.costs.dishes.empty' | transloco }}</strong>
+              <p>{{ 'recipes.costs.dishes.emptyDescription' | transloco }}</p>
+            </div>
+          }
+
+          <section class="recipes-subsection">
+            <div class="recipes-panel__header">
+              <div>
+                <h2>{{ 'recipes.costs.modifiers.title' | transloco }}</h2>
+                <p>{{ 'recipes.costs.modifiers.description' | transloco }}</p>
+              </div>
+            </div>
+
+            @if (modifierCosts().length > 0) {
+              <div class="table-wrapper">
+                <table class="restaurant-table">
+                  <thead>
+                    <tr>
+                      <th>{{ 'recipes.costs.columns.modifier' | transloco }}</th>
+                      <th class="restaurant-table__num">
+                        {{ 'recipes.costs.columns.additionalPrice' | transloco }}
+                      </th>
+                      <th class="restaurant-table__num">
+                        {{ 'recipes.costs.columns.cost' | transloco }}
+                      </th>
+                      <th class="restaurant-table__num">
+                        {{ 'recipes.costs.columns.grossMargin' | transloco }}
+                      </th>
+                      <th class="restaurant-table__num">
+                        {{ 'recipes.costs.columns.marginPercentage' | transloco }}
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (cost of modifierCosts(); track cost.modifierId) {
+                      <tr
+                        class="restaurant-table__row"
+                        [class.restaurant-table__row--selected]="
+                          selectedCostModifierId() === cost.modifierId
+                        "
+                        (click)="selectCostModifier(cost.modifierId)"
+                      >
+                        <td>
+                          <div class="dish-cell">
+                            <strong>{{ cost.modifierName }}</strong>
+                            <small>{{ cost.modifierCode }}</small>
+                          </div>
+                        </td>
+                        <td class="restaurant-table__num">
+                          {{ formatCost(cost.additionalPrice) }}
+                        </td>
+                        <td class="restaurant-table__num">
+                          {{ formatCost(cost.totalProductionCost) }}
+                        </td>
+                        <td class="restaurant-table__num">{{ formatCost(cost.grossMargin) }}</td>
+                        <td class="restaurant-table__num">
+                          {{ formatPercent(cost.marginPercentage) }}
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            } @else {
+              <div class="state-panel state-panel--empty">
+                <span class="state-panel__icon">
+                  <i class="pi pi-plus"></i>
+                </span>
+                <strong>{{ 'recipes.costs.modifiers.empty' | transloco }}</strong>
+                <p>{{ 'recipes.costs.modifiers.emptyDescription' | transloco }}</p>
+              </div>
+            }
+          </section>
+        </section>
+
+        <section class="recipes-panel recipe-detail">
+          @if (isDishCostDetailLoading()) {
+            <div class="state-panel">
+              <i class="pi pi-spin pi-spinner"></i>
+              <span>{{ 'common.loading' | transloco }}</span>
+            </div>
+          } @else if (selectedDishCost()) {
+            <div class="recipe-detail__header">
+              <div>
+                <span class="registration-dialog__eyebrow">{{
+                  'recipes.costs.detail.eyebrow' | transloco
+                }}</span>
+                <h2>{{ selectedDishCost()!.dishName }}</h2>
+                <p>{{ selectedDishCost()!.dishCode }} · {{ selectedDishCost()!.categoryName }}</p>
+              </div>
+              <div class="recipe-detail__header-actions">
+                <span class="recipe-version-chip"
+                  >v{{ selectedDishCost()!.recipeVersionNumber }}</span
+                >
+              </div>
+            </div>
+
+            @if (costDetailErrorMessage()) {
+              <app-form-feedback type="error" [message]="costDetailErrorMessage()!" />
+            }
+
+            <div class="recipe-summary-grid">
+              <div class="recipe-summary-item">
+                <span>{{ 'recipes.costs.detail.summary.cost' | transloco }}</span>
+                <strong>{{ formatCost(selectedDishCost()!.totalProductionCost) }}</strong>
+              </div>
+              <div class="recipe-summary-item">
+                <span>{{ 'recipes.costs.detail.summary.price' | transloco }}</span>
+                <strong>{{ formatCost(selectedDishCost()!.salePrice ?? 0) }}</strong>
+              </div>
+              <div class="recipe-summary-item">
+                <span>{{ 'recipes.costs.detail.summary.grossMargin' | transloco }}</span>
+                <strong>{{ formatCost(selectedDishCost()!.grossMargin) }}</strong>
+              </div>
+              <div class="recipe-summary-item">
+                <span>{{ 'recipes.costs.detail.summary.marginPercentage' | transloco }}</span>
+                <strong>{{ formatPercent(selectedDishCost()!.marginPercentage) }}</strong>
+              </div>
+            </div>
+
+            <dl class="recipe-meta">
+              <dt>{{ 'recipes.costs.detail.calculatedAt' | transloco }}</dt>
+              <dd>{{ formatDate(selectedDishCost()!.calculatedAt) }}</dd>
+            </dl>
+
+            <div class="table-wrapper">
+              <table class="restaurant-table restaurant-table--sm">
+                <thead>
+                  <tr>
+                    <th>{{ 'recipes.costs.detail.columns.supply' | transloco }}</th>
+                    <th class="restaurant-table__num">
+                      {{ 'recipes.costs.detail.columns.quantity' | transloco }}
+                    </th>
+                    <th class="restaurant-table__num">
+                      {{ 'recipes.costs.detail.columns.stockQuantity' | transloco }}
+                    </th>
+                    <th class="restaurant-table__num">
+                      {{ 'recipes.costs.detail.columns.unitCost' | transloco }}
+                    </th>
+                    <th class="restaurant-table__num">
+                      {{ 'recipes.costs.detail.columns.subtotal' | transloco }}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (ingredient of selectedDishCost()!.ingredients; track ingredient.supplyId) {
+                    <tr class="restaurant-table__row">
+                      <td>
+                        <div class="dish-cell">
+                          <strong>{{ ingredient.supplyName }}</strong>
+                          <small>{{ ingredient.supplyCode }}</small>
+                        </div>
+                      </td>
+                      <td class="restaurant-table__num">
+                        {{ formatQuantity(ingredient.quantity) }}
+                        {{ ingredient.recipeUnitAbbreviation }}
+                      </td>
+                      <td class="restaurant-table__num">
+                        {{ formatQuantity(ingredient.proportionalQuantity) }}
+                        {{ ingredient.stockUnitName }}
+                      </td>
+                      <td class="restaurant-table__num">
+                        <span class="cost-value">{{ formatCost(ingredient.unitCost) }}</span>
+                      </td>
+                      <td class="restaurant-table__num">
+                        <span class="cost-value">{{ formatCost(ingredient.subtotalCost) }}</span>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          } @else if (selectedCostModifier()) {
+            <div class="recipe-detail__header">
+              <div>
+                <span class="registration-dialog__eyebrow">{{
+                  'recipes.costs.detail.eyebrow' | transloco
+                }}</span>
+                <h2>{{ selectedCostModifier()!.modifierName }}</h2>
+                <p>{{ selectedCostModifier()!.modifierCode }}</p>
+              </div>
+              <div class="recipe-detail__header-actions">
+                <span class="recipe-version-chip"
+                  >v{{ selectedCostModifier()!.recipeVersionNumber }}</span
+                >
+              </div>
+            </div>
+
+            <div class="recipe-summary-grid">
+              <div class="recipe-summary-item">
+                <span>{{ 'recipes.costs.detail.summary.cost' | transloco }}</span>
+                <strong>{{ formatCost(selectedCostModifier()!.totalProductionCost) }}</strong>
+              </div>
+              <div class="recipe-summary-item">
+                <span>{{ 'recipes.costs.detail.summary.additionalPrice' | transloco }}</span>
+                <strong>{{ formatCost(selectedCostModifier()!.additionalPrice) }}</strong>
+              </div>
+              <div class="recipe-summary-item">
+                <span>{{ 'recipes.costs.detail.summary.grossMargin' | transloco }}</span>
+                <strong>{{ formatCost(selectedCostModifier()!.grossMargin) }}</strong>
+              </div>
+              <div class="recipe-summary-item">
+                <span>{{ 'recipes.costs.detail.summary.marginPercentage' | transloco }}</span>
+                <strong>{{ formatPercent(selectedCostModifier()!.marginPercentage) }}</strong>
+              </div>
+            </div>
+
+            <dl class="recipe-meta">
+              <dt>{{ 'recipes.costs.detail.calculatedAt' | transloco }}</dt>
+              <dd>{{ formatDate(selectedCostModifier()!.calculatedAt) }}</dd>
+            </dl>
+
+            <div class="table-wrapper">
+              <table class="restaurant-table restaurant-table--sm">
+                <thead>
+                  <tr>
+                    <th>{{ 'recipes.costs.detail.columns.supply' | transloco }}</th>
+                    <th class="restaurant-table__num">
+                      {{ 'recipes.costs.detail.columns.quantity' | transloco }}
+                    </th>
+                    <th class="restaurant-table__num">
+                      {{ 'recipes.costs.detail.columns.stockQuantity' | transloco }}
+                    </th>
+                    <th class="restaurant-table__num">
+                      {{ 'recipes.costs.detail.columns.unitCost' | transloco }}
+                    </th>
+                    <th class="restaurant-table__num">
+                      {{ 'recipes.costs.detail.columns.subtotal' | transloco }}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (
+                    ingredient of selectedCostModifier()!.ingredients;
+                    track ingredient.supplyId
+                  ) {
+                    <tr class="restaurant-table__row">
+                      <td>
+                        <div class="dish-cell">
+                          <strong>{{ ingredient.supplyName }}</strong>
+                          <small>{{ ingredient.supplyCode }}</small>
+                        </div>
+                      </td>
+                      <td class="restaurant-table__num">
+                        {{ formatQuantity(ingredient.quantity) }}
+                        {{ ingredient.recipeUnitAbbreviation }}
+                      </td>
+                      <td class="restaurant-table__num">
+                        {{ formatQuantity(ingredient.proportionalQuantity) }}
+                        {{ ingredient.stockUnitName }}
+                      </td>
+                      <td class="restaurant-table__num">
+                        <span class="cost-value">{{ formatCost(ingredient.unitCost) }}</span>
+                      </td>
+                      <td class="restaurant-table__num">
+                        <span class="cost-value">{{ formatCost(ingredient.subtotalCost) }}</span>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          } @else {
+            <div class="state-panel state-panel--empty recipe-detail__empty">
+              <span class="state-panel__icon">
+                <i class="pi pi-calculator"></i>
+              </span>
+              <strong>{{ 'recipes.costs.detail.selectHint' | transloco }}</strong>
+              <p>{{ 'recipes.costs.detail.selectHintDescription' | transloco }}</p>
+            </div>
+          }
+        </section>
+      </div>
+    }
+  } @else if (activeTab() === 'history') {
+    <div class="recipes-layout">
+      <section class="recipes-panel recipes-panel--history-list">
+        <section class="recipes-subsection">
+          <div class="recipes-panel__header">
+            <div>
+              <h2>{{ 'recipes.history.dishes.title' | transloco }}</h2>
+              <p>{{ 'recipes.history.dishes.description' | transloco }}</p>
+            </div>
+          </div>
+
+          @if (historyDishes().length > 0) {
+            <div class="table-wrapper">
+              <table class="restaurant-table">
+                <thead>
+                  <tr>
+                    <th>{{ 'recipes.history.columns.item' | transloco }}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (dish of historyDishes(); track dish.id) {
+                    <tr
+                      class="restaurant-table__row"
+                      [class.restaurant-table__row--selected]="selectedHistoryDishId() === dish.id"
+                      (click)="selectHistoryDish(dish.id)"
+                    >
+                      <td>
+                        <div class="dish-cell">
+                          <strong>{{ dish.name }}</strong>
+                          <small>{{ dish.code }}</small>
+                        </div>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          } @else {
+            <div class="state-panel state-panel--empty">
+              <span class="state-panel__icon">
+                <i class="pi pi-book"></i>
+              </span>
+              <strong>{{ 'recipes.history.dishes.empty' | transloco }}</strong>
+              <p>{{ 'recipes.history.dishes.emptyDescription' | transloco }}</p>
+            </div>
+          }
+        </section>
+
+        <section class="recipes-subsection">
+          <div class="recipes-panel__header">
+            <div>
+              <h2>{{ 'recipes.history.modifiers.title' | transloco }}</h2>
+              <p>{{ 'recipes.history.modifiers.description' | transloco }}</p>
+            </div>
+          </div>
+
+          @if (historyModifiers().length > 0) {
+            <div class="table-wrapper">
+              <table class="restaurant-table">
+                <thead>
+                  <tr>
+                    <th>{{ 'recipes.history.columns.modifier' | transloco }}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (modifier of historyModifiers(); track modifier.id) {
+                    <tr
+                      class="restaurant-table__row"
+                      [class.restaurant-table__row--selected]="
+                        selectedHistoryModifierId() === modifier.id
+                      "
+                      (click)="selectHistoryModifier(modifier.id)"
+                    >
+                      <td>
+                        <div class="dish-cell">
+                          <strong>{{ modifier.name }}</strong>
+                          <small>{{ modifier.code }}</small>
+                        </div>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          } @else {
+            <div class="state-panel state-panel--empty">
+              <span class="state-panel__icon">
+                <i class="pi pi-plus"></i>
+              </span>
+              <strong>{{ 'recipes.history.modifiers.empty' | transloco }}</strong>
+              <p>{{ 'recipes.history.modifiers.emptyDescription' | transloco }}</p>
+            </div>
+          }
+        </section>
+      </section>
+
+      <section class="recipes-panel recipes-panel--history-detail recipe-detail">
+        @if (isHistoryLoading()) {
+          <div class="state-panel">
+            <i class="pi pi-spin pi-spinner"></i>
+            <span>{{ 'common.loading' | transloco }}</span>
+          </div>
+        } @else if (historyErrorMessage()) {
+          <app-form-feedback type="error" [message]="historyErrorMessage()!" />
+        } @else if (historySummary()) {
+          @if (!historySummary()!.hasSubsequentChanges) {
+            <div class="state-panel state-panel--info">
+              <span class="state-panel__icon">
+                <i class="pi pi-info-circle"></i>
+              </span>
+              <strong>{{ 'recipes.history.noChanges.title' | transloco }}</strong>
+              <p>{{ 'recipes.history.noChanges.description' | transloco }}</p>
+            </div>
+          }
+
+          <div class="recipe-detail__header">
+            <div>
+              <span class="registration-dialog__eyebrow">{{
+                'recipes.history.detail.eyebrow' | transloco
+              }}</span>
+              <h2>{{ historySummary()!.name }}</h2>
+              <p>{{ historySummary()!.code }}</p>
+            </div>
+            <div class="recipe-detail__header-actions">
+              <span class="recipe-version-chip">v{{ historySummary()!.currentVersionNumber }}</span>
+            </div>
+          </div>
+
+          <div class="recipe-summary-grid">
+            <div class="recipe-summary-item">
+              <span>{{ 'recipes.history.detail.summary.current' | transloco }}</span>
+              <strong>v{{ historySummary()!.currentVersionNumber }}</strong>
+            </div>
+            <div class="recipe-summary-item">
+              <span>{{ 'recipes.history.detail.summary.totalVersions' | transloco }}</span>
+              <strong>{{ historySummary()!.totalVersions }}</strong>
+            </div>
+            @if (historySummary()!.versions.length > 0) {
+              <div class="recipe-summary-item">
+                <span>{{ 'recipes.history.detail.summary.latestCost' | transloco }}</span>
+                <strong>{{
+                  formatCost(
+                    historySummary()!.versions[historySummary()!.versions.length - 1].totalCost
+                  )
+                }}</strong>
+              </div>
+              <div class="recipe-summary-item">
+                <span>{{ 'recipes.history.detail.summary.lastChange' | transloco }}</span>
+                <strong>{{
+                  formatDate(
+                    historySummary()!.versions[historySummary()!.versions.length - 1].effectiveFrom
+                  )
+                }}</strong>
+              </div>
+            }
+          </div>
+
+          <div class="history-timeline">
+            @for (version of historySummary()!.versions; track version.versionNumber) {
+              <button
+                class="history-version-row"
+                type="button"
+                [class.history-version-row--selected]="
+                  selectedHistoryVersionNumber() === version.versionNumber
+                "
+                (click)="selectHistoryVersion(version.versionNumber)"
+              >
+                <span class="history-version-row__badge">v{{ version.versionNumber }}</span>
+                <div class="history-version-row__main">
+                  <div class="history-version-row__title">
+                    <span>{{ 'recipes.history.status.' + version.status | transloco }}</span>
+                    <small>{{
+                      version.changeReason ?? ('recipes.history.noReason' | transloco)
+                    }}</small>
+                  </div>
+                  <div class="history-version-row__chips">
+                    @if (version.added > 0) {
+                      <span class="change-chip change-chip--agregado">
+                        +{{ version.added }} {{ 'recipes.history.changes.added' | transloco }}
+                      </span>
+                    }
+                    @if (version.removed > 0) {
+                      <span class="change-chip change-chip--retirado">
+                        -{{ version.removed }} {{ 'recipes.history.changes.removed' | transloco }}
+                      </span>
+                    }
+                    @if (version.modified > 0) {
+                      <span class="change-chip change-chip--modificado">
+                        {{ version.modified }} {{ 'recipes.history.changes.modified' | transloco }}
+                      </span>
+                    }
+                    @if (
+                      version.versionNumber === 1 &&
+                      version.added === 0 &&
+                      version.removed === 0 &&
+                      version.modified === 0
+                    ) {
+                      <span class="change-chip change-chip--initial">{{
+                        'recipes.history.changes.initial' | transloco
+                      }}</span>
+                    }
+                  </div>
+                </div>
+                <div class="history-version-row__side">
+                  <strong>{{ formatCost(version.totalCost) }}</strong>
+                  <small>{{ formatDate(version.effectiveFrom) }}</small>
+                </div>
+              </button>
+            }
+          </div>
+
+          @if (isVersionDetailLoading()) {
+            <div class="state-panel">
+              <i class="pi pi-spin pi-spinner"></i>
+              <span>{{ 'common.loading' | transloco }}</span>
+            </div>
+          } @else if (versionDetailErrorMessage()) {
+            <app-form-feedback type="error" [message]="versionDetailErrorMessage()!" />
+          } @else if (historyVersionDetail()) {
+            <div class="history-detail">
+              <div class="history-detail__changes-header">
+                <h3>{{ 'recipes.history.detail.changesTitle' | transloco }}</h3>
+                @if (historyVersionDetail()!.previousVersionNumber != null) {
+                  <span class="history-detail__subtitle">{{
+                    'recipes.history.detail.versionsCompared'
+                      | transloco
+                        : {
+                            previous: historyVersionDetail()!.previousVersionNumber,
+                            current: historyVersionDetail()!.versionNumber,
+                          }
+                  }}</span>
+                }
+              </div>
+
+              @if (historyVersionDetail()!.changes.length > 0) {
+                <div class="table-wrapper">
+                  <table class="restaurant-table restaurant-table--sm">
+                    <thead>
+                      <tr>
+                        <th>{{ 'recipes.history.detail.columns.supply' | transloco }}</th>
+                        <th>{{ 'recipes.history.detail.columns.type' | transloco }}</th>
+                        <th>{{ 'recipes.history.detail.columns.previous' | transloco }}</th>
+                        <th>{{ 'recipes.history.detail.columns.current' | transloco }}</th>
+                        <th>{{ 'recipes.history.detail.columns.difference' | transloco }}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (change of historyVersionDetail()!.changes; track change.supplyCode) {
+                        <tr>
+                          <td>
+                            <div class="supply-cell">
+                              <strong>{{ change.supplyName }}</strong>
+                              <small>{{ change.supplyCode }}</small>
+                            </div>
+                          </td>
+                          <td>
+                            <span
+                              class="change-chip change-chip--{{
+                                changeChipClass(change.changeType)
+                              }}"
+                              >{{
+                                'recipes.history.changeTypes.' + change.changeType | transloco
+                              }}</span
+                            >
+                          </td>
+                          <td>
+                            @if (change.previousQuantity != null) {
+                              <span class="quantity-cell">
+                                {{ formatQuantity(change.previousQuantity) }}
+                                <small>{{ change.previousUnitName }}</small>
+                              </span>
+                            } @else {
+                              <span class="notes-cell">—</span>
+                            }
+                          </td>
+                          <td>
+                            @if (change.newQuantity != null) {
+                              <span class="quantity-cell">
+                                {{ formatQuantity(change.newQuantity) }}
+                                <small>{{ change.newUnitName }}</small>
+                              </span>
+                            } @else {
+                              <span class="notes-cell">—</span>
+                            }
+                          </td>
+                          <td>
+                            <span
+                              class="cost-value"
+                              [class.cost-value--negative]="change.costDifference < 0"
+                            >
+                              {{ formatSigned(change.costDifference) }}
+                            </span>
+                          </td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              } @else {
+                <p class="history-empty-composition">
+                  {{ 'recipes.history.detail.noChangesRows' | transloco }}
+                </p>
+              }
+
+              <div class="history-composition-grid">
+                <section class="history-composition">
+                  <header class="history-composition__header">
+                    <h4>
+                      {{
+                        'recipes.history.detail.previousComposition'
+                          | transloco
+                            : { number: historyVersionDetail()!.previousVersionNumber ?? 0 }
+                      }}
+                    </h4>
+                  </header>
+                  @if (historyVersionDetail()!.previousComposition.length > 0) {
+                    <div class="table-wrapper">
+                      <table class="restaurant-table restaurant-table--sm">
+                        <thead>
+                          <tr>
+                            <th>{{ 'recipes.history.detail.columns.ingredient' | transloco }}</th>
+                            <th>{{ 'recipes.history.detail.columns.quantity' | transloco }}</th>
+                            <th>{{ 'recipes.history.detail.columns.cost' | transloco }}</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          @for (
+                            row of historyVersionDetail()!.previousComposition;
+                            track row.supplyCode
+                          ) {
+                            <tr>
+                              <td>
+                                <div class="supply-cell">
+                                  <strong>{{ row.supplyName }}</strong>
+                                  <small>{{ row.supplyCode }}</small>
+                                </div>
+                              </td>
+                              <td>
+                                <span class="quantity-cell">
+                                  {{ formatQuantity(row.quantity) }}
+                                  <small>{{ row.unitAbbreviation }}</small>
+                                  @if (row.adjustmentType) {
+                                    <span class="adjustment-badge">{{
+                                      'recipes.history.adjustments.' + row.adjustmentType
+                                        | transloco
+                                    }}</span>
+                                  }
+                                </span>
+                              </td>
+                              <td>
+                                <span class="cost-value">{{ formatCost(row.subtotalCost) }}</span>
+                              </td>
+                            </tr>
+                          }
+                        </tbody>
+                      </table>
+                    </div>
+                  } @else {
+                    <p class="history-empty-composition">
+                      {{ 'recipes.history.detail.noPreviousComposition' | transloco }}
+                    </p>
+                  }
+                </section>
+
+                <section class="history-composition">
+                  <header class="history-composition__header">
+                    <h4>
+                      {{
+                        'recipes.history.detail.newComposition'
+                          | transloco: { number: historyVersionDetail()!.versionNumber }
+                      }}
+                    </h4>
+                  </header>
+                  @if (historyVersionDetail()!.newComposition.length > 0) {
+                    <div class="table-wrapper">
+                      <table class="restaurant-table restaurant-table--sm">
+                        <thead>
+                          <tr>
+                            <th>{{ 'recipes.history.detail.columns.ingredient' | transloco }}</th>
+                            <th>{{ 'recipes.history.detail.columns.quantity' | transloco }}</th>
+                            <th>{{ 'recipes.history.detail.columns.cost' | transloco }}</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          @for (
+                            row of historyVersionDetail()!.newComposition;
+                            track row.supplyCode
+                          ) {
+                            <tr>
+                              <td>
+                                <div class="supply-cell">
+                                  <strong>{{ row.supplyName }}</strong>
+                                  <small>{{ row.supplyCode }}</small>
+                                </div>
+                              </td>
+                              <td>
+                                <span class="quantity-cell">
+                                  {{ formatQuantity(row.quantity) }}
+                                  <small>{{ row.unitAbbreviation }}</small>
+                                  @if (row.adjustmentType) {
+                                    <span class="adjustment-badge">{{
+                                      'recipes.history.adjustments.' + row.adjustmentType
+                                        | transloco
+                                    }}</span>
+                                  }
+                                </span>
+                              </td>
+                              <td>
+                                <span class="cost-value">{{ formatCost(row.subtotalCost) }}</span>
+                              </td>
+                            </tr>
+                          }
+                        </tbody>
+                      </table>
+                    </div>
+                  } @else {
+                    <p class="history-empty-composition">
+                      {{ 'recipes.history.detail.noNewComposition' | transloco }}
+                    </p>
+                  }
+                </section>
+              </div>
+
+              <p class="history-detail__footer">
+                <span>{{ 'recipes.history.detail.registeredAt' | transloco }}</span>
+                <strong>{{ formatDate(historyVersionDetail()!.createdAt) }}</strong>
+              </p>
+            </div>
+          }
+        } @else {
+          <div class="state-panel state-panel--empty recipe-detail__empty">
+            <span class="state-panel__icon">
+              <i class="pi pi-history"></i>
+            </span>
+            <strong>{{ 'recipes.history.detail.selectHint' | transloco }}</strong>
+            <p>{{ 'recipes.history.detail.selectHintDescription' | transloco }}</p>
+          </div>
+        }
+      </section>
+    </div>
+  } @else {
+    <section class="recipes-panel">
+      <div class="state-panel state-panel--empty">
+        <span class="state-panel__icon">
+          <i class="pi pi-hourglass"></i>
+        </span>
+        <strong>{{ 'recipes.comingSoon.title' | transloco }}</strong>
+        <p>{{ 'recipes.comingSoon.description' | transloco }}</p>
+      </div>
+    </section>
+  }
+}
+
+@if (isDefineOpen() && (defineDish() || defineModifier())) {
+  <div class="registration-backdrop" (click)="isSavingDefine() ? null : closeDefine()">
+    <form
+      class="registration-dialog registration-dialog--wide"
+      [formGroup]="defineForm"
+      (ngSubmit)="submitDefine()"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="registration-dialog__header">
+        <div>
+          <span class="registration-dialog__eyebrow">{{
+            (isUpdatingRecipe() ? 'recipes.update.eyebrow' : 'recipes.define.eyebrow') | transloco
+          }}</span>
+          <h2>
+            {{
+              (isUpdatingRecipe() ? 'recipes.update.title' : 'recipes.define.title')
+                | transloco: { name: defineModifier()?.name ?? defineDish()!.name }
+            }}
+          </h2>
+          <p>
+            {{
+              (defineModifier()
+                ? isUpdatingRecipe()
+                  ? 'recipes.modifier.update.description'
+                  : 'recipes.modifier.define.description'
+                : isUpdatingRecipe()
+                  ? 'recipes.update.description'
+                  : 'recipes.define.description'
+              ) | transloco
+            }}
+          </p>
+          @if (defineModifier()) {
+            <small class="supply-card">
+              {{ 'recipes.modifier.fields.supplyCard.code' | transloco }}:
+              {{ defineModifier()!.code }} ·
+              {{ 'recipes.modifier.fields.supplyCard.price' | transloco }}:
+              {{ formatCost(defineModifier()!.additionalPrice) }}
+            </small>
+          } @else {
+            <small class="supply-card">
+              {{ 'recipes.define.fields.supplyCard.category' | transloco }}:
+              {{ defineDish()!.categoryName }} ·
+              {{ 'recipes.define.fields.supplyCard.price' | transloco }}:
+              {{ formatCost(defineDish()!.salePrice ?? 0) }}
+            </small>
+          }
+        </div>
+
+        <button
+          class="close-button"
+          type="button"
+          (click)="closeDefine()"
+          [disabled]="isSavingDefine()"
+          aria-label="Close"
+        >
+          <i class="pi pi-times"></i>
+        </button>
+      </div>
+
+      <app-form-feedback [message]="defineServerMessage()" />
+
+      <div class="form-field form-field--span-2">
+        <label for="recipe-ingredients">
+          {{ 'recipes.define.fields.ingredients' | transloco }}
+        </label>
+        <app-ingredient-editor
+          [supplies]="supplies()"
+          [units]="measurementUnits()"
+          [submitted]="defineSubmitted()"
+          formControlName="ingredients"
+        />
+      </div>
+
+      @if (defineSubmitted() && hasIngredientsError()) {
+        <small class="field-error">{{ defineValidationErrorKey() | transloco }}</small>
+      }
+
+      <div class="form-field form-field--span-2">
+        <label for="recipe-change-reason">
+          {{ 'recipes.define.fields.changeReason' | transloco }}
+          <span class="field-hint">{{ 'recipes.define.fields.changeReasonHint' | transloco }}</span>
+        </label>
+        <textarea
+          id="recipe-change-reason"
+          formControlName="changeReason"
+          rows="2"
+          maxlength="500"
+        ></textarea>
+      </div>
+
+      <div class="define-cost-preview">
+        <span>{{ 'recipes.define.fields.estimatedTotal' | transloco }}</span>
+        <strong>{{ formatCost(defineCostPreview().total) }}</strong>
+        @if (defineCostPreview().hasConverted) {
+          <small>{{ 'recipes.define.costConvertedHint' | transloco }}</small>
+        }
+      </div>
+
+      <div class="registration-dialog__actions">
+        <button
+          class="cancel-button"
+          type="button"
+          (click)="closeDefine()"
+          [disabled]="isSavingDefine()"
+        >
+          {{ 'common.cancel' | transloco }}
+        </button>
+        <button class="save-button" type="submit" [disabled]="isSavingDefine()">
+          <i class="pi pi-check"></i>
+          @if (isSavingDefine()) {
+            <i class="pi pi-spin pi-spinner"></i>
+            {{
+              (isUpdatingRecipe()
+                ? 'recipes.update.actions.saving'
+                : 'recipes.define.actions.saving'
+              ) | transloco
+            }}
+          } @else {
+            {{
+              (isUpdatingRecipe() ? 'recipes.update.actions.save' : 'recipes.define.actions.save')
+                | transloco
+            }}
+          }
+        </button>
+      </div>
+    </form>
+  </div>
+}
