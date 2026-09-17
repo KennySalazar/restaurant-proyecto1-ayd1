@@ -21,6 +21,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import java.util.List;
 import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 
 @RestController
 @RequestMapping("/admin/mesas")
@@ -94,6 +95,18 @@ public class TableAdminController {
             Authentication authentication) {
 
         return tableService.retireTable(
+                id,
+                authentication
+        );
+    }
+
+    @PatchMapping("/{id}/reactivar")
+    @Operation(summary = "Reactivar una mesa retirada")
+    public TableResponse reactivateTable(
+            @PathVariable Long id,
+            Authentication authentication) {
+
+        return tableService.reactivateTable(
                 id,
                 authentication
         );
