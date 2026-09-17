@@ -162,20 +162,23 @@ public class InventoryAdjustmentService {
                 request.reason().trim(),
                 responsibleUserId
         );
-        movement.setPreviousStock(currentStock);
-        movement.setResultingStock(newStock);
-        movement.setUnitCostSnapshot(supply.getCurrentUnitCost() != null ? supply.getCurrentUnitCost() : BigDecimal.ZERO);
         InventoryMovement savedMovement = inventoryMovementRepository.save(movement);
 
-        supply.setCurrentStock(newStock);
-        supplyRepository.save(supply);
-
+        // El trigger fn_aplicar_movimiento_inventario calcula el stock anterior y
+        // resultante y actualiza stock_actual del insumo. Está prohibido actualizar
+        // el stock directamente (trg_bloquear_actualizacion_directa_stock), así que
+        // solo se sincroniza el contexto de persistencia con los valores calculados.
         if (entityManager != null) {
             entityManager.flush();
             entityManager.refresh(supply);
+            entityManager.refresh(savedMovement);
         }
 
-        boolean alertGenerated = syncLowStockNotification(restaurantId, supply, newStock);
+        BigDecimal finalStock = savedMovement.getResultingStock() != null
+                ? savedMovement.getResultingStock()
+                : newStock;
+
+        boolean alertGenerated = syncLowStockNotification(restaurantId, supply, finalStock);
 
         List<AffectedDishResponse> affectedDishes = evaluateAffectedDishes(restaurantId, supply.getId());
 
@@ -189,6 +192,13 @@ public class InventoryAdjustmentService {
                 ? "Ajuste manual de aumento registrado correctamente"
                 : "Ajuste manual de disminución registrado correctamente";
 
+        BigDecimal recordedPrevious = savedMovement.getPreviousStock() != null
+                ? savedMovement.getPreviousStock()
+                : currentStock;
+        BigDecimal recordedResulting = savedMovement.getResultingStock() != null
+                ? savedMovement.getResultingStock()
+                : newStock;
+
         return new InventoryAdjustmentResponse(
                 confirmMsg,
                 savedMovement.getId(),
@@ -198,8 +208,8 @@ public class InventoryAdjustmentService {
                 isIncrease ? "AUMENTO" : "DISMINUCION",
                 kardexType,
                 request.quantity(),
-                currentStock,
-                newStock,
+                recordedPrevious,
+                recordedResulting,
                 unit,
                 request.reason().trim(),
                 responsibleUserId,
