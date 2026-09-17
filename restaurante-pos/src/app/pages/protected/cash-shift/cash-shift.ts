@@ -1,12 +1,18 @@
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import {
+  FormBuilder,
+  ReactiveFormsModule,
+  Validators,
+} from '@angular/forms';
 import { TranslocoPipe } from '@jsverse/transloco';
 import { InputTextModule } from 'primeng/inputtext';
 import { finalize } from 'rxjs';
 import {
   CashRegisterAvailability,
   CashShiftResponse,
+  CloseCashShiftResponse,
+  CurrentCashShiftResponse,
 } from '../../../core/models/cash-shift.models';
 import { ApiErrorService } from '../../../core/services/api-error.service';
 import { CashShiftService } from '../../../core/services/cash-shift.service';
@@ -33,12 +39,21 @@ export class CashShiftPageComponent implements OnInit {
   private readonly errors = inject(ApiErrorService);
 
   readonly cashRegisters = signal<CashRegisterAvailability[]>([]);
+  readonly currentShift = signal<CurrentCashShiftResponse | null>(null);
+  readonly openedShift = signal<CashShiftResponse | null>(null);
+  readonly closedShift = signal<CloseCashShiftResponse | null>(null);
+
+  readonly loadingCurrentShift = signal(false);
   readonly loadingRegisters = signal(false);
   readonly submitting = signal(false);
+  readonly closing = signal(false);
+
   readonly submitted = signal(false);
+  readonly closeSubmitted = signal(false);
+
   readonly loadError = signal<string | null>(null);
   readonly errorMessage = signal<string | null>(null);
-  readonly openedShift = signal<CashShiftResponse | null>(null);
+  readonly closeError = signal<string | null>(null);
 
   readonly form = this.formBuilder.group({
     cajaId: this.formBuilder.control<number | null>(
@@ -55,8 +70,19 @@ export class CashShiftPageComponent implements OnInit {
     observaciones: this.formBuilder.nonNullable.control(''),
   });
 
+  readonly closeForm = this.formBuilder.group({
+    efectivoReal: this.formBuilder.control<number | null>(
+      null,
+      [
+        Validators.required,
+        Validators.min(0),
+      ],
+    ),
+    observaciones: this.formBuilder.nonNullable.control(''),
+  });
+
   ngOnInit(): void {
-    this.loadCashRegisters();
+    this.loadCurrentShift();
   }
 
   hasAvailableRegisters(): boolean {
@@ -131,6 +157,85 @@ export class CashShiftPageComponent implements OnInit {
       });
   }
 
+  submitClose(): void {
+    this.closeSubmitted.set(true);
+    this.closeError.set(null);
+
+    if (this.closeForm.invalid) {
+      this.closeForm.markAllAsTouched();
+      return;
+    }
+
+    const shift = this.currentShift();
+    const value = this.closeForm.getRawValue();
+
+    if (
+      shift === null ||
+      value.efectivoReal === null
+    ) {
+      return;
+    }
+
+    this.closing.set(true);
+
+    this.cashShiftService
+      .closeShift(
+        shift.id,
+        {
+          efectivoReal: value.efectivoReal,
+          observaciones:
+            value.observaciones.trim() || null,
+        },
+      )
+      .pipe(
+        finalize(() => this.closing.set(false)),
+      )
+      .subscribe({
+        next: (response) => {
+          this.closedShift.set(response);
+          this.currentShift.set(null);
+          this.closeForm.disable();
+        },
+        error: (error: unknown) => {
+          this.closeError.set(
+            this.errors.getMessage(error),
+          );
+        },
+      });
+  }
+
+  private loadCurrentShift(): void {
+    this.loadingCurrentShift.set(true);
+    this.loadError.set(null);
+
+    this.cashShiftService
+      .getCurrentShift()
+      .pipe(
+        finalize(() =>
+          this.loadingCurrentShift.set(false),
+        ),
+      )
+      .subscribe({
+        next: (shift) => {
+          this.currentShift.set(shift);
+          this.cashRegisters.set([]);
+        },
+        error: (error: unknown) => {
+          const problem = this.errors.getProblem(error);
+
+          if (problem.code === 'open_cash_shift_required') {
+            this.currentShift.set(null);
+            this.loadCashRegisters();
+            return;
+          }
+
+          this.loadError.set(
+            this.errors.getMessage(error),
+          );
+        },
+      });
+  }
+
   private loadCashRegisters(): void {
     this.loadingRegisters.set(true);
     this.loadError.set(null);
@@ -138,7 +243,9 @@ export class CashShiftPageComponent implements OnInit {
     this.cashShiftService
       .getCashRegisters()
       .pipe(
-        finalize(() => this.loadingRegisters.set(false)),
+        finalize(() =>
+          this.loadingRegisters.set(false),
+        ),
       )
       .subscribe({
         next: (cashRegisters) => {

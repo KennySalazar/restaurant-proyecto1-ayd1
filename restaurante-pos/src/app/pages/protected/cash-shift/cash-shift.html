@@ -1,10 +1,263 @@
 <app-page-heading
-  eyebrowKey="cashShift.eyebrow"
-  titleKey="cashShift.title"
-  descriptionKey="cashShift.description"
+  [eyebrowKey]="
+    currentShift() || closedShift()
+      ? 'cashShift.closeEyebrow'
+      : 'cashShift.eyebrow'
+  "
+  [titleKey]="
+    currentShift() || closedShift()
+      ? 'cashShift.closeTitle'
+      : 'cashShift.title'
+  "
+  [descriptionKey]="
+    currentShift() || closedShift()
+      ? 'cashShift.closeDescription'
+      : 'cashShift.description'
+  "
 />
 
-@if (openedShift(); as shift) {
+@if (loadingCurrentShift()) {
+  <div class="cash-shift-layout">
+    <section class="cash-shift-card">
+      <div class="cash-shift-state">
+        <i class="pi pi-spin pi-spinner"></i>
+
+        <span>
+          {{ 'cashShift.loadingCurrentShift' | transloco }}
+        </span>
+      </div>
+    </section>
+  </div>
+} @else if (closedShift(); as shift) {
+  <section class="shift-success">
+    <span class="shift-success__icon">
+      <i class="pi pi-check"></i>
+    </span>
+
+    <div class="shift-success__content">
+      <span class="shift-success__eyebrow">
+        {{ 'cashShift.closeSuccessTitle' | transloco }}
+      </span>
+
+      <h2>
+        {{ 'cashShift.shift' | transloco }} #{{ shift.id }}
+      </h2>
+
+      <p>
+        {{ 'cashShift.closeSuccessDescription' | transloco }}
+      </p>
+
+      <div class="shift-success__details">
+        <div>
+          <span>{{ 'cashShift.status' | transloco }}</span>
+          <strong>{{ shift.estado }}</strong>
+        </div>
+
+        <div>
+          <span>
+            {{ 'cashShift.initialAmount' | transloco }}
+          </span>
+          <strong>
+            Q {{ shift.montoInicialEfectivo | number: '1.2-2' }}
+          </strong>
+        </div>
+
+        <div>
+          <span>
+            {{ 'cashShift.expectedCash' | transloco }}
+          </span>
+          <strong>
+            Q {{ shift.efectivoEsperado | number: '1.2-2' }}
+          </strong>
+        </div>
+
+        <div>
+          <span>
+            {{ 'cashShift.actualCash' | transloco }}
+          </span>
+          <strong>
+            Q {{ shift.efectivoReal | number: '1.2-2' }}
+          </strong>
+        </div>
+
+        <div>
+          <span>
+            {{ 'cashShift.difference' | transloco }}
+          </span>
+          <strong>
+            Q {{ shift.diferencia | number: '1.2-2' }}
+          </strong>
+        </div>
+
+        <div>
+          <span>
+            {{ 'cashShift.closedAt' | transloco }}
+          </span>
+          <strong>
+            {{ shift.cerradaEn | date: 'dd/MM/yyyy HH:mm' }}
+          </strong>
+        </div>
+      </div>
+    </div>
+  </section>
+} @else if (currentShift(); as shift) {
+  <div class="cash-shift-layout">
+    <section class="cash-shift-card">
+      <app-form-feedback [message]="loadError()" />
+      <app-form-feedback [message]="closeError()" />
+
+      <div class="register-list">
+        <article class="register-card">
+          <span class="register-card__icon">
+            <i class="pi pi-credit-card"></i>
+          </span>
+
+          <div class="register-card__body">
+            <div class="register-card__heading">
+              <div>
+                <strong>{{ shift.nombreCaja }}</strong>
+                <span>{{ shift.codigoCaja }}</span>
+              </div>
+
+              <span class="register-status">
+                {{ shift.estado }}
+              </span>
+            </div>
+
+            <small>
+              <i class="pi pi-clock"></i>
+              {{ 'cashShift.shift' | transloco }}
+              #{{ shift.id }}
+            </small>
+
+            <small>
+              <i class="pi pi-calendar"></i>
+              {{ shift.abiertaEn | date: 'dd/MM/yyyy HH:mm' }}
+            </small>
+          </div>
+        </article>
+      </div>
+
+      <div class="shift-success__details">
+        <div>
+          <span>
+            {{ 'cashShift.initialAmount' | transloco }}
+          </span>
+
+          <strong>
+            Q {{ shift.montoInicialEfectivo | number: '1.2-2' }}
+          </strong>
+        </div>
+
+        <div>
+          <span>
+            {{ 'cashShift.expectedCash' | transloco }}
+          </span>
+
+          <strong>
+            Q {{ shift.efectivoEsperado | number: '1.2-2' }}
+          </strong>
+        </div>
+      </div>
+
+      <form
+        class="cash-shift-form"
+        [formGroup]="closeForm"
+        (ngSubmit)="submitClose()"
+        novalidate
+      >
+        <div class="form-field">
+          <label for="actual-cash">
+            {{ 'cashShift.actualCash' | transloco }}
+          </label>
+
+          <div class="currency-input">
+            <span>Q</span>
+
+            <input
+              id="actual-cash"
+              pInputText
+              type="number"
+              min="0"
+              step="0.01"
+              formControlName="efectivoReal"
+              [placeholder]="
+                'cashShift.actualCashPlaceholder'
+                  | transloco
+              "
+            />
+          </div>
+
+          @if (
+            (closeSubmitted() ||
+              closeForm.controls.efectivoReal.touched) &&
+            closeForm.controls.efectivoReal.hasError(
+              'required'
+            )
+            ) {
+            <small class="field-error">
+              {{
+                'cashShift.validation.actualCashRequired'
+                  | transloco
+              }}
+            </small>
+          }
+
+          @if (
+            (closeSubmitted() ||
+              closeForm.controls.efectivoReal.touched) &&
+            closeForm.controls.efectivoReal.hasError(
+              'min'
+            )
+            ) {
+            <small class="field-error">
+              {{
+                'cashShift.validation.actualCashMinimum'
+                  | transloco
+              }}
+            </small>
+          }
+        </div>
+
+        <div class="form-field">
+          <label for="closing-notes">
+            {{ 'cashShift.closingNotes' | transloco }}
+          </label>
+
+          <textarea
+            id="closing-notes"
+            rows="4"
+            formControlName="observaciones"
+            [placeholder]="
+              'cashShift.closingNotesPlaceholder'
+                | transloco
+            "
+          ></textarea>
+        </div>
+
+        <button
+          class="primary-button"
+          type="submit"
+          [disabled]="closing()"
+        >
+          @if (closing()) {
+            <i class="pi pi-spin pi-spinner"></i>
+
+            <span>
+              {{ 'cashShift.closing' | transloco }}
+            </span>
+          } @else {
+            <i class="pi pi-check"></i>
+
+            <span>
+              {{ 'cashShift.closeSubmit' | transloco }}
+            </span>
+          }
+        </button>
+      </form>
+    </section>
+  </div>
+} @else if (openedShift(); as shift) {
   <section class="shift-success">
     <span class="shift-success__icon">
       <i class="pi pi-check"></i>
@@ -38,6 +291,7 @@
           <span>
             {{ 'cashShift.initialAmount' | transloco }}
           </span>
+
           <strong>
             Q {{ shift.montoInicialEfectivo | number: '1.2-2' }}
           </strong>
@@ -45,6 +299,7 @@
 
         <div>
           <span>{{ 'cashShift.openedAt' | transloco }}</span>
+
           <strong>
             {{ shift.abiertaEn | date: 'dd/MM/yyyy HH:mm' }}
           </strong>
