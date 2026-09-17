@@ -13,6 +13,9 @@ import { debounceTime, distinctUntilChanged, finalize, forkJoin, Subject } from 
 
 import {
   CreateSupplyRequest,
+  KardexMovementNature,
+  KardexRecord,
+  KARDEX_MOVEMENT_NATURES,
   MeasurementUnit,
   Supply,
   SupplyCategory,
@@ -24,11 +27,13 @@ import { SupplyService } from '../../../core/services/supply.service';
 import { FormFeedbackComponent } from '../../../shared/components/form-feedback/form-feedback';
 import { PageHeadingComponent } from '../../../shared/components/page-heading/page-heading';
 
+type SupplyTab = 'supplies' | 'kardex';
+
 @Component({
   selector: 'app-supplies-page',
   imports: [FormFeedbackComponent, PageHeadingComponent, ReactiveFormsModule, TranslocoPipe],
   templateUrl: './supplies.html',
-  styleUrl: './supplies.scss',
+  styleUrls: ['./supplies.scss', './supplies-kardex.scss'],
 })
 export class SuppliesPageComponent implements OnInit {
   private readonly formBuilder = inject(FormBuilder);
@@ -47,6 +52,21 @@ export class SuppliesPageComponent implements OnInit {
   readonly errorMessage = signal<string | null>(null);
   readonly searchTerm = signal('');
   readonly selectedCategory = signal<number | null>(null);
+
+  readonly tabs: { id: SupplyTab; labelKey: string; icon: string }[] = [
+    { id: 'supplies', labelKey: 'supplies.tabs.supplies', icon: 'pi-box' },
+    { id: 'kardex', labelKey: 'supplies.tabs.kardex', icon: 'pi-history' },
+  ];
+
+  readonly kardexNatures = KARDEX_MOVEMENT_NATURES;
+
+  readonly activeTab = signal<SupplyTab>('supplies');
+  readonly kardexLoaded = signal(false);
+  readonly isKardexLoading = signal(false);
+  readonly kardexErrorMessage = signal<string | null>(null);
+  readonly kardex = signal<KardexRecord[]>([]);
+  readonly kardexSelectedSupplyId = signal<number | null>(null);
+  readonly kardexNature = signal<KardexMovementNature | null>(null);
 
   readonly isRegistrationOpen = signal(false);
   readonly isSaving = signal(false);
@@ -73,6 +93,40 @@ export class SuppliesPageComponent implements OnInit {
 
   readonly hasActiveFilters = computed(
     () => !!this.searchTerm() || this.selectedCategory() != null,
+  );
+
+  readonly kardexSupplies = computed(() => {
+    const ids = new Set(this.kardex().map((record) => record.supplyId));
+    return this.supplies().filter((supply) => ids.has(supply.id));
+  });
+
+  readonly kardexFiltered = computed(() => {
+    const records = this.kardex();
+    const supplyId = this.kardexSelectedSupplyId();
+    const nature = this.kardexNature();
+
+    return records
+      .filter(
+        (record) =>
+          (supplyId == null || record.supplyId === supplyId) &&
+          (nature == null || record.movementNature === nature),
+      )
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  });
+
+  readonly kardexSummary = computed(() => {
+    const records = this.kardexFiltered();
+    return {
+      total: records.length,
+      entries: records.filter((record) => record.movementNature === 'ENTRADA').length,
+      sales: records.filter((record) => record.type === 'SALIDA_VENTA').length,
+      wastes: records.filter((record) => record.type === 'SALIDA_MERMA').length,
+      adjustments: records.filter((record) => record.isAdjustment).length,
+    };
+  });
+
+  readonly hasKardexFilters = computed(
+    () => this.kardexSelectedSupplyId() != null || this.kardexNature() != null,
   );
 
   readonly registrationForm = this.formBuilder.group({
@@ -709,6 +763,103 @@ export class SuppliesPageComponent implements OnInit {
     const day = String(now.getDate()).padStart(2, '0');
 
     return `${year}-${month}-${day}`;
+  }
+
+  setTab(tab: SupplyTab): void {
+    this.activeTab.set(tab);
+
+    if (tab === 'kardex' && !this.kardexLoaded()) {
+      this.loadKardex();
+    }
+  }
+
+  loadKardex(): void {
+    this.isKardexLoading.set(true);
+    this.kardexErrorMessage.set(null);
+
+    this.supplyService
+      .getKardex()
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.isKardexLoading.set(false)),
+      )
+      .subscribe({
+        next: (records) => {
+          this.kardex.set(records);
+          this.kardexLoaded.set(true);
+        },
+        error: (error: unknown) => this.kardexErrorMessage.set(this.errors.getMessage(error)),
+      });
+  }
+
+  selectKardexSupply(supplyId: number | null): void {
+    this.kardexSelectedSupplyId.set(supplyId);
+  }
+
+  parseKardexSupplyId(raw: string): number | null {
+    if (!raw) {
+      return null;
+    }
+
+    const value = Number(raw);
+    return Number.isNaN(value) ? null : value;
+  }
+
+  setKardexNature(nature: KardexMovementNature | null): void {
+    this.kardexNature.set(nature);
+  }
+
+  clearKardexFilters(): void {
+    this.kardexSelectedSupplyId.set(null);
+    this.kardexNature.set(null);
+  }
+
+  kardexTypeChipClass(type: string): string {
+    return `kardex-type-chip--${type.toLowerCase()}`;
+  }
+
+  kardexReference(
+    record: KardexRecord,
+  ): { kind: 'comanda' | 'entry' | 'waste' | 'reason'; text: string } | null {
+    if (record.comandaId != null) {
+      return { kind: 'comanda', text: String(record.comandaId) };
+    }
+
+    if (record.entryDocumentNumber) {
+      return { kind: 'entry', text: record.entryDocumentNumber };
+    }
+
+    if (record.wasteDocumentNumber) {
+      return { kind: 'waste', text: record.wasteDocumentNumber };
+    }
+
+    if (record.reason) {
+      return { kind: 'reason', text: record.reason };
+    }
+
+    return null;
+  }
+
+  formatKardexQuantity(value: number): string {
+    return new Intl.NumberFormat('es-GT', {
+      maximumFractionDigits: 4,
+    }).format(value);
+  }
+
+  formatDateTime(iso: string): string {
+    const date = new Date(iso);
+
+    if (Number.isNaN(date.getTime())) {
+      return iso;
+    }
+
+    return new Intl.DateTimeFormat('es-GT', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    }).format(date);
   }
 
   formatCost(value: number): string {

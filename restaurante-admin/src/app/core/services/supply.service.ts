@@ -8,6 +8,7 @@ import {
   CreateSupplyEntryRequest,
   CreateSupplyRequest,
   CreateSupplyWasteRequest,
+  KardexRecord,
   MeasurementUnit,
   SingleSupplyAlertStatusResponse,
   Supply,
@@ -109,5 +110,13 @@ export class SupplyService {
       `${this.suppliesUrl}/${supplyId}/wastes`,
       payload,
     );
+  }
+
+  getKardex(): Observable<KardexRecord[]> {
+    return this.http.get<KardexRecord[]>(`${environment.apiBaseUrl}/admin/kardex`);
+  }
+
+  getSupplyKardex(supplyId: number): Observable<KardexRecord[]> {
+    return this.http.get<KardexRecord[]>(`${this.suppliesUrl}/${supplyId}/kardex`);
   }
 }
