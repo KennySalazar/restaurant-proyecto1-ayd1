@@ -121,3 +121,60 @@ export interface ModifierRecipeRegistrationResponse {
   message: string;
   recipe: ModifierRecipe;
 }
+
+export interface ProductionCostIngredient {
+  supplyId: number;
+  supplyCode: string;
+  supplyName: string;
+  quantity: number;
+  recipeUnitId: number | null;
+  recipeUnitName: string;
+  recipeUnitAbbreviation: string;
+  stockUnitName: string;
+  unitCost: number;
+  proportionalQuantity: number;
+  subtotalCost: number;
+  notes: string | null;
+}
+
+export interface DishCostSummary {
+  dishId: number;
+  dishCode: string;
+  dishName: string;
+  categoryName: string;
+  salePrice: number | null;
+  recipeVersionId: number;
+  recipeVersionNumber: number;
+  totalProductionCost: number;
+  grossMargin: number;
+  marginPercentage: number;
+}
+
+export interface DishProductionCost {
+  dishId: number;
+  dishCode: string;
+  dishName: string;
+  categoryName: string;
+  salePrice: number | null;
+  recipeVersionId: number;
+  recipeVersionNumber: number;
+  totalProductionCost: number;
+  grossMargin: number;
+  marginPercentage: number;
+  ingredients: ProductionCostIngredient[];
+  calculatedAt: string;
+}
+
+export interface ModifierProductionCost {
+  modifierId: number;
+  modifierCode: string;
+  modifierName: string;
+  additionalPrice: number;
+  recipeVersionId: number;
+  recipeVersionNumber: number;
+  totalProductionCost: number;
+  grossMargin: number;
+  marginPercentage: number;
+  ingredients: ProductionCostIngredient[];
+  calculatedAt: string;
+}

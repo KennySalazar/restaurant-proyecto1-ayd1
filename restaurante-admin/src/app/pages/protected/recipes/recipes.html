@@ -576,6 +576,387 @@
         }
       </section>
     </div>
+  } @else if (activeTab() === 'costs') {
+    @if (isCostsLoading()) {
+      <section class="recipes-panel">
+        <div class="state-panel">
+          <i class="pi pi-spin pi-spinner"></i>
+          <span>{{ 'common.loading' | transloco }}</span>
+        </div>
+      </section>
+    } @else if (costsErrorMessage()) {
+      <section class="recipes-panel">
+        <app-form-feedback type="error" [message]="costsErrorMessage()!" />
+      </section>
+    } @else {
+      <section class="summary-grid">
+        <article class="summary-card">
+          <span class="summary-card__icon">
+            <i class="pi pi-book"></i>
+          </span>
+          <div>
+            <span>{{ 'recipes.costs.summary.dishes' | transloco }}</span>
+            <strong>{{ costDishTotal() }}</strong>
+          </div>
+        </article>
+
+        <article class="summary-card">
+          <span class="summary-card__icon summary-card__icon--active">
+            <i class="pi pi-percentage"></i>
+          </span>
+          <div>
+            <span>{{ 'recipes.costs.summary.averageMargin' | transloco }}</span>
+            <strong>{{ formatPercent(averageMarginPercentage()) }}</strong>
+          </div>
+        </article>
+
+        <article class="summary-card">
+          <span class="summary-card__icon summary-card__icon--out-of-stock">
+            <i class="pi pi-plus"></i>
+          </span>
+          <div>
+            <span>{{ 'recipes.costs.summary.modifiers' | transloco }}</span>
+            <strong>{{ costModifierTotal() }}</strong>
+          </div>
+        </article>
+      </section>
+
+      <div class="recipes-layout">
+        <section class="recipes-panel">
+          <div class="recipes-panel__header">
+            <div>
+              <h2>{{ 'recipes.costs.dishes.title' | transloco }}</h2>
+              <p>{{ 'recipes.costs.dishes.description' | transloco }}</p>
+            </div>
+          </div>
+
+          @if (dishCosts().length > 0) {
+            <div class="table-wrapper">
+              <table class="restaurant-table">
+                <thead>
+                  <tr>
+                    <th>{{ 'recipes.costs.columns.item' | transloco }}</th>
+                    <th>{{ 'recipes.costs.columns.category' | transloco }}</th>
+                    <th class="restaurant-table__num">
+                      {{ 'recipes.costs.columns.price' | transloco }}
+                    </th>
+                    <th class="restaurant-table__num">
+                      {{ 'recipes.costs.columns.cost' | transloco }}
+                    </th>
+                    <th class="restaurant-table__num">
+                      {{ 'recipes.costs.columns.grossMargin' | transloco }}
+                    </th>
+                    <th class="restaurant-table__num">
+                      {{ 'recipes.costs.columns.marginPercentage' | transloco }}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (cost of dishCosts(); track cost.dishId) {
+                    <tr
+                      class="restaurant-table__row"
+                      [class.restaurant-table__row--selected]="selectedCostDishId() === cost.dishId"
+                      (click)="selectCostDish(cost.dishId)"
+                    >
+                      <td>
+                        <div class="dish-cell">
+                          <strong>{{ cost.dishName }}</strong>
+                          <small>{{ cost.dishCode }}</small>
+                        </div>
+                      </td>
+                      <td>{{ cost.categoryName }}</td>
+                      <td class="restaurant-table__num">{{ formatCost(cost.salePrice ?? 0) }}</td>
+                      <td class="restaurant-table__num">
+                        {{ formatCost(cost.totalProductionCost) }}
+                      </td>
+                      <td class="restaurant-table__num">{{ formatCost(cost.grossMargin) }}</td>
+                      <td class="restaurant-table__num">
+                        {{ formatPercent(cost.marginPercentage) }}
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          } @else {
+            <div class="state-panel state-panel--empty">
+              <span class="state-panel__icon">
+                <i class="pi pi-book"></i>
+              </span>
+              <strong>{{ 'recipes.costs.dishes.empty' | transloco }}</strong>
+              <p>{{ 'recipes.costs.dishes.emptyDescription' | transloco }}</p>
+            </div>
+          }
+
+          <section class="recipes-subsection">
+            <div class="recipes-panel__header">
+              <div>
+                <h2>{{ 'recipes.costs.modifiers.title' | transloco }}</h2>
+                <p>{{ 'recipes.costs.modifiers.description' | transloco }}</p>
+              </div>
+            </div>
+
+            @if (modifierCosts().length > 0) {
+              <div class="table-wrapper">
+                <table class="restaurant-table">
+                  <thead>
+                    <tr>
+                      <th>{{ 'recipes.costs.columns.modifier' | transloco }}</th>
+                      <th class="restaurant-table__num">
+                        {{ 'recipes.costs.columns.additionalPrice' | transloco }}
+                      </th>
+                      <th class="restaurant-table__num">
+                        {{ 'recipes.costs.columns.cost' | transloco }}
+                      </th>
+                      <th class="restaurant-table__num">
+                        {{ 'recipes.costs.columns.grossMargin' | transloco }}
+                      </th>
+                      <th class="restaurant-table__num">
+                        {{ 'recipes.costs.columns.marginPercentage' | transloco }}
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (cost of modifierCosts(); track cost.modifierId) {
+                      <tr
+                        class="restaurant-table__row"
+                        [class.restaurant-table__row--selected]="
+                          selectedCostModifierId() === cost.modifierId
+                        "
+                        (click)="selectCostModifier(cost.modifierId)"
+                      >
+                        <td>
+                          <div class="dish-cell">
+                            <strong>{{ cost.modifierName }}</strong>
+                            <small>{{ cost.modifierCode }}</small>
+                          </div>
+                        </td>
+                        <td class="restaurant-table__num">
+                          {{ formatCost(cost.additionalPrice) }}
+                        </td>
+                        <td class="restaurant-table__num">
+                          {{ formatCost(cost.totalProductionCost) }}
+                        </td>
+                        <td class="restaurant-table__num">{{ formatCost(cost.grossMargin) }}</td>
+                        <td class="restaurant-table__num">
+                          {{ formatPercent(cost.marginPercentage) }}
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            } @else {
+              <div class="state-panel state-panel--empty">
+                <span class="state-panel__icon">
+                  <i class="pi pi-plus"></i>
+                </span>
+                <strong>{{ 'recipes.costs.modifiers.empty' | transloco }}</strong>
+                <p>{{ 'recipes.costs.modifiers.emptyDescription' | transloco }}</p>
+              </div>
+            }
+          </section>
+        </section>
+
+        <section class="recipes-panel recipe-detail">
+          @if (isDishCostDetailLoading()) {
+            <div class="state-panel">
+              <i class="pi pi-spin pi-spinner"></i>
+              <span>{{ 'common.loading' | transloco }}</span>
+            </div>
+          } @else if (selectedDishCost()) {
+            <div class="recipe-detail__header">
+              <div>
+                <span class="registration-dialog__eyebrow">{{
+                  'recipes.costs.detail.eyebrow' | transloco
+                }}</span>
+                <h2>{{ selectedDishCost()!.dishName }}</h2>
+                <p>{{ selectedDishCost()!.dishCode }} · {{ selectedDishCost()!.categoryName }}</p>
+              </div>
+              <div class="recipe-detail__header-actions">
+                <span class="recipe-version-chip"
+                  >v{{ selectedDishCost()!.recipeVersionNumber }}</span
+                >
+              </div>
+            </div>
+
+            @if (costDetailErrorMessage()) {
+              <app-form-feedback type="error" [message]="costDetailErrorMessage()!" />
+            }
+
+            <div class="recipe-summary-grid">
+              <div class="recipe-summary-item">
+                <span>{{ 'recipes.costs.detail.summary.cost' | transloco }}</span>
+                <strong>{{ formatCost(selectedDishCost()!.totalProductionCost) }}</strong>
+              </div>
+              <div class="recipe-summary-item">
+                <span>{{ 'recipes.costs.detail.summary.price' | transloco }}</span>
+                <strong>{{ formatCost(selectedDishCost()!.salePrice ?? 0) }}</strong>
+              </div>
+              <div class="recipe-summary-item">
+                <span>{{ 'recipes.costs.detail.summary.grossMargin' | transloco }}</span>
+                <strong>{{ formatCost(selectedDishCost()!.grossMargin) }}</strong>
+              </div>
+              <div class="recipe-summary-item">
+                <span>{{ 'recipes.costs.detail.summary.marginPercentage' | transloco }}</span>
+                <strong>{{ formatPercent(selectedDishCost()!.marginPercentage) }}</strong>
+              </div>
+            </div>
+
+            <dl class="recipe-meta">
+              <dt>{{ 'recipes.costs.detail.calculatedAt' | transloco }}</dt>
+              <dd>{{ formatDate(selectedDishCost()!.calculatedAt) }}</dd>
+            </dl>
+
+            <div class="table-wrapper">
+              <table class="restaurant-table restaurant-table--sm">
+                <thead>
+                  <tr>
+                    <th>{{ 'recipes.costs.detail.columns.supply' | transloco }}</th>
+                    <th class="restaurant-table__num">
+                      {{ 'recipes.costs.detail.columns.quantity' | transloco }}
+                    </th>
+                    <th class="restaurant-table__num">
+                      {{ 'recipes.costs.detail.columns.stockQuantity' | transloco }}
+                    </th>
+                    <th class="restaurant-table__num">
+                      {{ 'recipes.costs.detail.columns.unitCost' | transloco }}
+                    </th>
+                    <th class="restaurant-table__num">
+                      {{ 'recipes.costs.detail.columns.subtotal' | transloco }}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (ingredient of selectedDishCost()!.ingredients; track ingredient.supplyId) {
+                    <tr class="restaurant-table__row">
+                      <td>
+                        <div class="dish-cell">
+                          <strong>{{ ingredient.supplyName }}</strong>
+                          <small>{{ ingredient.supplyCode }}</small>
+                        </div>
+                      </td>
+                      <td class="restaurant-table__num">
+                        {{ formatQuantity(ingredient.quantity) }}
+                        {{ ingredient.recipeUnitAbbreviation }}
+                      </td>
+                      <td class="restaurant-table__num">
+                        {{ formatQuantity(ingredient.proportionalQuantity) }}
+                        {{ ingredient.stockUnitName }}
+                      </td>
+                      <td class="restaurant-table__num">
+                        <span class="cost-value">{{ formatCost(ingredient.unitCost) }}</span>
+                      </td>
+                      <td class="restaurant-table__num">
+                        <span class="cost-value">{{ formatCost(ingredient.subtotalCost) }}</span>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          } @else if (selectedCostModifier()) {
+            <div class="recipe-detail__header">
+              <div>
+                <span class="registration-dialog__eyebrow">{{
+                  'recipes.costs.detail.eyebrow' | transloco
+                }}</span>
+                <h2>{{ selectedCostModifier()!.modifierName }}</h2>
+                <p>{{ selectedCostModifier()!.modifierCode }}</p>
+              </div>
+              <div class="recipe-detail__header-actions">
+                <span class="recipe-version-chip"
+                  >v{{ selectedCostModifier()!.recipeVersionNumber }}</span
+                >
+              </div>
+            </div>
+
+            <div class="recipe-summary-grid">
+              <div class="recipe-summary-item">
+                <span>{{ 'recipes.costs.detail.summary.cost' | transloco }}</span>
+                <strong>{{ formatCost(selectedCostModifier()!.totalProductionCost) }}</strong>
+              </div>
+              <div class="recipe-summary-item">
+                <span>{{ 'recipes.costs.detail.summary.additionalPrice' | transloco }}</span>
+                <strong>{{ formatCost(selectedCostModifier()!.additionalPrice) }}</strong>
+              </div>
+              <div class="recipe-summary-item">
+                <span>{{ 'recipes.costs.detail.summary.grossMargin' | transloco }}</span>
+                <strong>{{ formatCost(selectedCostModifier()!.grossMargin) }}</strong>
+              </div>
+              <div class="recipe-summary-item">
+                <span>{{ 'recipes.costs.detail.summary.marginPercentage' | transloco }}</span>
+                <strong>{{ formatPercent(selectedCostModifier()!.marginPercentage) }}</strong>
+              </div>
+            </div>
+
+            <dl class="recipe-meta">
+              <dt>{{ 'recipes.costs.detail.calculatedAt' | transloco }}</dt>
+              <dd>{{ formatDate(selectedCostModifier()!.calculatedAt) }}</dd>
+            </dl>
+
+            <div class="table-wrapper">
+              <table class="restaurant-table restaurant-table--sm">
+                <thead>
+                  <tr>
+                    <th>{{ 'recipes.costs.detail.columns.supply' | transloco }}</th>
+                    <th class="restaurant-table__num">
+                      {{ 'recipes.costs.detail.columns.quantity' | transloco }}
+                    </th>
+                    <th class="restaurant-table__num">
+                      {{ 'recipes.costs.detail.columns.stockQuantity' | transloco }}
+                    </th>
+                    <th class="restaurant-table__num">
+                      {{ 'recipes.costs.detail.columns.unitCost' | transloco }}
+                    </th>
+                    <th class="restaurant-table__num">
+                      {{ 'recipes.costs.detail.columns.subtotal' | transloco }}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (
+                    ingredient of selectedCostModifier()!.ingredients;
+                    track ingredient.supplyId
+                  ) {
+                    <tr class="restaurant-table__row">
+                      <td>
+                        <div class="dish-cell">
+                          <strong>{{ ingredient.supplyName }}</strong>
+                          <small>{{ ingredient.supplyCode }}</small>
+                        </div>
+                      </td>
+                      <td class="restaurant-table__num">
+                        {{ formatQuantity(ingredient.quantity) }}
+                        {{ ingredient.recipeUnitAbbreviation }}
+                      </td>
+                      <td class="restaurant-table__num">
+                        {{ formatQuantity(ingredient.proportionalQuantity) }}
+                        {{ ingredient.stockUnitName }}
+                      </td>
+                      <td class="restaurant-table__num">
+                        <span class="cost-value">{{ formatCost(ingredient.unitCost) }}</span>
+                      </td>
+                      <td class="restaurant-table__num">
+                        <span class="cost-value">{{ formatCost(ingredient.subtotalCost) }}</span>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          } @else {
+            <div class="state-panel state-panel--empty recipe-detail__empty">
+              <span class="state-panel__icon">
+                <i class="pi pi-calculator"></i>
+              </span>
+              <strong>{{ 'recipes.costs.detail.selectHint' | transloco }}</strong>
+              <p>{{ 'recipes.costs.detail.selectHintDescription' | transloco }}</p>
+            </div>
+          }
+        </section>
+      </div>
+    }
   } @else {
     <section class="recipes-panel">
       <div class="state-panel state-panel--empty">

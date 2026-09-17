@@ -691,6 +691,55 @@
         "withoutDescription": "Defina la receta del modificador indicando los insumos y cantidades adicionales que se consumen al aplicarlo."
       }
     },
+    "costs": {
+      "summary": {
+        "dishes": "Platillos con costo",
+        "averageMargin": "Margen promedio",
+        "modifiers": "Modificadores con costo"
+      },
+      "dishes": {
+        "title": "Costo de producción de platillos",
+        "description": "Costo actual calculado desde los insumos de la receta vigente y los costos unitarios del inventario.",
+        "empty": "No hay platillos con receta vigente",
+        "emptyDescription": "Cuando un platillo tenga una receta definida, su costo de producción aparecerá aquí."
+      },
+      "modifiers": {
+        "title": "Costo adicional de modificadores",
+        "description": "Costo adicional calculado desde los insumos asociados a la receta vigente del modificador.",
+        "empty": "No hay modificadores con receta definida",
+        "emptyDescription": "Cuando un modificador tenga una receta definida, su costo adicional aparecerá aquí."
+      },
+      "columns": {
+        "item": "Platillo",
+        "category": "Categoría",
+        "price": "Precio",
+        "cost": "Costo",
+        "grossMargin": "Margen bruto",
+        "marginPercentage": "Margen %",
+        "modifier": "Modificador",
+        "additionalPrice": "Precio adicional"
+      },
+      "detail": {
+        "eyebrow": "Costo de producción",
+        "summary": {
+          "cost": "Costo de producción",
+          "price": "Precio de venta",
+          "additionalPrice": "Precio adicional",
+          "grossMargin": "Margen bruto",
+          "marginPercentage": "Margen %"
+        },
+        "columns": {
+          "supply": "Insumo",
+          "quantity": "Cantidad",
+          "stockQuantity": "Cantidad en stock",
+          "unitCost": "Costo unitario",
+          "subtotal": "Subtotal"
+        },
+        "calculatedAt": "Calculado al",
+        "selectHint": "Selecciona un platillo o modificador",
+        "selectHintDescription": "Selecciona una fila para ver el desglose de costos por insumo y la conversión de unidades."
+      }
+    },
     "editor": {
       "supply": "Insumo",
       "selectSupply": "Selecciona un insumo",
@@ -701,6 +750,7 @@
       "quantityPositive": "La cantidad debe ser mayor que cero.",
       "quantityInteger": "Debe ser un número entero.",
       "unit": "Unidad de medida",
+      "selectUnit": "Selecciona la unidad (de stock por defecto)",
       "stockUnit": "Unidad de stock",
       "notes": "Observaciones",
       "notesPlaceholder": "Observaciones (opcional)",

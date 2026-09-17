@@ -9,11 +9,15 @@ import {
 } from '@angular/forms';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { MessageService } from 'primeng/api';
-import { finalize, forkJoin, Observable } from 'rxjs';
+import { finalize, forkJoin, Observable, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 
 import {
   DefineModifierRecipeRequest,
+  DishCostSummary,
+  DishProductionCost,
   DishSummary,
+  ModifierProductionCost,
   ModifierRecipe,
   Recipe,
   RecipeIngredientEdit,
@@ -87,6 +91,18 @@ export class RecipesPageComponent implements OnInit {
   readonly selectedModifierId = signal<number | null>(null);
   readonly selectedModifierRecipe = signal<ModifierRecipe | null>(null);
   readonly isModifierRecipeLoading = signal(false);
+
+  readonly dishCosts = signal<DishCostSummary[]>([]);
+  readonly modifierCosts = signal<ModifierProductionCost[]>([]);
+  readonly isCostsLoading = signal(false);
+  readonly costsLoaded = signal(false);
+  readonly costsErrorMessage = signal<string | null>(null);
+
+  readonly selectedCostDishId = signal<number | null>(null);
+  readonly selectedDishCost = signal<DishProductionCost | null>(null);
+  readonly isDishCostDetailLoading = signal(false);
+  readonly costDetailErrorMessage = signal<string | null>(null);
+  readonly selectedCostModifierId = signal<number | null>(null);
 
   private readonly recipeIngredientsValidator = (
     control: AbstractControl,
@@ -168,6 +184,25 @@ export class RecipesPageComponent implements OnInit {
     () => this.modifiers().filter((modifier) => !modifier.hasRecipe).length,
   );
 
+  readonly selectedCostModifier = computed(
+    () =>
+      this.modifierCosts().find((cost) => cost.modifierId === this.selectedCostModifierId()) ??
+      null,
+  );
+
+  readonly costDishTotal = computed(() => this.dishCosts().length);
+
+  readonly costModifierTotal = computed(() => this.modifierCosts().length);
+
+  readonly averageMarginPercentage = computed(() => {
+    const costs = this.dishCosts();
+    if (costs.length === 0) {
+      return 0;
+    }
+    const total = costs.reduce((sum, cost) => sum + (cost.marginPercentage ?? 0), 0);
+    return total / costs.length;
+  });
+
   readonly supplyById = computed(() => {
     const map = new Map<number, Supply>();
     for (const supply of this.supplies()) {
@@ -244,6 +279,73 @@ export class RecipesPageComponent implements OnInit {
 
   setTab(tab: RecipesTab): void {
     this.activeTab.set(tab);
+    if (tab === 'costs' && !this.costsLoaded()) {
+      this.loadCosts();
+    }
+  }
+
+  private loadCosts(): void {
+    if (this.isCostsLoading()) {
+      return;
+    }
+    this.isCostsLoading.set(true);
+    this.costsErrorMessage.set(null);
+
+    const modifierCostRequests = this.modifiers()
+      .filter((modifier) => modifier.hasRecipe)
+      .map((modifier) =>
+        this.recipeService.getModifierProductionCost(modifier.id).pipe(catchError(() => of(null))),
+      );
+
+    forkJoin({
+      dishCosts: this.recipeService.listDishCosts(),
+      modifierCosts: forkJoin(modifierCostRequests),
+    })
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.isCostsLoading.set(false)),
+      )
+      .subscribe({
+        next: ({ dishCosts, modifierCosts }) => {
+          this.dishCosts.set(dishCosts);
+          this.modifierCosts.set(
+            modifierCosts.filter((cost): cost is ModifierProductionCost => cost != null),
+          );
+          this.costsLoaded.set(true);
+        },
+        error: (error: unknown) => {
+          this.costsErrorMessage.set(this.errors.getMessage(error));
+        },
+      });
+  }
+
+  selectCostDish(dishId: number): void {
+    this.selectedCostModifierId.set(null);
+    this.selectedCostDishId.set(dishId);
+    this.selectedDishCost.set(null);
+    this.costDetailErrorMessage.set(null);
+    this.isDishCostDetailLoading.set(true);
+    this.recipeService
+      .getDishProductionCost(dishId)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.isDishCostDetailLoading.set(false)),
+      )
+      .subscribe({
+        next: (cost) => this.selectedDishCost.set(cost),
+        error: (error: unknown) => this.costDetailErrorMessage.set(this.errors.getMessage(error)),
+      });
+  }
+
+  selectCostModifier(modifierId: number): void {
+    this.selectedCostDishId.set(null);
+    this.selectedDishCost.set(null);
+    this.costDetailErrorMessage.set(null);
+    this.selectedCostModifierId.set(modifierId);
+  }
+
+  formatPercent(value: number): string {
+    return `${this.formatQuantity(value)} %`;
   }
 
   updateSearch(value: string): void {
@@ -456,6 +558,7 @@ export class RecipesPageComponent implements OnInit {
             },
           );
           this.messages.add({ severity: 'success', summary, detail });
+          this.costsLoaded.set(false);
           if (modifier) {
             this.selectModifier(modifier.id);
             this.reloadModifiers();

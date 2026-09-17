@@ -126,16 +126,24 @@ export class IngredientEditorComponent implements ControlValueAccessor, OnDestro
     return selectedUnitId == null || Number(selectedUnitId) === supply.unitId;
   }
 
-  stockUnitForGroup(group: FormGroup): { name: string; abbreviation: string } | null {
+  availableUnitsFor(index: number): MeasurementUnit[] {
+    const group = this.rows.at(index);
+    if (!group) {
+      return [];
+    }
     const supplyId = Number(group.get('supplyId')?.value ?? 0);
     if (!supplyId) {
-      return null;
+      return [];
     }
     const supply = this.supplies.find((s) => s.id === supplyId);
     if (!supply) {
-      return null;
+      return [];
     }
-    return { name: supply.unitName, abbreviation: supply.unitAbbreviation };
+    const dimension = this.units.find((unit) => unit.id === supply.unitId)?.dimension;
+    if (!dimension) {
+      return [];
+    }
+    return this.units.filter((unit) => unit.dimension === dimension);
   }
 
   supplyRequiredError(index: number): boolean {

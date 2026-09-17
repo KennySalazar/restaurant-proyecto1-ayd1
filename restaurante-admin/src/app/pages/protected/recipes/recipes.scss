@@ -105,6 +105,15 @@
   overflow: hidden;
 }
 
+.recipes-subsection {
+  margin-top: 2.5rem;
+}
+
+.recipes-subsection .recipes-panel__header {
+  padding-left: 0;
+  padding-right: 0;
+}
+
 .recipes-panel__header {
   align-items: center;
   border-bottom: 1px solid #eee5dd;

@@ -7,7 +7,10 @@ import { environment } from '../../../environments/environment';
 import {
   DefineModifierRecipeRequest,
   DefineRecipeRequest,
+  DishCostSummary,
+  DishProductionCost,
   DishSummary,
+  ModifierProductionCost,
   ModifierRecipe,
   ModifierRecipeRegistrationResponse,
   Recipe,
@@ -80,5 +83,17 @@ export class RecipeService {
       `${this.modifiersUrl}/${modifierId}/recipe`,
       request,
     );
+  }
+
+  listDishCosts(): Observable<DishCostSummary[]> {
+    return this.http.get<DishCostSummary[]>(`${this.dishesUrl}/costs`);
+  }
+
+  getDishProductionCost(dishId: number): Observable<DishProductionCost> {
+    return this.http.get<DishProductionCost>(`${this.dishesUrl}/${dishId}/cost`);
+  }
+
+  getModifierProductionCost(modifierId: number): Observable<ModifierProductionCost> {
+    return this.http.get<ModifierProductionCost>(`${this.modifiersUrl}/${modifierId}/cost`);
   }
 }
