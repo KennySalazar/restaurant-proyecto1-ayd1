@@ -9,6 +9,7 @@ import {
 import { finalize } from 'rxjs';
 import { MessageService } from 'primeng/api';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
+import { TableFormDialogComponent } from './table-form-dialog/table-form-dialog';
 
 import {
   RestaurantTable,
@@ -25,6 +26,7 @@ import { PageHeadingComponent } from '../../../shared/components/page-heading/pa
   imports: [
     FormFeedbackComponent,
     PageHeadingComponent,
+    TableFormDialogComponent,
     TranslocoPipe,
   ],
   templateUrl: './tables.html',
@@ -43,6 +45,7 @@ export class TablesPageComponent implements OnInit {
   readonly errorMessage = signal<string | null>(null);
   readonly retirementCandidate = signal<RestaurantTable | null>(null);
   readonly isRetiring = signal(false);
+  readonly registrationDialogOpen = signal(false);
 
   readonly totalTables = computed(() => this.tables().length);
 
@@ -87,6 +90,19 @@ export class TablesPageComponent implements OnInit {
   closeDetails(): void {
     this.selectedTable.set(null);
   }
+
+  openRegistration(): void {
+  this.registrationDialogOpen.set(true);
+}
+
+closeRegistration(): void {
+  this.registrationDialogOpen.set(false);
+}
+
+handleTableSaved(table: RestaurantTable): void {
+  this.tables.update((tables) => [table, ...tables]);
+  this.registrationDialogOpen.set(false);
+}
 
   statusKey(status: TableStatus): string {
     return `tables.states.${status}`;

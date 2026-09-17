@@ -17,3 +17,10 @@ export interface RestaurantTable {
   estado: TableStatus;
   activo: boolean;
 }
+
+export interface CreateTableRequest {
+  numero: string;
+  capacidad: number;
+  zonaId: number;
+  estadoInicial: TableStatus;
+}
