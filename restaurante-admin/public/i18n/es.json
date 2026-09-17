@@ -147,6 +147,7 @@
       "retired": "Retirada"
     },
     "actions": {
+      "register": "Registrar mesa",
       "view": "Ver detalle",
       "close": "Cerrar detalle",
       "retire": "Retirar",
@@ -156,6 +157,29 @@
       "eyebrow": "Detalle de mesa",
       "title": "Mesa"
     },
+
+    "registration": {
+  "eyebrow": "Nueva mesa",
+  "title": "Registrar mesa",
+  "description": "Ingresa la información de la nueva mesa del restaurante.",
+  "fields": {
+    "number": "Número de mesa",
+    "capacity": "Capacidad",
+    "zone": "Zona",
+    "selectZone": "Selecciona una zona",
+    "loadingZones": "Cargando zonas..."
+  },
+  "validation": {
+    "number": "Ingresa un número de mesa válido de hasta 20 caracteres.",
+    "capacity": "La capacidad debe ser mayor que cero.",
+    "zone": "Selecciona una zona."
+  },
+  "initialStateNotice": "La mesa se registrará inicialmente con estado Libre y quedará disponible para nuevas operaciones.",
+  "save": "Registrar mesa",
+  "saving": "Registrando...",
+  "successTitle": "Mesa registrada",
+  "successMessage": "La mesa {{number}} fue registrada correctamente."
+},
 
     "retirement": {
       "eyebrow": "Retiro de mesa",

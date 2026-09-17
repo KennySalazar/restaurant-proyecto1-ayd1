@@ -336,13 +336,20 @@
     flex-direction: column;
   }
 
-  .refresh-button {
-    width: 100%;
-  }
 
   .detail-grid {
     grid-template-columns: 1fr;
   }
+
+  .tables-panel__header-actions {
+  flex-direction: column;
+  width: 100%;
+}
+
+.registration-button,
+.refresh-button {
+  width: 100%;
+}
 }
 
 .table-actions {
@@ -513,4 +520,31 @@
   .confirm-retirement-button {
     width: 100%;
   }
+}
+
+.tables-panel__header-actions {
+  align-items: center;
+  display: flex;
+  gap: 0.65rem;
+}
+
+.registration-button {
+  align-items: center;
+  background: #a54838;
+  border: 0;
+  border-radius: 0.7rem;
+  color: #ffffff;
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 0.74rem;
+  font-weight: 700;
+  gap: 0.45rem;
+  justify-content: center;
+  min-height: 2.5rem;
+  padding: 0.6rem 0.9rem;
+}
+
+.registration-button:hover {
+  background: #93402f;
 }

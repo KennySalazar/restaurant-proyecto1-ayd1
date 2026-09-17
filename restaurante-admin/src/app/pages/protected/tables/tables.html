@@ -40,25 +40,30 @@
 </section>
 
 <section class="tables-panel">
-  <header class="tables-panel__header">
-    <div>
-      <h2>{{ 'tables.list.title' | transloco }}</h2>
-      <p>{{ 'tables.list.description' | transloco }}</p>
-    </div>
+  <div class="tables-panel__header-actions">
+  <button
+    class="registration-button"
+    type="button"
+    (click)="openRegistration()"
+  >
+    <i class="pi pi-plus"></i>
+    {{ 'tables.actions.register' | transloco }}
+  </button>
 
-    <button
-      class="refresh-button"
-      type="button"
-      [disabled]="isLoading()"
-      (click)="loadTables()"
-    >
-      <i
-        class="pi pi-refresh"
-        [class.pi-spin]="isLoading()"
-      ></i>
-      {{ 'tables.list.refresh' | transloco }}
-    </button>
-  </header>
+  <button
+    class="refresh-button"
+    type="button"
+    [disabled]="isLoading()"
+    (click)="loadTables()"
+  >
+    <i
+      class="pi pi-refresh"
+      [class.pi-spin]="isLoading()"
+    ></i>
+
+    {{ 'tables.list.refresh' | transloco }}
+  </button>
+</div>
 
   <app-form-feedback [message]="errorMessage()" />
 
@@ -181,6 +186,12 @@
     </div>
   }
 </section>
+
+<app-table-form-dialog
+  [open]="registrationDialogOpen()"
+  (saved)="handleTableSaved($event)"
+  (dismissed)="closeRegistration()"
+/>
 
 @if (selectedTable(); as table) {
   <section class="table-detail">
