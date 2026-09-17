@@ -129,7 +129,13 @@
       "openAccount": "Abrir cuenta",
       "seatReservation": "Sentar reserva",
       "seatWaitlist": "Lista de espera",
-      "inService": "En servicio"
+      "inService": "En servicio",
+      "transfer": "Transferir",
+      "merge": "Fusionar"
+    },
+    "fused": {
+      "with": "Unida a Mesa {{numero}}",
+      "totalPeople": "{{count}} personas en total"
     },
     "dialogs": {
       "table": "Mesa {{numero}} · {{capacidad}} personas",
@@ -141,7 +147,8 @@
       "validation": {
         "peopleMinimum": "La cantidad de personas debe ser al menos 1.",
         "reservationRequired": "Selecciona una reserva.",
-        "waitlistRequired": "Selecciona un cliente en espera."
+        "waitlistRequired": "Selecciona un cliente en espera.",
+        "destinationRequired": "Selecciona una mesa destino."
       },
       "openAccount": {
         "title": "Abrir cuenta",
@@ -163,12 +170,28 @@
         "field": "Cliente en espera",
         "placeholder": "Selecciona un cliente",
         "submit": "Sentar cliente"
+      },
+      "transfer": {
+        "title": "Transferir cuenta",
+        "empty": "No hay mesas libres con capacidad suficiente para esta cuenta.",
+        "field": "Mesa destino",
+        "placeholder": "Selecciona una mesa disponible",
+        "submit": "Transferir"
+      },
+      "merge": {
+        "title": "Fusionar cuentas",
+        "empty": "No hay otras mesas disponibles para fusionar.",
+        "field": "Mesa a fusionar",
+        "placeholder": "Selecciona una mesa ocupada",
+        "submit": "Fusionar"
       }
     },
     "success": {
       "accountTitle": "Cuenta abierta correctamente",
       "reservationTitle": "Reserva sentada correctamente",
       "waitlistTitle": "Cliente sentado correctamente",
+      "transferTitle": "Cuenta transferida correctamente",
+      "mergeTitle": "Cuentas fusionadas correctamente",
       "table": "Mesa",
       "people": "personas",
       "dismiss": "Cerrar"

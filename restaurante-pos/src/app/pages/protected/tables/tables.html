@@ -137,6 +137,37 @@
                 {{ table.capacidad }}
                 {{ 'tables.capacity' | transloco }}
               </span>
+
+              @if (table.estado === 'RESERVADA' && getReservationForTable(table.id); as reservation) {
+                <span>
+                  <i class="pi pi-calendar"></i>
+                  {{ reservation.codigoReserva }} · {{ reservation.nombreCliente }} ·
+                  {{ reservation.cantidadPersonas }} {{ 'tables.success.people' | transloco }} ·
+                  {{ reservation.fechaHoraInicio | date: 'HH:mm' }}
+                </span>
+              }
+
+              @if (getFusionForTable(table.id); as fusion) {
+                <span class="table-card__fused-badge">
+                  <i class="pi pi-link"></i>
+                  {{ 'tables.fused.with' | transloco: { numero: fusion.otherTableNumber } }}
+                </span>
+
+                <span>
+                  <i class="pi pi-users"></i>
+                  {{ 'tables.fused.totalPeople' | transloco: { count: fusion.totalPersonas } }}
+                </span>
+              } @else if (getAccountForTable(table.id); as account) {
+                <span>
+                  <i class="pi pi-user"></i>
+                  {{ account.cantidadPersonas }} {{ 'tables.success.people' | transloco }}
+                </span>
+
+                <span>
+                  <i class="pi pi-file"></i>
+                  {{ account.numeroCuenta }}
+                </span>
+              }
             </div>
 
             <div class="table-card__actions">
@@ -170,6 +201,35 @@
                     <i class="pi pi-calendar-plus"></i>
                     <span>{{ 'tables.actions.seatReservation' | transloco }}</span>
                   </button>
+                }
+
+                @case ('OCUPADA') {
+                  @if (getAccountForTable(table.id)) {
+                    <button
+                      class="secondary-button action-button"
+                      type="button"
+                      (click)="openTransferDialog(table)"
+                    >
+                      <i class="pi pi-arrow-right-arrow-left"></i>
+                      <span>{{ 'tables.actions.transfer' | transloco }}</span>
+                    </button>
+
+                    @if (canMerge(table)) {
+                      <button
+                        class="secondary-button action-button"
+                        type="button"
+                        (click)="openMergeDialog(table)"
+                      >
+                        <i class="pi pi-share-alt"></i>
+                        <span>{{ 'tables.actions.merge' | transloco }}</span>
+                      </button>
+                    }
+                  } @else {
+                    <span class="table-card__in-service">
+                      <i class="pi pi-lock"></i>
+                      {{ 'tables.actions.inService' | transloco }}
+                    </span>
+                  }
                 }
 
                 @default {
@@ -517,6 +577,179 @@
               <i class="pi pi-check"></i>
             }
             <span>{{ 'tables.dialogs.waitlist.submit' | transloco }}</span>
+          </button>
+        </div>
+      </form>
+    }
+  </p-dialog>
+}
+
+@if (dialog() === 'transfer' && selectedTable(); as table) {
+  <p-dialog
+    [visible]="true"
+    [modal]="true"
+    [dismissableMask]="true"
+    [draggable]="false"
+    [resizable]="false"
+    [closeOnEscape]="true"
+    [style]="{ width: '32rem', maxWidth: '95vw' }"
+    [header]="'tables.dialogs.transfer.title' | transloco"
+    (visibleChange)="closeDialog()"
+  >
+    <p class="dialog-context">
+      <i class="pi pi-map-marker"></i>
+      {{ 'tables.dialogs.table' | transloco: { numero: table.numero, capacidad: table.capacidad } }}
+    </p>
+
+    <app-form-feedback [message]="dialogError()" />
+
+    @if (transferDestinationOptions().length === 0) {
+      <div class="dialog-state dialog-state--warning">
+        <i class="pi pi-info-circle"></i>
+        <span>{{ 'tables.dialogs.transfer.empty' | transloco }}</span>
+      </div>
+    } @else {
+      <form class="dialog-form" [formGroup]="transferForm" (ngSubmit)="submitTransfer()" novalidate>
+        <div class="form-field">
+          <label for="transfer-select">
+            {{ 'tables.dialogs.transfer.field' | transloco }}
+          </label>
+
+          <select id="transfer-select" formControlName="mesaDestinoId">
+            <option [ngValue]="null">
+              {{ 'tables.dialogs.transfer.placeholder' | transloco }}
+            </option>
+
+            @for (destination of transferDestinationOptions(); track destination.id) {
+              <option [ngValue]="destination.id">
+                {{ destination.numero }} · {{ destination.capacidad }}
+                {{ 'tables.capacity' | transloco }}
+              </option>
+            }
+          </select>
+
+          @if (
+            (submitted() || transferForm.controls.mesaDestinoId.touched) &&
+            transferForm.controls.mesaDestinoId.hasError('required')
+          ) {
+            <small class="field-error">
+              {{ 'tables.dialogs.validation.destinationRequired' | transloco }}
+            </small>
+          }
+        </div>
+
+        <div class="form-field">
+          <label for="transfer-notes">
+            {{ 'tables.dialogs.notes' | transloco }}
+          </label>
+
+          <textarea
+            id="transfer-notes"
+            rows="3"
+            formControlName="motivo"
+            [placeholder]="'tables.dialogs.notesPlaceholder' | transloco"
+          ></textarea>
+        </div>
+
+        <div class="dialog-actions">
+          <button class="secondary-button" type="button" (click)="closeDialog()">
+            <span>{{ 'tables.dialogs.cancel' | transloco }}</span>
+          </button>
+
+          <button class="primary-button" type="submit" [disabled]="submitting()">
+            @if (submitting()) {
+              <i class="pi pi-spin pi-spinner"></i>
+            } @else {
+              <i class="pi pi-check"></i>
+            }
+            <span>{{ 'tables.dialogs.transfer.submit' | transloco }}</span>
+          </button>
+        </div>
+      </form>
+    }
+  </p-dialog>
+}
+
+@if (dialog() === 'merge' && selectedTable(); as table) {
+  <p-dialog
+    [visible]="true"
+    [modal]="true"
+    [dismissableMask]="true"
+    [draggable]="false"
+    [resizable]="false"
+    [closeOnEscape]="true"
+    [style]="{ width: '32rem', maxWidth: '95vw' }"
+    [header]="'tables.dialogs.merge.title' | transloco"
+    (visibleChange)="closeDialog()"
+  >
+    <p class="dialog-context">
+      <i class="pi pi-map-marker"></i>
+      {{ 'tables.dialogs.table' | transloco: { numero: table.numero, capacidad: table.capacidad } }}
+    </p>
+
+    <app-form-feedback [message]="dialogError()" />
+
+    @if (mergeDestinationOptions().length === 0) {
+      <div class="dialog-state dialog-state--warning">
+        <i class="pi pi-info-circle"></i>
+        <span>{{ 'tables.dialogs.merge.empty' | transloco }}</span>
+      </div>
+    } @else {
+      <form class="dialog-form" [formGroup]="mergeForm" (ngSubmit)="submitMerge()" novalidate>
+        <div class="form-field">
+          <label for="merge-select">
+            {{ 'tables.dialogs.merge.field' | transloco }}
+          </label>
+
+          <select id="merge-select" formControlName="mesaDestinoId">
+            <option [ngValue]="null">
+              {{ 'tables.dialogs.merge.placeholder' | transloco }}
+            </option>
+
+            @for (destination of mergeDestinationOptions(); track destination.id) {
+              <option [ngValue]="destination.id">
+                {{ destination.numero }} ·
+                {{ getAccountForTable(destination.id)?.cantidadPersonas }}
+                {{ 'tables.success.people' | transloco }}
+              </option>
+            }
+          </select>
+
+          @if (
+            (submitted() || mergeForm.controls.mesaDestinoId.touched) &&
+            mergeForm.controls.mesaDestinoId.hasError('required')
+          ) {
+            <small class="field-error">
+              {{ 'tables.dialogs.validation.destinationRequired' | transloco }}
+            </small>
+          }
+        </div>
+
+        <div class="form-field">
+          <label for="merge-notes">
+            {{ 'tables.dialogs.notes' | transloco }}
+          </label>
+
+          <textarea
+            id="merge-notes"
+            rows="3"
+            formControlName="motivo"
+            [placeholder]="'tables.dialogs.notesPlaceholder' | transloco"
+          ></textarea>
+        </div>
+
+        <div class="dialog-actions">
+          <button class="secondary-button" type="button" (click)="closeDialog()">
+            <span>{{ 'tables.dialogs.cancel' | transloco }}</span>
+          </button>
+
+          <button class="primary-button" type="submit" [disabled]="submitting()">
+            @if (submitting()) {
+              <i class="pi pi-spin pi-spinner"></i>
+            } @else {
+              <i class="pi pi-check"></i>
+            }
+            <span>{{ 'tables.dialogs.merge.submit' | transloco }}</span>
           </button>
         </div>
       </form>

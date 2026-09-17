@@ -6,6 +6,7 @@ import { MessageService } from 'primeng/api';
 import { Dialog } from 'primeng/dialog';
 import { InputTextModule } from 'primeng/inputtext';
 import { finalize, forkJoin } from 'rxjs';
+import { Account, ActiveFusionResponse } from '../../../core/models/account.models';
 import { Reservation } from '../../../core/models/reservation.models';
 import {
   RestaurantTable,
@@ -29,7 +30,7 @@ const STATUS_ICONS: Record<TableStatus, string> = {
   CUENTA_SOLICITADA: 'pi-dollar',
 };
 
-type DialogKind = 'reservation' | 'waitlist' | 'open-account';
+type DialogKind = 'reservation' | 'waitlist' | 'open-account' | 'transfer' | 'merge';
 
 interface OperationSummary {
   titleKey: string;
@@ -37,6 +38,13 @@ interface OperationSummary {
   numeroCuenta: string;
   cantidadPersonas: number;
   cliente: string | null;
+}
+
+interface TableFusionInfo {
+  otherTableId: number;
+  otherTableNumber: string;
+  isOrigin: boolean;
+  totalPersonas: number;
 }
 
 @Component({
@@ -85,6 +93,10 @@ export class TablesPageComponent implements OnInit {
   readonly waitlistQueue = signal<WaitlistQueueEntry[]>([]);
   readonly loadingWaitlist = signal(false);
 
+  readonly accountsByTable = signal<Map<number, Account>>(new Map());
+  readonly activeFusions = signal<ActiveFusionResponse[]>([]);
+  readonly reservationsByTable = signal<Map<number, Reservation>>(new Map());
+
   readonly openAccountForm = this.formBuilder.group({
     cantidadPersonas: this.formBuilder.control<number | null>(1, [Validators.min(1)]),
     observaciones: this.formBuilder.nonNullable.control('', [Validators.maxLength(500)]),
@@ -102,7 +114,28 @@ export class TablesPageComponent implements OnInit {
     notas: this.formBuilder.nonNullable.control('', [Validators.maxLength(500)]),
   });
 
+  readonly transferForm = this.formBuilder.group({
+    mesaDestinoId: this.formBuilder.control<number | null>(null, [Validators.required]),
+    motivo: this.formBuilder.nonNullable.control('', [Validators.maxLength(500)]),
+  });
+
+  readonly mergeForm = this.formBuilder.group({
+    mesaDestinoId: this.formBuilder.control<number | null>(null, [Validators.required]),
+    motivo: this.formBuilder.nonNullable.control('', [Validators.maxLength(500)]),
+  });
+
   readonly activeTables = computed(() => this.tables().filter((table) => table.activo));
+
+  readonly fusedTableIds = computed(() => {
+    const ids = new Set<number>();
+
+    for (const fusion of this.activeFusions()) {
+      ids.add(fusion.mesaOrigenId);
+      ids.add(fusion.mesaDestinoId);
+    }
+
+    return ids;
+  });
 
   readonly counts = computed(() => {
     const base: Record<TableStatus, number> = {
@@ -153,18 +186,57 @@ export class TablesPageComponent implements OnInit {
     this.loading.set(true);
     this.loadError.set(null);
 
-    this.tableService
-      .getTables()
+    forkJoin({
+      tables: this.tableService.getTables(),
+      accounts: this.accountService.getActiveAccounts(),
+      fusions: this.accountService.getActiveFusions(),
+      reservations: this.reservationService.getUpcomingReservations(),
+    })
       .pipe(finalize(() => this.loading.set(false)))
       .subscribe({
-        next: (tables) => {
+        next: ({ tables, accounts, fusions, reservations }) => {
           this.tables.set(tables);
+          this.accountsByTable.set(new Map(accounts.map((account) => [account.mesaId, account])));
+          this.activeFusions.set(fusions);
+          this.reservationsByTable.set(this.buildReservationsByTable(reservations));
           this.lastUpdated.set(new Date());
         },
         error: (error: unknown) => {
           this.loadError.set(this.errors.getMessage(error));
         },
       });
+  }
+
+  getAccountForTable(tableId: number): Account | null {
+    return this.accountsByTable().get(tableId) ?? null;
+  }
+
+  getFusionForTable(tableId: number): TableFusionInfo | null {
+    const fusion = this.activeFusions().find(
+      (candidate) => candidate.mesaOrigenId === tableId || candidate.mesaDestinoId === tableId,
+    );
+
+    if (!fusion) {
+      return null;
+    }
+
+    const isOrigin = fusion.mesaOrigenId === tableId;
+
+    return {
+      otherTableId: isOrigin ? fusion.mesaDestinoId : fusion.mesaOrigenId,
+      otherTableNumber: isOrigin ? fusion.numeroMesaDestino : fusion.numeroMesaOrigen,
+      isOrigin,
+      totalPersonas: fusion.totalPersonas,
+    };
+  }
+
+  getReservationForTable(tableId: number): Reservation | null {
+    return this.reservationsByTable().get(tableId) ?? null;
+  }
+
+  canMerge(table: RestaurantTable): boolean {
+    const account = this.getAccountForTable(table.id);
+    return !!account && account.estadoCuenta === 'ABIERTA' && !this.fusedTableIds().has(table.id);
   }
 
   statusCardClass(status: TableStatus): string {
@@ -208,6 +280,57 @@ export class TablesPageComponent implements OnInit {
     });
     this.dialog.set('waitlist');
     this.loadWaitlistData(table);
+  }
+
+  openTransferDialog(table: RestaurantTable): void {
+    this.resetDialog();
+    this.selectedTable.set(table);
+    this.transferForm.reset({ mesaDestinoId: null, motivo: '' });
+    this.dialog.set('transfer');
+  }
+
+  openMergeDialog(table: RestaurantTable): void {
+    this.resetDialog();
+    this.selectedTable.set(table);
+    this.mergeForm.reset({ mesaDestinoId: null, motivo: '' });
+    this.dialog.set('merge');
+  }
+
+  transferDestinationOptions(): RestaurantTable[] {
+    const table = this.selectedTable();
+    const account = table ? this.getAccountForTable(table.id) : null;
+
+    if (!table || !account) {
+      return [];
+    }
+
+    return this.activeTables().filter(
+      (candidate) =>
+        candidate.estado === 'LIBRE' && candidate.capacidad >= account.cantidadPersonas,
+    );
+  }
+
+  mergeDestinationOptions(): RestaurantTable[] {
+    const table = this.selectedTable();
+
+    if (!table) {
+      return [];
+    }
+
+    const fusedIds = this.fusedTableIds();
+
+    return this.activeTables().filter((candidate) => {
+      if (
+        candidate.id === table.id ||
+        candidate.estado !== 'OCUPADA' ||
+        fusedIds.has(candidate.id)
+      ) {
+        return false;
+      }
+
+      const candidateAccount = this.getAccountForTable(candidate.id);
+      return !!candidateAccount && candidateAccount.estadoCuenta === 'ABIERTA';
+    });
   }
 
   closeDialog(): void {
@@ -373,6 +496,105 @@ export class TablesPageComponent implements OnInit {
           this.dialogError.set(this.errors.getMessage(error));
         },
       });
+  }
+
+  submitTransfer(): void {
+    const table = this.selectedTable();
+    const account = table ? this.getAccountForTable(table.id) : null;
+
+    if (!table || !account) {
+      return;
+    }
+
+    this.submitted.set(true);
+    this.dialogError.set(null);
+
+    if (this.transferForm.invalid) {
+      this.transferForm.markAllAsTouched();
+      return;
+    }
+
+    const value = this.transferForm.getRawValue();
+    this.submitting.set(true);
+
+    this.accountService
+      .transferAccount(account.id, {
+        mesaDestinoId: value.mesaDestinoId!,
+        motivo: value.motivo.trim() || null,
+      })
+      .pipe(finalize(() => this.submitting.set(false)))
+      .subscribe({
+        next: (result) => {
+          this.handleSuccess('tables.success.transferTitle', {
+            numeroMesa: result.numeroMesaDestino,
+            numeroCuenta: result.numeroCuenta,
+            cantidadPersonas: account.cantidadPersonas,
+            cliente: null,
+          });
+        },
+        error: (error: unknown) => {
+          this.dialogError.set(this.errors.getMessage(error));
+        },
+      });
+  }
+
+  submitMerge(): void {
+    const table = this.selectedTable();
+
+    if (!table) {
+      return;
+    }
+
+    this.submitted.set(true);
+    this.dialogError.set(null);
+
+    if (this.mergeForm.invalid) {
+      this.mergeForm.markAllAsTouched();
+      return;
+    }
+
+    const value = this.mergeForm.getRawValue();
+    this.submitting.set(true);
+
+    this.accountService
+      .mergeAccounts({
+        mesaOrigenId: table.id,
+        mesaDestinoId: value.mesaDestinoId!,
+        motivo: value.motivo.trim() || null,
+      })
+      .pipe(finalize(() => this.submitting.set(false)))
+      .subscribe({
+        next: (result) => {
+          this.handleSuccess('tables.success.mergeTitle', {
+            numeroMesa: result.numeroMesaDestino,
+            numeroCuenta: result.numeroCuentaDestino,
+            cantidadPersonas: result.totalPersonas,
+            cliente: null,
+          });
+        },
+        error: (error: unknown) => {
+          this.dialogError.set(this.errors.getMessage(error));
+        },
+      });
+  }
+
+  private buildReservationsByTable(reservations: Reservation[]): Map<number, Reservation> {
+    const map = new Map<number, Reservation>();
+
+    for (const reservation of reservations) {
+      const tableId = reservation.mesa?.id;
+
+      if (!tableId) {
+        continue;
+      }
+
+      const existing = map.get(tableId);
+      if (!existing || reservation.fechaHoraInicio < existing.fechaHoraInicio) {
+        map.set(tableId, reservation);
+      }
+    }
+
+    return map;
   }
 
   private loadTableReservations(table: RestaurantTable): void {

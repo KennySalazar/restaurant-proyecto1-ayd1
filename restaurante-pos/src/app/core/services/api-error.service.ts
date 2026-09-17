@@ -65,10 +65,7 @@ export class ApiErrorService {
   isAuthenticationFailure(error: unknown): boolean {
     const problem = this.getProblem(error);
 
-    return (
-      problem.code === 'invalid_token' ||
-      problem.code === 'authentication_required'
-    );
+    return problem.code === 'invalid_token' || problem.code === 'authentication_required';
   }
 
   present(error: unknown): void {
@@ -84,16 +81,10 @@ export class ApiErrorService {
   }
 
   private severityFor(status?: number): 'error' | 'warn' {
-    return status === 400 || status === 404 || status === 409
-      ? 'warn'
-      : 'error';
+    return status === 400 || status === 404 || status === 409 ? 'warn' : 'error';
   }
 
   private isProblemDetail(value: unknown): value is ProblemDetail {
-    return (
-      typeof value === 'object' &&
-      value !== null &&
-      ('detail' in value || 'code' in value)
-    );
+    return typeof value === 'object' && value !== null && ('detail' in value || 'code' in value);
   }
 }

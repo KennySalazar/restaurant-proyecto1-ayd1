@@ -15,17 +15,10 @@ export class CashShiftService {
   constructor(private readonly http: HttpClient) {}
 
   getCashRegisters(): Observable<CashRegisterAvailability[]> {
-    return this.http.get<CashRegisterAvailability[]>(
-      `${this.cashUrl}/cajas`,
-    );
+    return this.http.get<CashRegisterAvailability[]>(`${this.cashUrl}/cajas`);
   }
 
-  openShift(
-    request: OpenCashShiftRequest,
-  ): Observable<CashShiftResponse> {
-    return this.http.post<CashShiftResponse>(
-      `${this.cashUrl}/turnos/abrir`,
-      request,
-    );
+  openShift(request: OpenCashShiftRequest): Observable<CashShiftResponse> {
+    return this.http.post<CashShiftResponse>(`${this.cashUrl}/turnos/abrir`, request);
   }
 }
