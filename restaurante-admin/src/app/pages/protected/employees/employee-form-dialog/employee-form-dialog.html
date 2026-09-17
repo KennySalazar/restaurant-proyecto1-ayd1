@@ -9,15 +9,30 @@
       <header class="employee-form-dialog__header">
         <div>
           <span class="employee-form-dialog__eyebrow">
-            {{ 'employees.registration.eyebrow' | transloco }}
+            {{
+              (employee
+                ? 'employees.update.eyebrow'
+                : 'employees.registration.eyebrow'
+              ) | transloco
+            }}
           </span>
 
           <h2 id="employee-form-dialog-title">
-            {{ 'employees.registration.title' | transloco }}
+            {{
+              (employee
+                ? 'employees.update.title'
+                : 'employees.registration.title'
+              ) | transloco
+            }}
           </h2>
 
           <p>
-            {{ 'employees.registration.description' | transloco }}
+            {{
+              (employee
+                ? 'employees.update.description'
+                : 'employees.registration.description'
+              ) | transloco
+            }}
           </p>
         </div>
 
@@ -133,31 +148,36 @@
             }
           </div>
 
-          <div class="form-field">
-            <label for="employee-password">
-              {{ 'employees.registration.fields.password' | transloco }}
-            </label>
+          @if (!employee) {
+            <div class="form-field">
+              <label for="employee-password">
+                {{ 'employees.registration.fields.password' | transloco }}
+              </label>
 
-            <input
-              id="employee-password"
-              type="password"
-              formControlName="password"
-              maxlength="72"
-              autocomplete="new-password"
-            />
+              <input
+                id="employee-password"
+                type="password"
+                formControlName="password"
+                maxlength="72"
+                autocomplete="new-password"
+              />
 
-            <small class="field-hint">
-              {{ 'employees.registration.passwordHint' | transloco }}
-            </small>
-
-            @if (invalid('password')) {
-              <small class="field-error">
-                {{ 'employees.registration.validation.password' | transloco }}
+              <small class="field-hint">
+                {{ 'employees.registration.passwordHint' | transloco }}
               </small>
-            }
-          </div>
 
-          <div class="form-field">
+              @if (invalid('password')) {
+                <small class="field-error">
+                  {{ 'employees.registration.validation.password' | transloco }}
+                </small>
+              }
+            </div>
+          }
+
+          <div
+            class="form-field"
+            [class.form-field--span-2]="employee"
+          >
             <label for="employee-role">
               {{ 'employees.registration.fields.role' | transloco }}
             </label>
@@ -195,7 +215,12 @@
           <i class="pi pi-info-circle"></i>
 
           <span>
-            {{ 'employees.registration.notice' | transloco }}
+            {{
+              (employee
+                ? 'employees.update.notice'
+                : 'employees.registration.notice'
+              ) | transloco
+            }}
           </span>
         </div>
 
@@ -216,10 +241,26 @@
           >
             @if (isSaving()) {
               <i class="pi pi-spin pi-spinner"></i>
-              {{ 'employees.registration.saving' | transloco }}
+
+              {{
+                (employee
+                  ? 'employees.update.saving'
+                  : 'employees.registration.saving'
+                ) | transloco
+              }}
             } @else {
-              <i class="pi pi-user-plus"></i>
-              {{ 'employees.registration.save' | transloco }}
+              <i
+                class="pi"
+                [class.pi-save]="employee"
+                [class.pi-user-plus]="!employee"
+              ></i>
+
+              {{
+                (employee
+                  ? 'employees.update.save'
+                  : 'employees.registration.save'
+                ) | transloco
+              }}
             }
           </button>
         </footer>

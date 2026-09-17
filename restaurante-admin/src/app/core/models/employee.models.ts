@@ -25,3 +25,12 @@ export interface CreateEmployeeRequest {
   fechaContratacion: string | null;
   rol: OperationalRole;
 }
+
+export interface UpdateEmployeeRequest {
+  codigoEmpleado: string;
+  nombres: string;
+  apellidos: string;
+  email: string;
+  fechaContratacion: string | null;
+  rol: OperationalRole;
+}

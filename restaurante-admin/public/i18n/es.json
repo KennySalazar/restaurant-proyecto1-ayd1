@@ -668,6 +668,7 @@
       "view": "Ver detalle",
       "close": "Cerrar detalle",
       "register": "Registrar empleado",
+      "edit": "Editar empleado",
       "refresh": "Actualizar",
       "deactivate": "Desactivar",
       "alreadyDisabled": "Desactivado"
@@ -705,6 +706,16 @@
   "saving": "Registrando...",
   "successTitle": "Empleado registrado",
   "successMessage": "{{name}} fue registrado correctamente."
+},
+"update": {
+  "eyebrow": "Edición de empleado",
+  "title": "Editar empleado",
+  "description": "Actualiza la información y el rol operativo del empleado seleccionado.",
+  "notice": "El estado del empleado se administra de forma independiente. Esta edición no activa ni desactiva su cuenta.",
+  "save": "Guardar cambios",
+  "saving": "Guardando...",
+  "successTitle": "Empleado actualizado",
+  "successMessage": "{{name}} fue actualizado correctamente."
 },
     "deactivation": {
       "eyebrow": "Desactivación de empleado",
