@@ -1,6 +1,7 @@
 package com.restaurante.application.reservation;
 
 import com.restaurante.domain.model.Reservation;
+import com.restaurante.domain.model.ReservationStatus;
 import com.restaurante.domain.model.RestaurantConfiguration;
 import com.restaurante.domain.model.RestaurantConfigurationStatus;
 import com.restaurante.domain.model.RestaurantTable;
@@ -339,6 +340,28 @@ public class ReservationService {
                         context.restaurantId(),
                         start,
                         end
+                )
+                .stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<ReservationResponse> getUpcomingReservations(Authentication authentication) {
+
+        AuthenticatedRestaurant context =
+                getAuthenticatedRestaurant(authentication);
+
+        OffsetDateTime now = OffsetDateTime.now(GUATEMALA);
+
+        return reservations
+                .findByRestaurantIdAndStatusInAndEndDateTimeAfterOrderByStartDateTimeAsc(
+                        context.restaurantId(),
+                        List.of(
+                                ReservationStatus.PENDIENTE,
+                                ReservationStatus.CONFIRMADA
+                        ),
+                        now
                 )
                 .stream()
                 .map(this::toResponse)

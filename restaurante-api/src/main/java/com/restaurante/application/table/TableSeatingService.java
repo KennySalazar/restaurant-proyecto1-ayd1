@@ -20,6 +20,8 @@ import com.restaurante.web.dto.table.SeatReservationResponse;
 import com.restaurante.web.dto.table.SeatWaitlistRequest;
 import com.restaurante.web.dto.table.SeatWaitlistResponse;
 import com.restaurante.web.dto.waitlist.WaitlistSuggestionResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
@@ -38,6 +40,8 @@ import java.util.Optional;
 public class TableSeatingService {
 
     private static final ZoneId GUATEMALA = ZoneId.of("America/Guatemala");
+
+    private static final Logger log = LoggerFactory.getLogger(TableSeatingService.class);
 
     private final RestaurantTableRepository tableRepository;
     private final ReservationRepository reservationRepository;
@@ -69,8 +73,9 @@ public class TableSeatingService {
             SeatReservationRequest request,
             Authentication authentication) {
 
-        AuthenticatedUser context = getAuthenticatedUser(authentication);
-        Long restaurantId = context.restaurantId();
+        try {
+            AuthenticatedUser context = getAuthenticatedUser(authentication);
+            Long restaurantId = context.restaurantId();
 
         RestaurantTable table = tableRepository
                 .findByIdAndRestaurantId(tableId, restaurantId)
@@ -237,9 +242,15 @@ public class TableSeatingService {
         table.occupy();
         tableRepository.save(table);
 
-        // Actualizar estado de la reserva
+        // Actualizar estado de la reserva: si está PENDIENTE, confirmar primero y flush
+        if (targetReservation.getStatus() == ReservationStatus.PENDIENTE) {
+            targetReservation.setStatus(ReservationStatus.CONFIRMADA);
+            reservationRepository.save(targetReservation);
+            reservationRepository.flush();
+        }
         targetReservation.markClientPresent();
         reservationRepository.save(targetReservation);
+        reservationRepository.flush(); // forzar flush para que el trigger vea el estado actualizado
 
         // Abrir o asociar cuenta activa en la mesa
         short peopleCount = (request != null && request.cantidadPersonas() != null && request.cantidadPersonas() > 0)
@@ -279,6 +290,10 @@ public class TableSeatingService {
                 account.getAccountNumber(),
                 Instant.now()
         );
+        } catch (Exception e) {
+            log.error("Error en seatReservation: tableId={}, request={}", tableId, request, e);
+            throw e;
+        }
     }
 
     /**
@@ -475,6 +490,7 @@ public class TableSeatingService {
         targetEntry.markSeated();
         targetEntry.setSuggestedTable(table);
         WaitlistEntry savedEntry = waitlistRepository.save(targetEntry);
+        waitlistRepository.flush(); // forzar flush para que el trigger vea el estado actualizado
 
         // Crear o asociar cuenta activa en la mesa
         short peopleCount = (request != null && request.cantidadPersonas() != null && request.cantidadPersonas() > 0)

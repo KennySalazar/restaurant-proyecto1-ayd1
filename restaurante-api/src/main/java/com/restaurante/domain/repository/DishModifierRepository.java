@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.Collection;
 import java.util.List;
 
 /**
@@ -21,6 +22,9 @@ public interface DishModifierRepository extends JpaRepository<DishModifier, Dish
 
     @Query("SELECT dm FROM DishModifier dm JOIN FETCH dm.modifier m WHERE dm.dish.id = :dishId ORDER BY dm.visualOrder ASC, m.name ASC")
     List<DishModifier> findByDishIdWithModifier(@Param("dishId") Long dishId);
+
+    @Query("SELECT dm FROM DishModifier dm JOIN FETCH dm.modifier m WHERE dm.dish.id IN :dishIds ORDER BY dm.dish.id ASC, dm.visualOrder ASC, m.name ASC")
+    List<DishModifier> findByDishIdInWithModifier(@Param("dishIds") Collection<Long> dishIds);
 
     @Modifying
     @Query("DELETE FROM DishModifier dm WHERE dm.modifier.id = :modifierId")

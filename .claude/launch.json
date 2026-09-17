@@ -1,0 +1,10 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "restaurante-pos",
+      "url": "http://localhost:4201",
+      "port": 4201
+    }
+  ]
+}

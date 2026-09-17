@@ -20,6 +20,7 @@
   "nav": {
     "workspace": "Operación",
     "dashboard": "Inicio",
+    "tables": "Mesas",
     "cashShift": "Caja",
     "account": "Mi cuenta",
     "logout": "Cerrar sesión",
@@ -103,6 +104,101 @@
     "adminDescription": "Accede a las herramientas disponibles para tu puesto."
   },
 
+  "tables": {
+    "eyebrow": "Salón",
+    "title": "Estado de mesas",
+    "description": "Consulta el estado actual de cada mesa para saber a cuáles puedes sentar clientes o dar seguimiento.",
+    "refresh": "Actualizar",
+    "lastUpdated": "Actualizado",
+    "loading": "Consultando el estado de las mesas...",
+    "empty": "Todavía no hay mesas activas configuradas. Registra las mesas desde la aplicación administrativa.",
+    "withoutZone": "Sin zona",
+    "tablesCount": "mesas",
+    "capacity": "personas",
+    "summary": {
+      "LIBRE": "Libres",
+      "RESERVADA": "Reservadas",
+      "OCUPADA": "Ocupadas",
+      "CUENTA_SOLICITADA": "Cuenta solicitada"
+    },
+    "status": {
+      "LIBRE": "Libre",
+      "RESERVADA": "Reservada",
+      "OCUPADA": "Ocupada",
+      "CUENTA_SOLICITADA": "Cuenta solicitada"
+    },
+    "actions": {
+      "openAccount": "Abrir cuenta",
+      "seatReservation": "Sentar reserva",
+      "seatWaitlist": "Lista de espera",
+      "inService": "En servicio",
+      "transfer": "Transferir",
+      "merge": "Fusionar"
+    },
+    "fused": {
+      "with": "Unida a Mesa {{numero}}",
+      "totalPeople": "{{count}} personas en total"
+    },
+    "dialogs": {
+      "table": "Mesa {{numero}} · {{capacidad}} personas",
+      "cancel": "Cancelar",
+      "people": "Cantidad de personas",
+      "peoplePlaceholder": "Personas",
+      "notes": "Observaciones",
+      "notesPlaceholder": "Notas opcionales",
+      "validation": {
+        "peopleMinimum": "La cantidad de personas debe ser al menos 1.",
+        "reservationRequired": "Selecciona una reserva.",
+        "waitlistRequired": "Selecciona un cliente en espera.",
+        "destinationRequired": "Selecciona una mesa destino."
+      },
+      "openAccount": {
+        "title": "Abrir cuenta",
+        "submit": "Abrir cuenta"
+      },
+      "reservation": {
+        "title": "Sentar reserva",
+        "loading": "Buscando reservas para esta mesa...",
+        "empty": "No hay reservas activas para esta mesa en este momento.",
+        "field": "Reserva",
+        "placeholder": "Selecciona una reserva",
+        "submit": "Sentar cliente"
+      },
+      "waitlist": {
+        "title": "Sentar desde lista de espera",
+        "loading": "Consultando la lista de espera...",
+        "empty": "No hay clientes en espera compatibles con esta mesa.",
+        "suggested": "Cliente sugerido",
+        "field": "Cliente en espera",
+        "placeholder": "Selecciona un cliente",
+        "submit": "Sentar cliente"
+      },
+      "transfer": {
+        "title": "Transferir cuenta",
+        "empty": "No hay mesas libres con capacidad suficiente para esta cuenta.",
+        "field": "Mesa destino",
+        "placeholder": "Selecciona una mesa disponible",
+        "submit": "Transferir"
+      },
+      "merge": {
+        "title": "Fusionar cuentas",
+        "empty": "No hay otras mesas disponibles para fusionar.",
+        "field": "Mesa a fusionar",
+        "placeholder": "Selecciona una mesa ocupada",
+        "submit": "Fusionar"
+      }
+    },
+    "success": {
+      "accountTitle": "Cuenta abierta correctamente",
+      "reservationTitle": "Reserva sentada correctamente",
+      "waitlistTitle": "Cliente sentado correctamente",
+      "transferTitle": "Cuenta transferida correctamente",
+      "mergeTitle": "Cuentas fusionadas correctamente",
+      "table": "Mesa",
+      "people": "personas",
+      "dismiss": "Cerrar"
+    }
+  },
   "cashShift": {
     "eyebrow": "Operación de caja",
     "title": "Abrir turno de caja",

@@ -26,9 +26,7 @@ export const routes: Routes = [
       {
         path: 'login',
         loadComponent: () =>
-          import('./pages/auth/login/login').then(
-            (module) => module.LoginPageComponent,
-          ),
+          import('./pages/auth/login/login').then((module) => module.LoginPageComponent),
       },
       {
         path: 'login-verify',
@@ -40,9 +38,7 @@ export const routes: Routes = [
       {
         path: 'recovery',
         loadComponent: () =>
-          import('./pages/auth/recovery/recovery').then(
-            (module) => module.RecoveryPageComponent,
-          ),
+          import('./pages/auth/recovery/recovery').then((module) => module.RecoveryPageComponent),
       },
       {
         path: 'recovery-reset',
@@ -56,9 +52,7 @@ export const routes: Routes = [
   {
     path: 'app',
     loadComponent: () =>
-      import('./layouts/app-shell/app-shell').then(
-        (module) => module.AppShellComponent,
-      ),
+      import('./layouts/app-shell/app-shell').then((module) => module.AppShellComponent),
     canActivate: [authGuard, roleGuard],
     canActivateChild: [authChildGuard],
     data: {
@@ -76,6 +70,15 @@ export const routes: Routes = [
           import('./pages/protected/dashboard/dashboard').then(
             (module) => module.DashboardPageComponent,
           ),
+      },
+      {
+        path: 'mesas',
+        loadComponent: () =>
+          import('./pages/protected/tables/tables').then((module) => module.TablesPageComponent),
+        canActivate: [roleGuard],
+        data: {
+          roles: ['WAITER'],
+        },
       },
 
       {
