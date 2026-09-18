@@ -996,8 +996,8 @@
             </div>
 
             @if (
-              result.subcuentaId === null &&
-              subaccounts().length === 0
+              result.subcuentaId === null ||
+              selectedSubaccount() !== null
               ) {
               <section class="payment-section">
                 <div class="payment-section__heading">
@@ -1245,7 +1245,7 @@
                   type="button"
                   class="payment-submit-button"
                   [disabled]="!canCharge()"
-                  (click)="chargeAccount()"
+                  (click)="charge()"
                 >
                   @if (charging()) {
                     <i class="pi pi-spin pi-spinner"></i>

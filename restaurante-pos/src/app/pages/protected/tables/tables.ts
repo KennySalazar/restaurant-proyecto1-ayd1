@@ -6,7 +6,7 @@ import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { MessageService } from 'primeng/api';
 import { Dialog } from 'primeng/dialog';
 import { InputTextModule } from 'primeng/inputtext';
-import { finalize, forkJoin } from 'rxjs';
+import { Observable, catchError, finalize, forkJoin, map, of, switchMap } from 'rxjs';
 import { Account, ActiveFusionResponse } from '../../../core/models/account.models';
 import { Reservation } from '../../../core/models/reservation.models';
 import {
@@ -98,6 +98,7 @@ export class TablesPageComponent implements OnInit {
   readonly accountsByTable = signal<Map<number, Account>>(new Map());
   readonly activeFusions = signal<ActiveFusionResponse[]>([]);
   readonly reservationsByTable = signal<Map<number, Reservation>>(new Map());
+  readonly waitlistSuggestionsByTable = signal<Map<number, WaitlistSuggestion>>(new Map());
 
   readonly openAccountForm = this.formBuilder.group({
     cantidadPersonas: this.formBuilder.control<number | null>(1, [Validators.min(1)]),
@@ -194,19 +195,71 @@ export class TablesPageComponent implements OnInit {
       fusions: this.accountService.getActiveFusions(),
       reservations: this.reservationService.getUpcomingReservations(),
     })
-      .pipe(finalize(() => this.loading.set(false)))
+      .pipe(
+        switchMap(({ tables, accounts, fusions, reservations }) => {
+          const reservationsByTable = this.buildReservationsByTable(reservations);
+
+          // Una mesa RESERVADA puede estarlo por una Reservation formal o por una
+          // sugerencia de lista de espera (trigger fn_sincronizar_mesa_lista_espera).
+          // Solo consultamos la sugerencia para las que no tienen reserva formal.
+          const candidateTables = tables.filter(
+            (table) => table.estado === 'RESERVADA' && !reservationsByTable.has(table.id),
+          );
+
+          return this.loadWaitlistSuggestions(candidateTables).pipe(
+            map((waitlistSuggestionsByTable) => ({
+              tables,
+              accounts,
+              fusions,
+              reservationsByTable,
+              waitlistSuggestionsByTable,
+            })),
+          );
+        }),
+        finalize(() => this.loading.set(false)),
+      )
       .subscribe({
-        next: ({ tables, accounts, fusions, reservations }) => {
+        next: ({ tables, accounts, fusions, reservationsByTable, waitlistSuggestionsByTable }) => {
           this.tables.set(tables);
           this.accountsByTable.set(new Map(accounts.map((account) => [account.mesaId, account])));
           this.activeFusions.set(fusions);
-          this.reservationsByTable.set(this.buildReservationsByTable(reservations));
+          this.reservationsByTable.set(reservationsByTable);
+          this.waitlistSuggestionsByTable.set(waitlistSuggestionsByTable);
           this.lastUpdated.set(new Date());
         },
         error: (error: unknown) => {
           this.loadError.set(this.errors.getMessage(error));
         },
       });
+  }
+
+  private loadWaitlistSuggestions(
+    tables: RestaurantTable[],
+  ): Observable<Map<number, WaitlistSuggestion>> {
+    if (tables.length === 0) {
+      return of(new Map<number, WaitlistSuggestion>());
+    }
+
+    return forkJoin(
+      tables.map((table) =>
+        this.waitlistService.getSuggestionForTable(table.id).pipe(
+          map((suggestion) => [table.id, suggestion] as const),
+          catchError(() => of([table.id, null] as const)),
+        ),
+      ),
+    ).pipe(
+      map((entries) => {
+        const suggestionsByTable = new Map<number, WaitlistSuggestion>();
+
+        for (const [tableId, suggestion] of entries) {
+          if (suggestion) {
+            suggestionsByTable.set(tableId, suggestion);
+          }
+        }
+
+        return suggestionsByTable;
+      }),
+    );
   }
 
   getAccountForTable(tableId: number): Account | null {
@@ -234,6 +287,10 @@ export class TablesPageComponent implements OnInit {
 
   getReservationForTable(tableId: number): Reservation | null {
     return this.reservationsByTable().get(tableId) ?? null;
+  }
+
+  getWaitlistSuggestionForTable(tableId: number): WaitlistSuggestion | null {
+    return this.waitlistSuggestionsByTable().get(tableId) ?? null;
   }
 
   canMerge(table: RestaurantTable): boolean {

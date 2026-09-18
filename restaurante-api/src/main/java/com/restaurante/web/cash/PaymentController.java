@@ -44,4 +44,24 @@ public class PaymentController {
                 .status(HttpStatus.CREATED)
                 .body(response);
     }
+
+    @PostMapping("/{cuentaId}/subcuentas/{subcuentaId}/cobro")
+    public ResponseEntity<ChargeResponse> chargeSubaccount(
+            @PathVariable Long cuentaId,
+            @PathVariable Long subcuentaId,
+            @Valid @RequestBody ChargeRequest request,
+            Authentication authentication) {
+
+        ChargeResponse response =
+                paymentService.chargeSubaccount(
+                        cuentaId,
+                        subcuentaId,
+                        request,
+                        authentication
+                );
+
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(response);
+    }
 }

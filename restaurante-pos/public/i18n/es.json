@@ -529,6 +529,8 @@
       "submit": "Enviar calificación",
       "successTitle": "Gracias por tu calificación",
       "successDescription": "La calificación fue registrada para la atención brindada por {{ waiter }}.",
+      "accountNotClosedTitle": "Todavía no puedes calificar el servicio",
+      "accountNotClosedDescription": "Esta cuenta tiene subcuentas pendientes de cobro. Podrás calificar el servicio cuando se cobren todas y la cuenta quede cerrada.",
       "errors": {
         "required": "Selecciona una calificación de 1 a 5 estrellas.",
         "commentLength": "El comentario no puede superar los 500 caracteres."

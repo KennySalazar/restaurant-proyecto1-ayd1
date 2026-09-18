@@ -599,10 +599,12 @@ export class BillingPageComponent implements OnInit {
       account === null ||
       calculation === null ||
       breakdown === null ||
-      breakdown.total <= 0 ||
-      calculation.subcuentaId !== null ||
-      this.subaccounts().length > 0
+      breakdown.total <= 0
     ) {
+      return false;
+    }
+
+    if (calculation.subcuentaId !== null && this.selectedSubaccount() === null) {
       return false;
     }
 
@@ -617,6 +619,68 @@ export class BillingPageComponent implements OnInit {
     }
 
     return this.cardReferenceControl.valid;
+  }
+
+  charge(): void {
+    const subaccountId = this.calculation()?.subcuentaId ?? null;
+
+    if (subaccountId !== null) {
+      this.chargeSubaccount(subaccountId);
+      return;
+    }
+
+    this.chargeAccount();
+  }
+
+  chargeSubaccount(subaccountId: number): void {
+    const account = this.selectedAccount();
+    const calculation = this.calculation();
+    const breakdown = this.chargeBreakdown();
+
+    this.paymentSubmitted.set(true);
+    this.paymentErrorMessage.set(null);
+
+    if (
+      account === null ||
+      calculation === null ||
+      breakdown === null ||
+      calculation.subcuentaId !== subaccountId
+    ) {
+      return;
+    }
+
+    const payment = this.buildPaymentRequest(
+      breakdown.total,
+    );
+
+    if (payment === null) {
+      return;
+    }
+
+    this.charging.set(true);
+
+    this.paymentService
+      .chargeSubaccount(account.id, subaccountId, {
+        puntosRedimidos:
+          this.pointsSelectedForRedemption(),
+        pagos: [payment],
+      })
+      .pipe(
+        finalize(() => this.charging.set(false)),
+      )
+      .subscribe({
+        next: (response) => {
+          void this.router.navigate([
+            '/app/caja/facturas',
+            response.facturaId,
+          ]);
+        },
+        error: (error: unknown) => {
+          this.paymentErrorMessage.set(
+            this.errors.getMessage(error),
+          );
+        },
+      });
   }
 
   chargeAccount(): void {

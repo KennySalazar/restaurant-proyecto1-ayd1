@@ -523,6 +523,26 @@
               }
             </div>
           </div>
+        } @else if (!isAccountClosed(document)) {
+          <div class="service-rating__pending">
+            <i class="pi pi-lock"></i>
+
+            <div>
+              <strong>
+                {{
+                  'invoice.rating.accountNotClosedTitle'
+                    | transloco
+                }}
+              </strong>
+
+              <span>
+                {{
+                  'invoice.rating.accountNotClosedDescription'
+                    | transloco
+                }}
+              </span>
+            </div>
+          </div>
         } @else {
           <div class="service-rating__form">
             <div class="rating-stars">

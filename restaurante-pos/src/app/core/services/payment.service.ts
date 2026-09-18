@@ -23,4 +23,15 @@ export class PaymentService {
       request,
     );
   }
+
+  chargeSubaccount(
+    accountId: number,
+    subaccountId: number,
+    request: ChargeRequest,
+  ): Observable<ChargeResponse> {
+    return this.http.post<ChargeResponse>(
+      `${this.cashAccountsUrl}/${accountId}/subcuentas/${subaccountId}/cobro`,
+      request,
+    );
+  }
 }

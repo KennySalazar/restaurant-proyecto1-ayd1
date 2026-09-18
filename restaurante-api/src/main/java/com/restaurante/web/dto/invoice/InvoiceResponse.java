@@ -15,6 +15,7 @@ public record InvoiceResponse(
 
         Long cuentaId,
         String numeroCuenta,
+        String estadoCuenta,
 
         String restauranteNombre,
         String restauranteNombreComercial,

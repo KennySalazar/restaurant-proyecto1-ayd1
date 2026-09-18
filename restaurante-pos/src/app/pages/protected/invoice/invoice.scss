@@ -444,6 +444,21 @@
   gap: 0.4rem;
 }
 
+.service-rating__pending {
+  display: flex;
+  gap: 0.8rem;
+  padding: 1rem;
+  border: 1px solid #fde7b8;
+  border-radius: 0.8rem;
+  background: #fffaf0;
+  color: #92640a;
+}
+
+.service-rating__pending > div {
+  display: grid;
+  gap: 0.4rem;
+}
+
 .service-rating__success-stars {
   display: flex;
   gap: 0.25rem;

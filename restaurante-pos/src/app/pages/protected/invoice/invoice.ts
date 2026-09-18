@@ -302,6 +302,10 @@ export class InvoicePageComponent implements OnInit {
       });
   }
 
+  isAccountClosed(invoice: Invoice): boolean {
+    return invoice.estadoCuenta === 'CERRADA';
+  }
+
   hasCustomer(invoice: Invoice): boolean {
     return Boolean(
       invoice.clienteNombre ||

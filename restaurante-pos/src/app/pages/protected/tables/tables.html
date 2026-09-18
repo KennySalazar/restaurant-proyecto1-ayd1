@@ -145,6 +145,15 @@
                   {{ reservation.cantidadPersonas }} {{ 'tables.success.people' | transloco }} ·
                   {{ reservation.fechaHoraInicio | date: 'HH:mm' }}
                 </span>
+              } @else if (
+                table.estado === 'RESERVADA' && getWaitlistSuggestionForTable(table.id);
+                as suggestion
+              ) {
+                <span>
+                  <i class="pi pi-hourglass"></i>
+                  {{ 'tables.dialogs.waitlist.suggested' | transloco }}: {{ suggestion.nombreCliente }} ·
+                  {{ suggestion.cantidadPersonas }} {{ 'tables.success.people' | transloco }}
+                </span>
               }
 
               @if (getFusionForTable(table.id); as fusion) {
@@ -193,14 +202,25 @@
                 }
 
                 @case ('RESERVADA') {
-                  <button
-                    class="primary-button action-button"
-                    type="button"
-                    (click)="openReservationDialog(table)"
-                  >
-                    <i class="pi pi-calendar-plus"></i>
-                    <span>{{ 'tables.actions.seatReservation' | transloco }}</span>
-                  </button>
+                  @if (getWaitlistSuggestionForTable(table.id) && !getReservationForTable(table.id)) {
+                    <button
+                      class="primary-button action-button"
+                      type="button"
+                      (click)="openWaitlistDialog(table)"
+                    >
+                      <i class="pi pi-hourglass"></i>
+                      <span>{{ 'tables.actions.seatWaitlist' | transloco }}</span>
+                    </button>
+                  } @else {
+                    <button
+                      class="primary-button action-button"
+                      type="button"
+                      (click)="openReservationDialog(table)"
+                    >
+                      <i class="pi pi-calendar-plus"></i>
+                      <span>{{ 'tables.actions.seatReservation' | transloco }}</span>
+                    </button>
+                  }
                 }
 
                 @case ('OCUPADA') {

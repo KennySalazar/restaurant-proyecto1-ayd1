@@ -9,10 +9,12 @@ import com.restaurante.domain.model.Payment;
 import com.restaurante.domain.model.PaymentMethod;
 import com.restaurante.domain.model.RestaurantConfiguration;
 import com.restaurante.domain.model.RestaurantConfigurationStatus;
+import com.restaurante.domain.model.Subaccount;
 import com.restaurante.domain.repository.AccountRepository;
 import com.restaurante.domain.repository.PaymentMethodRepository;
 import com.restaurante.domain.repository.PaymentRepository;
 import com.restaurante.domain.repository.RestaurantConfigurationRepository;
+import com.restaurante.domain.repository.SubaccountRepository;
 import com.restaurante.exception.ApiException;
 import com.restaurante.web.dto.billing.BillingCalculationResponse;
 import com.restaurante.web.dto.payment.ChargeRequest;
@@ -36,6 +38,7 @@ public class PaymentService {
     private static final String DOCUMENT_TYPE = "COMPROBANTE";
 
     private final AccountRepository accounts;
+    private final SubaccountRepository subaccounts;
     private final PaymentRepository payments;
     private final PaymentMethodRepository paymentMethods;
     private final RestaurantConfigurationRepository configurations;
@@ -46,6 +49,7 @@ public class PaymentService {
 
     public PaymentService(
             AccountRepository accounts,
+            SubaccountRepository subaccounts,
             PaymentRepository payments,
             PaymentMethodRepository paymentMethods,
             RestaurantConfigurationRepository configurations,
@@ -55,6 +59,7 @@ public class PaymentService {
             EntityManager entityManager) {
 
         this.accounts = accounts;
+        this.subaccounts = subaccounts;
         this.payments = payments;
         this.paymentMethods = paymentMethods;
         this.configurations = configurations;
@@ -285,6 +290,280 @@ public class PaymentService {
                                 invoiceId,
                                 account.getId(),
                                 null,
+                                result.methodCode(),
+                                result.payment().getAmount(),
+                                result.payment().getReceivedAmount(),
+                                result.payment().getChangeGiven(),
+                                result.payment().getReference(),
+                                result.payment().getAuthorization(),
+                                invoiceTotal,
+                                totalPaid,
+                                pending,
+                                account.getStatus(),
+                                result.payment().getPaidAt()
+                        ))
+                        .toList();
+
+        Long resultingPointsBalance =
+                account.getClientId() == null
+                        ? null
+                        : findCustomerPointsBalance(account.getClientId());
+
+        return new ChargeResponse(
+                invoiceId,
+                documentNumber,
+                account.getId(),
+                calculation.subtotal(),
+                pointsToRedeem,
+                loyalty.pointsDiscount(),
+                calculation.porcentajeImpuesto(),
+                loyalty.taxAmount(),
+                calculation.porcentajePropina(),
+                loyalty.tipAmount(),
+                invoiceTotal,
+                pointsGranted,
+                resultingPointsBalance,
+                totalPaid,
+                pending,
+                account.getStatus(),
+                paymentResponses
+        );
+    }
+
+    @Transactional
+    public ChargeResponse chargeSubaccount(
+            Long accountId,
+            Long subaccountId,
+            ChargeRequest request,
+            Authentication authentication) {
+
+        CashShift shift =
+                cashShiftService.requireOpenShift(authentication);
+
+        BillingCalculationResponse calculation =
+                billingCalculationService.calculateSubAccount(
+                        accountId,
+                        subaccountId,
+                        authentication
+                );
+
+        Account account = accounts.findById(accountId)
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "account_not_found",
+                        "Cuenta no encontrada",
+                        "La cuenta indicada no existe"
+                ));
+
+        Subaccount subaccount = subaccounts.findById(subaccountId)
+                .filter(candidate -> candidate.getAccount().getId().equals(accountId))
+                .filter(candidate -> "PENDIENTE".equals(candidate.getStatus()))
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "subaccount_not_found",
+                        "Subcuenta no encontrada",
+                        "La subcuenta no existe, no pertenece a la cuenta o ya no esta pendiente"
+                ));
+
+        RestaurantConfiguration configuration =
+                configurations
+                        .findByRestaurantIdAndStatus(
+                                account.getRestaurantId(),
+                                RestaurantConfigurationStatus.VIGENTE
+                        )
+                        .orElseThrow(() -> new ApiException(
+                                HttpStatus.NOT_FOUND,
+                                "restaurant_configuration_not_found",
+                                "Configuracion no encontrada",
+                                "El restaurante no tiene una configuracion vigente"
+                        ));
+
+        long pointsToRedeem =
+                request.puntosRedimidos() == null
+                        ? 0L
+                        : request.puntosRedimidos();
+
+        LoyaltyCalculation loyalty =
+                calculateLoyalty(
+                        account,
+                        configuration,
+                        calculation,
+                        pointsToRedeem
+                );
+
+        BigDecimal invoiceTotal = loyalty.total();
+
+        if (invoiceTotal.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "empty_account_total",
+                    "Subcuenta sin monto cobrable",
+                    "La subcuenta no posee un total mayor que cero para cobrar"
+            );
+        }
+
+        List<ValidatedPayment> validatedPayments =
+                validatePayments(
+                        request.pagos(),
+                        invoiceTotal
+                );
+
+        String series =
+                findActiveSeries(account.getRestaurantId());
+
+        Long sequence =
+                nextInvoiceNumber(
+                        account.getRestaurantId(),
+                        series
+                );
+
+        String documentNumber =
+                series + "-" + sequence;
+
+        long pointsGranted = 0L;
+
+        if (account.getClientId() != null) {
+            pointsGranted = invoiceTotal
+                    .multiply(configuration.getPointsPerCurrency())
+                    .setScale(0, RoundingMode.FLOOR)
+                    .longValue();
+        }
+
+        Long invoiceId = insertSubaccountInvoice(
+                account,
+                subaccount,
+                shift,
+                configuration,
+                calculation,
+                loyalty,
+                series,
+                sequence,
+                documentNumber,
+                pointsToRedeem,
+                pointsGranted
+        );
+
+        insertSubaccountInvoiceDetails(
+                invoiceId,
+                subaccountId
+        );
+
+        insertInvoiceModifiers(invoiceId);
+
+        List<PaymentResult> registeredPayments =
+                new ArrayList<>();
+
+        for (ValidatedPayment validated : validatedPayments) {
+
+            RegisterPaymentRequest paymentRequest =
+                    validated.request();
+
+            PaymentMethod method =
+                    validated.method();
+
+            Payment payment = new Payment(
+                    invoiceId,
+                    method.getId(),
+                    money(paymentRequest.monto()),
+                    paymentRequest.montoRecibido() == null
+                            ? null
+                            : money(paymentRequest.montoRecibido()),
+                    paymentRequest.referencia(),
+                    paymentRequest.autorizacion(),
+                    shift.getCashierId()
+            );
+
+            payment = payments.saveAndFlush(payment);
+
+            entityManager.refresh(payment);
+
+            cashTransactionService.registerSale(
+                    shift.getId(),
+                    invoiceId,
+                    payment.getId(),
+                    shift.getCashierId(),
+                    payment.getAmount()
+            );
+
+            registeredPayments.add(
+                    new PaymentResult(
+                            payment,
+                            method.getCode()
+                    )
+            );
+        }
+
+        cashTransactionService.registerTip(
+                shift.getId(),
+                invoiceId,
+                shift.getCashierId(),
+                loyalty.tipAmount()
+        );
+
+        entityManager.flush();
+
+        if (pointsToRedeem > 0) {
+
+            cashTransactionService.registerPointsRedemption(
+                    shift.getId(),
+                    invoiceId,
+                    shift.getCashierId(),
+                    loyalty.pointsDiscount(),
+                    pointsToRedeem
+            );
+
+            entityManager.flush();
+
+            insertPointsRedemption(
+                    account.getClientId(),
+                    invoiceId,
+                    pointsToRedeem,
+                    loyalty.pointsDiscount(),
+                    shift.getCashierId()
+            );
+        }
+
+        if (pointsGranted > 0) {
+            insertPointsGrant(
+                    account.getClientId(),
+                    invoiceId,
+                    pointsGranted,
+                    shift.getCashierId()
+            );
+        }
+
+        entityManager.flush();
+
+        // trg_validar_transicion_subcuenta exige que la factura (EMITIDA, pagada
+        // por completo, con el mismo subtotal) ya exista antes de aceptar
+        // PENDIENTE -> FACTURADA; por eso el flush anterior va primero.
+        subaccount.setStatus("FACTURADA");
+        subaccounts.saveAndFlush(subaccount);
+
+        boolean hasPendingSubaccounts =
+                subaccounts.existsByAccountIdAndStatus(accountId, "PENDIENTE");
+
+        account.setStatus(hasPendingSubaccounts ? "PARCIALMENTE_PAGADA" : "CERRADA");
+        accounts.saveAndFlush(account);
+
+        BigDecimal totalPaid = money(
+                registeredPayments
+                        .stream()
+                        .map(result -> result.payment().getAmount())
+                        .reduce(BigDecimal.ZERO, BigDecimal::add)
+        );
+
+        BigDecimal pending =
+                money(invoiceTotal.subtract(totalPaid));
+
+        List<PaymentResponse> paymentResponses =
+                registeredPayments
+                        .stream()
+                        .map(result -> new PaymentResponse(
+                                result.payment().getId(),
+                                invoiceId,
+                                account.getId(),
+                                subaccountId,
                                 result.methodCode(),
                                 result.payment().getAmount(),
                                 result.payment().getReceivedAmount(),
@@ -738,6 +1017,257 @@ public class PaymentService {
                 .setParameter(
                         "accountId",
                         accountId
+                )
+                .executeUpdate();
+    }
+
+    private Long insertSubaccountInvoice(
+            Account account,
+            Subaccount subaccount,
+            CashShift shift,
+            RestaurantConfiguration configuration,
+            BillingCalculationResponse calculation,
+            LoyaltyCalculation loyalty,
+            String series,
+            Long sequence,
+            String documentNumber,
+            long pointsRedeemed,
+            long pointsGranted) {
+
+        Number result = (Number) entityManager
+                .createNativeQuery("""
+                        INSERT INTO restaurante.facturas (
+                            restaurante_id,
+                            cuenta_id,
+                            subcuenta_id,
+                            turno_caja_id,
+                            configuracion_id,
+                            cliente_id,
+                            mesero_id,
+                            cajero_id,
+                            tipo_documento,
+                            serie,
+                            numero_correlativo,
+                            numero_documento,
+                            estado,
+                            subtotal,
+                            descuento_total,
+                            descuento_puntos,
+                            porcentaje_impuesto,
+                            monto_impuesto,
+                            porcentaje_propina,
+                            monto_propina,
+                            total,
+                            puntos_redimidos,
+                            puntos_otorgados
+                        )
+                        VALUES (
+                            :restaurantId,
+                            :accountId,
+                            :subaccountId,
+                            :shiftId,
+                            :configurationId,
+                            :clientId,
+                            :waiterId,
+                            :cashierId,
+                            :documentType,
+                            :series,
+                            :sequence,
+                            :documentNumber,
+                            'EMITIDA',
+                        :subtotal,
+                        :totalDiscount,
+                        :pointsDiscount,
+                        :taxPercentage,
+                        :taxAmount,
+                        :tipPercentage,
+                        :tipAmount,
+                        :total,
+                        :pointsRedeemed,
+                        :pointsGranted
+                        )
+                        RETURNING id
+                        """)
+                .setParameter(
+                        "restaurantId",
+                        account.getRestaurantId()
+                )
+                .setParameter(
+                        "accountId",
+                        account.getId()
+                )
+                .setParameter(
+                        "subaccountId",
+                        subaccount.getId()
+                )
+                .setParameter(
+                        "shiftId",
+                        shift.getId()
+                )
+                .setParameter(
+                        "configurationId",
+                        configuration.getId()
+                )
+                .setParameter(
+                        "clientId",
+                        account.getClientId()
+                )
+                .setParameter(
+                        "waiterId",
+                        account.getWaiterId()
+                )
+                .setParameter(
+                        "cashierId",
+                        shift.getCashierId()
+                )
+                .setParameter(
+                        "documentType",
+                        DOCUMENT_TYPE
+                )
+                .setParameter(
+                        "series",
+                        series
+                )
+                .setParameter(
+                        "sequence",
+                        sequence
+                )
+                .setParameter(
+                        "documentNumber",
+                        documentNumber
+                )
+                .setParameter(
+                        "subtotal",
+                        calculation.subtotal()
+                )
+                .setParameter(
+                        "taxPercentage",
+                        calculation.porcentajeImpuesto()
+                )
+                .setParameter(
+                        "taxAmount",
+                        loyalty.taxAmount()
+                )
+                .setParameter(
+                        "tipPercentage",
+                        calculation.porcentajePropina()
+                )
+                .setParameter(
+                        "tipAmount",
+                        loyalty.tipAmount()
+                )
+                .setParameter(
+                        "totalDiscount",
+                        loyalty.pointsDiscount()
+                )
+                .setParameter(
+                        "pointsDiscount",
+                        loyalty.pointsDiscount()
+                )
+                .setParameter(
+                        "pointsGranted",
+                        pointsGranted
+                )
+                .setParameter(
+                        "total",
+                        loyalty.total()
+                )
+                .setParameter(
+                        "pointsRedeemed",
+                        pointsRedeemed
+                )
+
+                .getSingleResult();
+
+        return result.longValue();
+    }
+
+    /**
+     * Inserta el detalle de factura solo para los items asignados a la subcuenta
+     * (subcuenta_detalles), usando la cantidad asignada en vez de la cantidad
+     * total de la comanda, con la misma formula de subtotal que
+     * fn_recalcular_subtotal_subcuenta para que coincida con subtotal_snapshot.
+     */
+    private void insertSubaccountInvoiceDetails(
+            Long invoiceId,
+            Long subaccountId) {
+
+        entityManager
+                .createNativeQuery("""
+                        INSERT INTO restaurante.factura_detalles (
+                            factura_id,
+                            comanda_detalle_id,
+                            platillo_id,
+                            combo_id,
+                            nombre_snapshot,
+                            categoria_snapshot,
+                            cantidad,
+                            precio_unitario_snapshot,
+                            total_modificadores_snapshot,
+                            costo_unitario_snapshot,
+                            subtotal_linea
+                        )
+                        SELECT
+                            :invoiceId,
+                            cd.id,
+                            cd.platillo_id,
+                            cd.combo_id,
+                            cd.nombre_snapshot,
+                            NULL,
+                            sd.cantidad_asignada,
+                            cd.precio_unitario_snapshot,
+                            ROUND(
+                                COALESCE((
+                                    SELECT SUM(
+                                        cdm.cantidad
+                                        * cdm.precio_adicional_snapshot
+                                    )
+                                    FROM restaurante.comanda_detalle_modificadores cdm
+                                    WHERE cdm.comanda_detalle_id = cd.id
+                                ), 0),
+                                2
+                            ),
+                            ROUND(
+                                GREATEST(
+                                    cd.costo_unitario_snapshot
+                                    + COALESCE((
+                                        SELECT SUM(
+                                            cdm.cantidad
+                                            * cdm.costo_adicional_snapshot
+                                        )
+                                        FROM restaurante.comanda_detalle_modificadores cdm
+                                        WHERE cdm.comanda_detalle_id = cd.id
+                                    ), 0),
+                                    0
+                                ),
+                                4
+                            ),
+                            ROUND(
+                                sd.cantidad_asignada * (
+                                    cd.precio_unitario_snapshot
+                                    + COALESCE((
+                                        SELECT SUM(
+                                            cdm.cantidad
+                                            * cdm.precio_adicional_snapshot
+                                        )
+                                        FROM restaurante.comanda_detalle_modificadores cdm
+                                        WHERE cdm.comanda_detalle_id = cd.id
+                                    ), 0)
+                                ),
+                                2
+                            )
+                        FROM restaurante.subcuenta_detalles sd
+                        JOIN restaurante.comanda_detalles cd
+                          ON cd.id = sd.comanda_detalle_id
+                        WHERE sd.subcuenta_id = :subaccountId
+                        """)
+                .setParameter(
+                        "invoiceId",
+                        invoiceId
+                )
+                .setParameter(
+                        "subaccountId",
+                        subaccountId
                 )
                 .executeUpdate();
     }

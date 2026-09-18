@@ -28,6 +28,7 @@ export interface Invoice {
 
   cuentaId: number;
   numeroCuenta: string;
+  estadoCuenta: string;
 
   restauranteNombre: string;
   restauranteNombreComercial: string;
