@@ -124,6 +124,30 @@ export const routes: Routes = [
           roles: ['CASHIER'],
         },
       },
+
+      {
+        path: 'caja/facturas',
+        loadComponent: () =>
+          import('./pages/protected/invoices/invoices').then(
+            (module) => module.InvoicesPageComponent,
+          ),
+        canActivate: [roleGuard],
+        data: {
+          roles: ['CASHIER'],
+        },
+      },
+
+      {
+        path: 'caja/facturas/:facturaId',
+        loadComponent: () =>
+          import('./pages/protected/invoice/invoice').then(
+            (module) => module.InvoicePageComponent,
+          ),
+        canActivate: [roleGuard],
+        data: {
+          roles: ['CASHIER'],
+        },
+      },
       {
         path: 'account',
         loadComponent: () =>

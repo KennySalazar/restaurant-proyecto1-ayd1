@@ -1,0 +1,185 @@
+<app-page-heading
+  eyebrowKey="invoices.eyebrow"
+  titleKey="invoices.title"
+  descriptionKey="invoices.description"
+/>
+
+<div class="invoices-layout">
+  <app-form-feedback [message]="errorMessage()" />
+
+  <div class="invoices-toolbar">
+    <div>
+      <strong>
+        {{ 'invoices.emitted' | transloco }}
+      </strong>
+
+      <span>
+        {{ 'invoices.availableDescription' | transloco }}
+      </span>
+    </div>
+
+    <button
+      type="button"
+      class="secondary-button"
+      [disabled]="loading()"
+      (click)="refresh()"
+    >
+      <i
+        class="pi"
+        [class.pi-refresh]="!loading()"
+        [class.pi-spin]="loading()"
+        [class.pi-spinner]="loading()"
+      ></i>
+
+      <span>
+        {{ 'invoices.refresh' | transloco }}
+      </span>
+    </button>
+  </div>
+
+  @if (loading()) {
+    <section class="invoices-state">
+      <i class="pi pi-spin pi-spinner"></i>
+
+      <span>
+        {{ 'invoices.loading' | transloco }}
+      </span>
+    </section>
+  } @else if (invoices().length === 0) {
+    <section class="invoices-state invoices-state--empty">
+      <i class="pi pi-file"></i>
+
+      <strong>
+        {{ 'invoices.emptyTitle' | transloco }}
+      </strong>
+
+      <span>
+        {{ 'invoices.emptyDescription' | transloco }}
+      </span>
+    </section>
+  } @else {
+    <div class="invoice-list">
+      @for (
+          invoice of invoices();
+        track invoice.facturaId
+        ) {
+        <article class="invoice-card">
+          <div class="invoice-card__main">
+            <div class="invoice-card__document">
+              <span>
+                {{ 'invoices.document' | transloco }}
+              </span>
+
+              <strong>
+                {{ invoice.numeroDocumento }}
+              </strong>
+            </div>
+
+            <span class="invoice-status">
+              {{ invoice.estado }}
+            </span>
+          </div>
+
+          <div class="invoice-card__grid">
+            <div>
+              <span>
+                {{ 'invoices.date' | transloco }}
+              </span>
+
+              <strong>
+                {{
+                  invoice.emitidaEn
+                    | date: 'dd/MM/yyyy HH:mm'
+                }}
+              </strong>
+            </div>
+
+            <div>
+              <span>
+                {{ 'invoices.account' | transloco }}
+              </span>
+
+              <strong>
+                {{ invoice.numeroCuenta }}
+              </strong>
+            </div>
+
+            <div>
+              <span>
+                {{ 'invoices.table' | transloco }}
+              </span>
+
+              <strong>
+                {{ invoice.numeroMesa || '-' }}
+              </strong>
+            </div>
+
+            <div>
+              <span>
+                {{ 'invoices.waiter' | transloco }}
+              </span>
+
+              <strong>
+                {{ waiterName(invoice) }}
+              </strong>
+            </div>
+
+            <div>
+              <span>
+                {{ 'invoices.customer' | transloco }}
+              </span>
+
+              <strong>
+                {{ customerName(invoice) }}
+              </strong>
+            </div>
+
+            <div>
+              <span>
+                {{ 'invoices.total' | transloco }}
+              </span>
+
+              <strong class="invoice-card__total">
+                Q {{ invoice.total | number: '1.2-2' }}
+              </strong>
+            </div>
+          </div>
+
+          <div class="invoice-card__footer">
+            <div>
+              <span>
+                {{ 'invoices.subtotal' | transloco }}:
+                Q {{ invoice.subtotal | number: '1.2-2' }}
+              </span>
+
+              @if (invoice.descuentoTotal > 0) {
+                <span>
+                  {{ 'invoices.discount' | transloco }}:
+                  -Q
+                  {{
+                    invoice.descuentoTotal
+                      | number: '1.2-2'
+                  }}
+                </span>
+              }
+            </div>
+
+            <a
+              class="primary-button"
+              [routerLink]="[
+                '/app/caja/facturas',
+                invoice.facturaId
+              ]"
+            >
+              <i class="pi pi-eye"></i>
+
+              <span>
+                {{ 'invoices.viewReceipt' | transloco }}
+              </span>
+            </a>
+          </div>
+        </article>
+      }
+    </div>
+  }
+</div>
