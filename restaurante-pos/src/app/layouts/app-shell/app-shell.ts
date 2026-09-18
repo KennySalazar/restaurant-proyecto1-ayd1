@@ -42,6 +42,15 @@ const NAVIGATION: readonly NavigationItem[] = [
     icon: 'pi-receipt',
     roles: ['CASHIER'],
   },
+
+  {
+    path: '/app/caja/facturas',
+    labelKey: 'nav.invoices',
+    icon: 'pi-file',
+    roles: ['CASHIER'],
+  },
+
+
   {
     path: '/app/account',
     labelKey: 'nav.account',
