@@ -70,6 +70,13 @@ const NAVIGATION: readonly NavigationItem[] = [
   roles: ['ADMIN'],
 },
 
+{
+  path: '/app/reports/table-occupancy',
+  labelKey: 'nav.tableOccupancyReport',
+  icon: 'pi-clock',
+  roles: ['ADMIN'],
+},
+
   {
     path: '/app/employees',
     labelKey: 'nav.employees',

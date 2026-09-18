@@ -31,6 +31,7 @@
     "waitlist": "Lista de espera",
     "occupancy": "Panel de ocupación",
     "salesReport": "Reporte de ventas",
+    "tableOccupancyReport": "Ocupación por horario",
     "profitabilityReport": "Rentabilidad por platillo",
     "security": "Seguridad",
     "admin": "Administración",
@@ -220,6 +221,60 @@
     "requiredDate": "La fecha es obligatoria.",
     "invalidPeriod": "La fecha inicial no puede ser posterior a la fecha final.",
     "current": "No fue posible consultar la rentabilidad actual."
+  }
+},
+"tableOccupancyReport": {
+  "eyebrow": "Reportes",
+  "title": "Ocupación de mesas por horario",
+  "description": "Consulta la ocupación histórica de las mesas e identifica los horarios de mayor y menor actividad del restaurante.",
+  "period": "Período consultado",
+  "loading": "Generando reporte...",
+  "loadingDescription": "Estamos consultando los registros históricos de ocupación.",
+  "filters": {
+    "title": "Selecciona el período",
+    "description": "Indica las fechas que deseas analizar.",
+    "startDate": "Fecha inicial",
+    "endDate": "Fecha final",
+    "generate": "Generar reporte"
+  },
+  "summary": {
+    "slots": "Horarios con ocupación",
+    "maximum": "Mayor ocupación",
+    "minimum": "Menor ocupación",
+    "tables": "mesas ocupadas"
+  },
+  "table": {
+    "title": "Ocupación por horario",
+    "description": "Detalle de las mesas efectivamente ocupadas en cada franja horaria.",
+    "columns": {
+      "date": "Fecha",
+      "schedule": "Horario",
+      "occupied": "Mesas ocupadas",
+      "activity": "Nivel de actividad",
+      "level": "Clasificación"
+    }
+  },
+  "levels": {
+    "high": "Mayor ocupación",
+    "low": "Menor ocupación",
+    "normal": "Ocupación intermedia",
+    "uniform": "Ocupación uniforme"
+  },
+  "note": {
+    "title": "Ocupaciones reales",
+    "description": "El reporte contabiliza las mesas que estuvieron efectivamente ocupadas. Una reserva por sí sola no se contabiliza como ocupación."
+  },
+  "initial": {
+    "title": "Selecciona un período",
+    "description": "Completa las fechas y genera el reporte para consultar la ocupación histórica."
+  },
+  "empty": {
+    "title": "No existen datos de ocupación",
+    "description": "No se encontraron ocupaciones reales dentro del período seleccionado."
+  },
+  "errors": {
+    "requiredDate": "La fecha es obligatoria.",
+    "invalidPeriod": "La fecha inicial no puede ser posterior a la fecha final."
   }
 },
   "tables": {
