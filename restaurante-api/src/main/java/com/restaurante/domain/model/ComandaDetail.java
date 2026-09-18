@@ -15,6 +15,7 @@ import jakarta.persistence.OneToMany;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
+import org.hibernate.annotations.DynamicUpdate;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -23,8 +24,14 @@ import java.util.List;
 
 /**
  * Entidad que representa un renglón o ítem incluido en una comanda (platillo o combo).
+ *
+ * <p>Usa {@code @DynamicUpdate} porque el trigger de BD {@code trg_validar_comanda_detalle_producto}
+ * solo debe dispararse cuando cambian columnas de producto (platillo, receta, cantidad, etc.),
+ * no en transiciones de estado; una actualización de todas las columnas dispararía ese trigger
+ * en cada cambio de estado y exigiría que la comanda siguiera en BORRADOR.</p>
  */
 @Entity
+@DynamicUpdate
 @Table(name = "comanda_detalles", schema = "restaurante")
 public class ComandaDetail {
 

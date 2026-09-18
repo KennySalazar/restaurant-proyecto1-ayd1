@@ -1,0 +1,643 @@
+<app-page-heading
+  eyebrowKey="invoice.eyebrow"
+  titleKey="invoice.title"
+  descriptionKey="invoice.description"
+/>
+
+<div class="invoice-layout">
+  <app-form-feedback [message]="errorMessage()" />
+
+  @if (loading()) {
+    <section class="invoice-state">
+      <i class="pi pi-spin pi-spinner"></i>
+
+      <span>
+        {{ 'invoice.loading' | transloco }}
+      </span>
+    </section>
+  } @else if (invoice(); as document) {
+    <div class="invoice-toolbar">
+      <a
+        class="secondary-button"
+        routerLink="/app/caja/cobros"
+      >
+        <i class="pi pi-arrow-left"></i>
+
+        <span>
+          {{ 'invoice.backToBilling' | transloco }}
+        </span>
+      </a>
+
+      <div class="invoice-toolbar__actions">
+        <button
+          type="button"
+          class="secondary-button"
+          [disabled]="printing()"
+          (click)="printPdf()"
+        >
+          @if (printing()) {
+            <i class="pi pi-spin pi-spinner"></i>
+          } @else {
+            <i class="pi pi-print"></i>
+          }
+
+          <span>
+            {{ 'invoice.print' | transloco }}
+          </span>
+        </button>
+
+        <button
+          type="button"
+          class="primary-button"
+          [disabled]="downloading()"
+          (click)="downloadPdf()"
+        >
+          @if (downloading()) {
+            <i class="pi pi-spin pi-spinner"></i>
+          } @else {
+            <i class="pi pi-download"></i>
+          }
+
+          <span>
+            {{ 'invoice.downloadPdf' | transloco }}
+          </span>
+        </button>
+      </div>
+    </div>
+
+    <article class="invoice-document">
+      <header class="invoice-header">
+        <div>
+          <span class="invoice-header__eyebrow">
+            {{ 'invoice.receipt' | transloco }}
+          </span>
+
+          <h2>
+            {{ document.numeroDocumento }}
+          </h2>
+
+          <p>
+            {{ document.tipoDocumento }}
+          </p>
+        </div>
+
+        <span class="invoice-status">
+          {{ document.estado }}
+        </span>
+      </header>
+
+      <section class="invoice-meta-grid">
+        <div class="invoice-meta-card">
+          <span>
+            {{ 'invoice.series' | transloco }}
+          </span>
+
+          <strong>
+            {{ document.serie }}
+          </strong>
+        </div>
+
+        <div class="invoice-meta-card">
+          <span>
+            {{ 'invoice.correlative' | transloco }}
+          </span>
+
+          <strong>
+            {{ document.numeroCorrelativo }}
+          </strong>
+        </div>
+
+        <div class="invoice-meta-card">
+          <span>
+            {{ 'invoice.account' | transloco }}
+          </span>
+
+          <strong>
+            {{ document.numeroCuenta }}
+          </strong>
+        </div>
+
+        <div class="invoice-meta-card">
+          <span>
+            {{ 'invoice.issuedAt' | transloco }}
+          </span>
+
+          <strong>
+            {{
+              document.emitidaEn
+                | date: 'dd/MM/yyyy HH:mm'
+            }}
+          </strong>
+        </div>
+      </section>
+
+      <section class="invoice-info-grid">
+        <div class="invoice-info">
+          <span class="invoice-section-title">
+            {{ 'invoice.restaurant' | transloco }}
+          </span>
+
+          <strong>
+            {{ document.restauranteNombreComercial }}
+          </strong>
+
+          <span>
+            {{ document.restauranteNombre }}
+          </span>
+
+          <span>
+            {{ document.identificacionFiscal }}
+          </span>
+
+          <span>
+            {{ document.direccion }}
+          </span>
+
+          <span>
+            {{ document.telefono }}
+          </span>
+
+          <span>
+            {{ document.correo }}
+          </span>
+        </div>
+
+        <div class="invoice-info">
+          <span class="invoice-section-title">
+            {{ 'invoice.customer' | transloco }}
+          </span>
+
+          @if (hasCustomer(document)) {
+            <strong>
+              {{ customerName(document) }}
+            </strong>
+          } @else {
+            <strong>
+              {{ 'invoice.finalConsumer' | transloco }}
+            </strong>
+          }
+
+          <span>
+            {{ 'invoice.currency' | transloco }}:
+            {{ document.moneda }}
+          </span>
+        </div>
+      </section>
+
+      <section class="invoice-section">
+        <div class="invoice-section__heading">
+          <h3>
+            {{ 'invoice.details' | transloco }}
+          </h3>
+        </div>
+
+        <div class="invoice-table-wrapper">
+          <table class="invoice-table">
+            <thead>
+            <tr>
+              <th>
+                {{ 'invoice.product' | transloco }}
+              </th>
+
+              <th>
+                {{ 'invoice.quantity' | transloco }}
+              </th>
+
+              <th>
+                {{ 'invoice.unitPrice' | transloco }}
+              </th>
+
+              <th>
+                {{ 'invoice.modifiers' | transloco }}
+              </th>
+
+              <th>
+                {{ 'invoice.lineSubtotal' | transloco }}
+              </th>
+            </tr>
+            </thead>
+
+            <tbody>
+              @for (
+                  detail of document.detalles;
+                track detail.detalleId
+                ) {
+                <tr>
+                  <td>
+                    <strong>
+                      {{ detail.nombre }}
+                    </strong>
+                  </td>
+
+                  <td>
+                    {{
+                      detail.cantidad
+                        | number: '1.0-2'
+                    }}
+                  </td>
+
+                  <td>
+                    Q
+                    {{
+                      detail.precioUnitario
+                        | number: '1.2-2'
+                    }}
+                  </td>
+
+                  <td>
+                    Q
+                    {{
+                      detail.modificadores
+                        | number: '1.2-2'
+                    }}
+                  </td>
+
+                  <td>
+                    <strong>
+                      Q
+                      {{
+                        detail.subtotalLinea
+                          | number: '1.2-2'
+                      }}
+                    </strong>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="invoice-summary">
+        <div class="invoice-summary__row">
+          <span>
+            {{ 'invoice.subtotal' | transloco }}
+          </span>
+
+          <strong>
+            Q {{ document.subtotal | number: '1.2-2' }}
+          </strong>
+        </div>
+
+        <div class="invoice-summary__row">
+          <span>
+            {{ 'invoice.discounts' | transloco }}
+          </span>
+
+          <strong>
+            -Q
+            {{
+              document.descuentoTotal
+                | number: '1.2-2'
+            }}
+          </strong>
+        </div>
+
+        @if (document.descuentoPuntos > 0) {
+          <div class="invoice-summary__row">
+            <span>
+              {{ 'invoice.pointsDiscount' | transloco }}
+            </span>
+
+            <strong>
+              -Q
+              {{
+                document.descuentoPuntos
+                  | number: '1.2-2'
+              }}
+            </strong>
+          </div>
+        }
+
+        <div class="invoice-summary__row">
+          <span>
+            {{ 'invoice.tax' | transloco }}
+            ({{ document.porcentajeImpuesto | number: '1.0-2' }}%)
+          </span>
+
+          <strong>
+            Q
+            {{
+              document.montoImpuesto
+                | number: '1.2-2'
+            }}
+          </strong>
+        </div>
+
+        <div class="invoice-summary__row">
+          <span>
+            {{ 'invoice.tip' | transloco }}
+            ({{ document.porcentajePropina | number: '1.0-2' }}%)
+          </span>
+
+          <strong>
+            Q
+            {{
+              document.montoPropina
+                | number: '1.2-2'
+            }}
+          </strong>
+        </div>
+
+        <div class="invoice-summary__total">
+          <span>
+            {{ 'invoice.total' | transloco }}
+          </span>
+
+          <strong>
+            Q {{ document.total | number: '1.2-2' }}
+          </strong>
+        </div>
+      </section>
+
+      <section class="invoice-section">
+        <div class="invoice-section__heading">
+          <h3>
+            {{ 'invoice.payments' | transloco }}
+          </h3>
+        </div>
+
+        <div class="payment-grid">
+          @for (
+              payment of document.pagos;
+            track payment.pagoId
+            ) {
+            <div class="payment-card">
+              <div>
+                <span>
+                  {{ payment.metodoCodigo }}
+                </span>
+
+                <strong>
+                  {{ payment.metodoNombre }}
+                </strong>
+              </div>
+
+              <strong>
+                Q {{ payment.monto | number: '1.2-2' }}
+              </strong>
+
+              @if (payment.montoRecibido !== null) {
+                <small>
+                  {{ 'invoice.received' | transloco }}:
+                  Q
+                  {{
+                    payment.montoRecibido
+                      | number: '1.2-2'
+                  }}
+                </small>
+              }
+
+              @if (payment.cambioEntregado !== null) {
+                <small>
+                  {{ 'invoice.change' | transloco }}:
+                  Q
+                  {{
+                    payment.cambioEntregado
+                      | number: '1.2-2'
+                  }}
+                </small>
+              }
+
+              @if (payment.referencia) {
+                <small>
+                  {{ 'invoice.reference' | transloco }}:
+                  {{ payment.referencia }}
+                </small>
+              }
+
+              @if (payment.autorizacion) {
+                <small>
+                  {{ 'invoice.authorization' | transloco }}:
+                  {{ payment.autorizacion }}
+                </small>
+              }
+            </div>
+          }
+        </div>
+      </section>
+
+      @if (
+        document.puntosRedimidos > 0 ||
+        document.puntosOtorgados > 0
+        ) {
+        <section class="loyalty-summary">
+          <i class="pi pi-star"></i>
+
+          <div>
+            @if (document.puntosRedimidos > 0) {
+              <span>
+                {{ 'invoice.pointsRedeemed' | transloco }}:
+                <strong>
+                  {{
+                    document.puntosRedimidos
+                      | number: '1.0-0'
+                  }}
+                </strong>
+              </span>
+            }
+
+            @if (document.puntosOtorgados > 0) {
+              <span>
+                {{ 'invoice.pointsGranted' | transloco }}:
+                <strong>
+                  {{
+                    document.puntosOtorgados
+                      | number: '1.0-0'
+                  }}
+                </strong>
+              </span>
+            }
+          </div>
+        </section>
+      }
+
+      <section class="service-rating">
+        <div class="service-rating__heading">
+          <div>
+            <span class="invoice-section-title">
+              {{ 'invoice.rating.eyebrow' | transloco }}
+            </span>
+
+            <h3>
+              {{ 'invoice.rating.title' | transloco }}
+            </h3>
+
+            <p>
+              {{ 'invoice.rating.description' | transloco }}
+            </p>
+          </div>
+
+          <span class="service-rating__icon">
+            <i class="pi pi-star"></i>
+          </span>
+        </div>
+
+        <app-form-feedback
+          [message]="ratingErrorMessage()"
+        />
+
+        @if (registeredRating(); as rating) {
+          <div class="service-rating__success">
+            <i class="pi pi-check-circle"></i>
+
+            <div>
+              <strong>
+                {{
+                  'invoice.rating.successTitle'
+                    | transloco
+                }}
+              </strong>
+
+              <span>
+                {{
+                  'invoice.rating.successDescription'
+                    | transloco:
+                    {
+                      waiter: waiterName(rating)
+                    }
+                }}
+              </span>
+
+              <div class="service-rating__success-stars">
+                @for (
+                    star of ratingOptions;
+                  track star
+                  ) {
+                  <i
+                    class="pi"
+                    [class.pi-star-fill]="
+                      star <= rating.calificacion
+                    "
+                    [class.pi-star]="
+                      star > rating.calificacion
+                    "
+                  ></i>
+                }
+              </div>
+
+              @if (rating.comentario) {
+                <p>
+                  "{{ rating.comentario }}"
+                </p>
+              }
+            </div>
+          </div>
+        } @else {
+          <div class="service-rating__form">
+            <div class="rating-stars">
+              @for (
+                  star of ratingOptions;
+                track star
+                ) {
+                <button
+                  type="button"
+                  class="rating-star"
+                  [class.rating-star--active]="
+                    isRatingSelected(star)
+                  "
+                  [attr.aria-label]="
+                    (
+                      'invoice.rating.starLabel'
+                        | transloco:
+                          {
+                            rating: star
+                          }
+                    )
+                  "
+                  (click)="selectRating(star)"
+                >
+                  <i
+                    class="pi"
+                    [class.pi-star-fill]="
+                      isRatingSelected(star)
+                    "
+                    [class.pi-star]="
+                      !isRatingSelected(star)
+                    "
+                  ></i>
+                </button>
+              }
+            </div>
+
+            @if (
+              ratingControl.invalid &&
+              ratingControl.touched
+              ) {
+              <span class="service-rating__validation">
+                <i class="pi pi-exclamation-circle"></i>
+
+                {{
+                  'invoice.rating.errors.required'
+                    | transloco
+                }}
+              </span>
+            }
+
+            <div class="service-rating__comment">
+              <label for="serviceRatingComment">
+                {{
+                  'invoice.rating.comment'
+                    | transloco
+                }}
+              </label>
+
+              <textarea
+                id="serviceRatingComment"
+                rows="4"
+                maxlength="500"
+                [formControl]="ratingCommentControl"
+                [placeholder]="
+                  'invoice.rating.commentPlaceholder'
+                    | transloco
+                "
+              ></textarea>
+
+              <small>
+                {{ ratingCommentControl.value.length }}/500
+              </small>
+            </div>
+
+            @if (
+              ratingCommentControl.hasError('maxlength') &&
+              ratingCommentControl.touched
+              ) {
+              <span class="service-rating__validation">
+                {{
+                  'invoice.rating.errors.commentLength'
+                    | transloco
+                }}
+              </span>
+            }
+
+            <div class="service-rating__actions">
+              <button
+                type="button"
+                class="primary-button"
+                [disabled]="
+                  submittingRating() ||
+                  ratingControl.invalid ||
+                  ratingCommentControl.invalid
+                "
+                (click)="submitRating()"
+              >
+                @if (submittingRating()) {
+                  <i class="pi pi-spin pi-spinner"></i>
+                } @else {
+                  <i class="pi pi-send"></i>
+                }
+
+                <span>
+                  {{
+                    'invoice.rating.submit'
+                      | transloco
+                  }}
+                </span>
+              </button>
+            </div>
+          </div>
+        }
+      </section>
+    </article>
+  }
+</div>

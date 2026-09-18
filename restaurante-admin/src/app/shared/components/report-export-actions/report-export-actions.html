@@ -1,0 +1,74 @@
+<section class="report-export">
+  <div class="report-export__copy">
+    <div class="report-export__icon">
+      <i class="pi pi-download"></i>
+    </div>
+
+    <div>
+      <strong>
+        {{ 'reportExport.title' | transloco }}
+      </strong>
+
+      <span>
+        {{ 'reportExport.description' | transloco }}
+      </span>
+    </div>
+  </div>
+
+  <div class="report-export__actions">
+    <button
+      type="button"
+      class="export-button export-button--pdf"
+      [disabled]="
+        disabled ||
+        exporting() !== null
+      "
+      (click)="exportReport('PDF')"
+    >
+      @if (exporting() === 'PDF') {
+        <i class="pi pi-spin pi-spinner"></i>
+      } @else {
+        <i class="pi pi-file-pdf"></i>
+      }
+
+      {{ 'reportExport.pdf' | transloco }}
+    </button>
+
+    <button
+      type="button"
+      class="export-button"
+      [disabled]="
+        disabled ||
+        exporting() !== null
+      "
+      (click)="exportReport('EXCEL')"
+    >
+      @if (exporting() === 'EXCEL') {
+        <i class="pi pi-spin pi-spinner"></i>
+      } @else {
+        <i class="pi pi-file-excel"></i>
+      }
+
+      {{ 'reportExport.excel' | transloco }}
+    </button>
+  </div>
+
+  @if (disabled) {
+    <small class="report-export__hint">
+      <i class="pi pi-info-circle"></i>
+
+      {{
+        'reportExport.generateFirst'
+          | transloco
+      }}
+    </small>
+  }
+
+  @if (errorMessage()) {
+    <div class="report-export__error">
+      <i class="pi pi-times-circle"></i>
+
+      {{ errorMessage() }}
+    </div>
+  }
+</section>

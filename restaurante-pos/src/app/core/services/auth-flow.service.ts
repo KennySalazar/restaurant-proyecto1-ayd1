@@ -1,23 +1,14 @@
 import { Injectable } from '@angular/core';
-import {
-  PendingLoginChallenge,
-  PendingRecoveryChallenge,
-} from '../models/auth.models';
+import { PendingLoginChallenge, PendingRecoveryChallenge } from '../models/auth.models';
 
-const LOGIN_CHALLENGE_KEY =
-  'restaurante.pos.auth.login-challenge';
+const LOGIN_CHALLENGE_KEY = 'restaurante.pos.auth.login-challenge';
 
-const RECOVERY_CHALLENGE_KEY =
-  'restaurante.pos.auth.recovery-challenge';
+const RECOVERY_CHALLENGE_KEY = 'restaurante.pos.auth.recovery-challenge';
 
 @Injectable({ providedIn: 'root' })
 export class AuthFlowService {
-
   setLoginChallenge(challenge: PendingLoginChallenge): void {
-    sessionStorage.setItem(
-      LOGIN_CHALLENGE_KEY,
-      JSON.stringify(challenge),
-    );
+    sessionStorage.setItem(LOGIN_CHALLENGE_KEY, JSON.stringify(challenge));
   }
 
   getLoginChallenge(): PendingLoginChallenge | null {
@@ -28,8 +19,7 @@ export class AuthFlowService {
         return null;
       }
 
-      const challenge =
-        JSON.parse(raw) as Partial<PendingLoginChallenge>;
+      const challenge = JSON.parse(raw) as Partial<PendingLoginChallenge>;
 
       if (
         typeof challenge.challengeId !== 'string' ||
@@ -55,27 +45,19 @@ export class AuthFlowService {
     sessionStorage.removeItem(LOGIN_CHALLENGE_KEY);
   }
 
-  setRecoveryChallenge(
-    challenge: PendingRecoveryChallenge,
-  ): void {
-    sessionStorage.setItem(
-      RECOVERY_CHALLENGE_KEY,
-      JSON.stringify(challenge),
-    );
+  setRecoveryChallenge(challenge: PendingRecoveryChallenge): void {
+    sessionStorage.setItem(RECOVERY_CHALLENGE_KEY, JSON.stringify(challenge));
   }
 
   getRecoveryChallenge(): PendingRecoveryChallenge | null {
     try {
-      const raw = sessionStorage.getItem(
-        RECOVERY_CHALLENGE_KEY,
-      );
+      const raw = sessionStorage.getItem(RECOVERY_CHALLENGE_KEY);
 
       if (!raw) {
         return null;
       }
 
-      const challenge =
-        JSON.parse(raw) as Partial<PendingRecoveryChallenge>;
+      const challenge = JSON.parse(raw) as Partial<PendingRecoveryChallenge>;
 
       if (
         typeof challenge.challengeId !== 'string' ||

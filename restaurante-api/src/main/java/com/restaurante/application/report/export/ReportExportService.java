@@ -22,6 +22,7 @@ public class ReportExportService {
     private final TableOccupancyReportService tableOccupancyReportService;
     private final WaiterPerformanceReportService waiterPerformanceReportService;
     private final LoyaltyReportService loyaltyReportService;
+    private final InventoryReportService inventoryReportService;
 
     private final ReportPdfExportService pdfExportService;
     private final ReportExcelExportService excelExportService;
@@ -33,6 +34,7 @@ public class ReportExportService {
             TableOccupancyReportService tableOccupancyReportService,
             WaiterPerformanceReportService waiterPerformanceReportService,
             LoyaltyReportService loyaltyReportService,
+            InventoryReportService inventoryReportService,
             ReportPdfExportService pdfExportService,
             ReportExcelExportService excelExportService) {
 
@@ -42,6 +44,7 @@ public class ReportExportService {
         this.tableOccupancyReportService = tableOccupancyReportService;
         this.waiterPerformanceReportService = waiterPerformanceReportService;
         this.loyaltyReportService = loyaltyReportService;
+        this.inventoryReportService = inventoryReportService;
         this.pdfExportService = pdfExportService;
         this.excelExportService = excelExportService;
     }
@@ -106,7 +109,7 @@ public class ReportExportService {
             LocalDate endDate,
             Authentication authentication) {
 
-        if (type != ReportType.RENTABILIDAD_ACTUAL) {
+        if (type != ReportType.RENTABILIDAD_ACTUAL && type != ReportType.INVENTARIO) {
             requirePeriod(startDate, endDate);
         }
 
@@ -154,6 +157,13 @@ public class ReportExportService {
 
             case FIDELIZACION ->
                     buildLoyalty(
+                            startDate,
+                            endDate,
+                            authentication
+                    );
+
+            case INVENTARIO ->
+                    buildInventory(
                             startDate,
                             endDate,
                             authentication
@@ -493,6 +503,71 @@ public class ReportExportService {
                         "Nombres",
                         "Apellidos",
                         "Cantidad de visitas"
+                ),
+                rows
+        );
+    }
+
+    private ReportExportData buildInventory(
+            LocalDate startDate,
+            LocalDate endDate,
+            Authentication authentication) {
+
+        InventoryReportResponse report =
+                inventoryReportService.getInventoryReport(
+                        startDate,
+                        endDate,
+                        authentication
+                );
+
+        List<List<String>> rows = new ArrayList<>();
+
+        for (InventorySupplyValuationResponse item : report.valoracionInventario()) {
+            rows.add(List.of(
+                    text(item.codigo()),
+                    text(item.nombre()),
+                    text(item.categoria()),
+                    text(item.stockActual()),
+                    text(item.stockMinimo()),
+                    text(item.unidadMedida()),
+                    item.costoUnitario() != null ? text(item.costoUnitario()) : "N/D",
+                    item.valorTotal() != null ? text(item.valorTotal()) : "Incalculable",
+                    item.valorCalculable() ? "Calculado" : "Sin costo registrado"
+            ));
+        }
+
+        List<String> criteria = new ArrayList<>();
+        if (startDate != null && endDate != null) {
+            criteria.add(period(startDate, endDate));
+        }
+        criteria.add("Total de Insumos: " + report.totalInsumos());
+        criteria.add("Insumos con Stock Bajo: " + report.totalInsumosBajoStock());
+        criteria.add("Insumos sin Costo Valido: " + report.totalInsumosSinCosto());
+        criteria.add("Valor Total del Inventario: " + text(report.valorTotalInventario())
+                + (report.valorTotalCompleto() ? " (Completo)" : " (Incompleto)"));
+
+        if (!report.valorTotalCompleto() && report.advertenciaValorIncompleto() != null) {
+            criteria.add("Advertencia: " + report.advertenciaValorIncompleto());
+        }
+
+        if (report.seccionMermas() != null && report.seccionMermas().seccionGenerada()) {
+            criteria.add("Total Registros Mermas: " + report.seccionMermas().totalRegistros());
+            criteria.add("Costo Total Mermas: " + text(report.seccionMermas().costoTotal()));
+        }
+
+        return new ReportExportData(
+                "Reporte Consolidado de Inventario",
+                criteria,
+                List.of(
+                        "Codigo",
+                        "Insumo",
+                        "Categoria",
+                        "Stock Actual",
+                        "Stock Minimo",
+                        "Unidad",
+                        "Costo Unitario",
+                        "Valor Total",
+                        "Estado Valoracion"
                 ),
                 rows
         );

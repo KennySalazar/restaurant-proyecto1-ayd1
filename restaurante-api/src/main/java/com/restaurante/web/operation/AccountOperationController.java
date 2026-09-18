@@ -5,6 +5,7 @@ import com.restaurante.application.account.SubaccountService;
 import com.restaurante.application.inventory.ComandaInventoryService;
 import com.restaurante.web.dto.account.AccountResponse;
 import com.restaurante.web.dto.account.AccountRoundResponse;
+import com.restaurante.web.dto.account.ActiveFusionResponse;
 import com.restaurante.web.dto.account.CreateAccountRoundRequest;
 import com.restaurante.web.dto.account.MergeAccountsRequest;
 import com.restaurante.web.dto.account.MergeAccountsResponse;
@@ -184,6 +185,23 @@ public class AccountOperationController {
     })
     public ResponseEntity<List<AccountResponse>> getActiveAccounts(Authentication authentication) {
         return ResponseEntity.ok(accountService.getActiveAccounts(authentication));
+    }
+
+    @GetMapping("/fusiones-activas")
+    @PreAuthorize("hasAnyRole('WAITER', 'ADMIN')")
+    @Operation(
+            summary = "Consultar fusiones de mesas vigentes",
+            description = "Devuelve las fusiones de mesas actualmente vigentes (aquellas cuya cuenta destino sigue activa), útil para mostrar en el salón qué mesas están unidas físicamente."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Listado de fusiones vigentes",
+                    content = @Content(array = @ArraySchema(schema = @Schema(implementation = ActiveFusionResponse.class)))
+            )
+    })
+    public ResponseEntity<List<ActiveFusionResponse>> getActiveFusions(Authentication authentication) {
+        return ResponseEntity.ok(accountService.getActiveFusions(authentication));
     }
 
     @PostMapping("/{id}/transferir")

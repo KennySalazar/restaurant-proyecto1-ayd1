@@ -1,0 +1,466 @@
+<section class="page-heading">
+  <div class="page-heading__eyebrow">
+    <span></span>
+
+    {{ 'tableOccupancyReport.eyebrow' | transloco }}
+  </div>
+
+  <h1>
+    {{ 'tableOccupancyReport.title' | transloco }}
+  </h1>
+
+  <p>
+    {{ 'tableOccupancyReport.description' | transloco }}
+  </p>
+</section>
+
+<section class="report-filter">
+  <header class="report-filter__header">
+    <div>
+      <h2>
+        {{ 'tableOccupancyReport.filters.title' | transloco }}
+      </h2>
+
+      <p>
+        {{ 'tableOccupancyReport.filters.description' | transloco }}
+      </p>
+    </div>
+
+    <i class="pi pi-calendar"></i>
+  </header>
+
+  <div class="filter-grid">
+    <label class="form-field">
+      <span>
+        {{ 'tableOccupancyReport.filters.startDate' | transloco }}
+      </span>
+
+      <input
+        type="date"
+        [formControl]="startDateControl"
+      />
+
+      @if (
+        startDateControl.invalid &&
+        startDateControl.touched
+      ) {
+        <small class="field-error">
+          {{
+            'tableOccupancyReport.errors.requiredDate'
+              | transloco
+          }}
+        </small>
+      }
+    </label>
+
+    <label class="form-field">
+      <span>
+        {{ 'tableOccupancyReport.filters.endDate' | transloco }}
+      </span>
+
+      <input
+        type="date"
+        [formControl]="endDateControl"
+      />
+
+      @if (
+        endDateControl.invalid &&
+        endDateControl.touched
+      ) {
+        <small class="field-error">
+          {{
+            'tableOccupancyReport.errors.requiredDate'
+              | transloco
+          }}
+        </small>
+      }
+    </label>
+
+    <button
+      type="button"
+      class="generate-button"
+      [disabled]="loading()"
+      (click)="generateReport()"
+    >
+      @if (loading()) {
+        <i class="pi pi-spin pi-spinner"></i>
+      } @else {
+        <i class="pi pi-chart-bar"></i>
+      }
+
+      {{
+        'tableOccupancyReport.filters.generate'
+          | transloco
+      }}
+    </button>
+  </div>
+
+  @if (periodError()) {
+    <div class="report-message report-message--warning">
+      <i class="pi pi-exclamation-triangle"></i>
+
+      <span>
+        {{ periodError() }}
+      </span>
+    </div>
+  }
+
+  @if (errorMessage()) {
+    <div class="report-message report-message--error">
+      <i class="pi pi-times-circle"></i>
+
+      <span>
+        {{ errorMessage() }}
+      </span>
+    </div>
+  }
+</section>
+<app-report-export-actions
+  [reportType]="'OCUPACION_MESAS'"
+  [startDate]="
+    report()?.fechaInicio ?? null
+  "
+  [endDate]="
+    report()?.fechaFin ?? null
+  "
+  [disabled]="
+    report() === null ||
+    loading()
+  "
+/>
+
+@if (loading()) {
+  <section class="report-state">
+    <i class="pi pi-spin pi-spinner"></i>
+
+    <strong>
+      {{ 'tableOccupancyReport.loading' | transloco }}
+    </strong>
+
+    <span>
+      {{
+        'tableOccupancyReport.loadingDescription'
+          | transloco
+      }}
+    </span>
+  </section>
+} @else if (report(); as reportData) {
+  <section class="report-period">
+    <i class="pi pi-calendar"></i>
+
+    <span>
+      {{ 'tableOccupancyReport.period' | transloco }}
+    </span>
+
+    <strong>
+      {{ formatDate(reportData.fechaInicio) }}
+      -
+      {{ formatDate(reportData.fechaFin) }}
+    </strong>
+  </section>
+
+  @if (
+    !reportData.huboOcupaciones ||
+    reportData.ocupacionPorHorario.length === 0
+  ) {
+    <section class="report-state">
+      <i class="pi pi-th-large"></i>
+
+      <strong>
+        {{ 'tableOccupancyReport.empty.title' | transloco }}
+      </strong>
+
+      <span>
+        {{
+          'tableOccupancyReport.empty.description'
+            | transloco
+        }}
+      </span>
+    </section>
+  } @else {
+    <section class="summary-grid">
+      <article class="summary-card">
+        <div class="summary-card__icon">
+          <i class="pi pi-clock"></i>
+        </div>
+
+        <div>
+          <span>
+            {{
+              'tableOccupancyReport.summary.slots'
+                | transloco
+            }}
+          </span>
+
+          <strong>
+            {{ slots().length }}
+          </strong>
+        </div>
+      </article>
+
+      <article class="summary-card">
+        <div
+          class="
+            summary-card__icon
+            summary-card__icon--high
+          "
+        >
+          <i class="pi pi-arrow-up"></i>
+        </div>
+
+        <div>
+          <span>
+            {{
+              'tableOccupancyReport.summary.maximum'
+                | transloco
+            }}
+          </span>
+
+          <strong>
+            {{ maximumOccupancy() }}
+          </strong>
+
+          <small>
+            {{
+              'tableOccupancyReport.summary.tables'
+                | transloco
+            }}
+          </small>
+        </div>
+      </article>
+
+      <article class="summary-card">
+        <div
+          class="
+            summary-card__icon
+            summary-card__icon--low
+          "
+        >
+          <i class="pi pi-arrow-down"></i>
+        </div>
+
+        <div>
+          <span>
+            {{
+              'tableOccupancyReport.summary.minimum'
+                | transloco
+            }}
+          </span>
+
+          <strong>
+            {{ minimumOccupancy() }}
+          </strong>
+
+          <small>
+            {{
+              'tableOccupancyReport.summary.tables'
+                | transloco
+            }}
+          </small>
+        </div>
+      </article>
+    </section>
+
+    <section class="report-section">
+      <header class="report-section__header">
+        <div>
+          <h2>
+            {{
+              'tableOccupancyReport.table.title'
+                | transloco
+            }}
+          </h2>
+
+          <p>
+            {{
+              'tableOccupancyReport.table.description'
+                | transloco
+            }}
+          </p>
+        </div>
+
+        <i class="pi pi-chart-bar"></i>
+      </header>
+
+      <div class="report-table-wrapper">
+        <table class="report-table">
+          <thead>
+            <tr>
+              <th>
+                {{
+                  'tableOccupancyReport.table.columns.date'
+                    | transloco
+                }}
+              </th>
+
+              <th>
+                {{
+                  'tableOccupancyReport.table.columns.schedule'
+                    | transloco
+                }}
+              </th>
+
+              <th>
+                {{
+                  'tableOccupancyReport.table.columns.occupied'
+                    | transloco
+                }}
+              </th>
+
+              <th>
+                {{
+                  'tableOccupancyReport.table.columns.activity'
+                    | transloco
+                }}
+              </th>
+
+              <th>
+                {{
+                  'tableOccupancyReport.table.columns.level'
+                    | transloco
+                }}
+              </th>
+            </tr>
+          </thead>
+
+          <tbody>
+            @for (
+              slot of reportData.ocupacionPorHorario;
+              track slot.fecha + '-' + slot.hora
+            ) {
+              <tr>
+                <td>
+                  <strong>
+                    {{ formatDate(slot.fecha) }}
+                  </strong>
+                </td>
+
+                <td>
+                  <span class="schedule">
+                    <i class="pi pi-clock"></i>
+
+                    {{ formatHour(slot.hora) }}
+                  </span>
+                </td>
+
+                <td>
+                  <strong>
+                    {{ slot.mesasOcupadas }}
+                  </strong>
+                </td>
+
+                <td class="activity-cell">
+                  <div class="activity-bar">
+                    <span
+                      [style.width.%]="
+                        occupancyPercentage(slot)
+                      "
+                    ></span>
+                  </div>
+                </td>
+
+                <td>
+                  @if (uniformOccupancy()) {
+                    <span
+                      class="
+                        status-pill
+                        status-pill--uniform
+                      "
+                    >
+                      <i class="pi pi-minus"></i>
+
+                      {{
+                        'tableOccupancyReport.levels.uniform'
+                          | transloco
+                      }}
+                    </span>
+                  } @else if (isMaximum(slot)) {
+                    <span
+                      class="
+                        status-pill
+                        status-pill--high
+                      "
+                    >
+                      <i class="pi pi-arrow-up"></i>
+
+                      {{
+                        'tableOccupancyReport.levels.high'
+                          | transloco
+                      }}
+                    </span>
+                  } @else if (isMinimum(slot)) {
+                    <span
+                      class="
+                        status-pill
+                        status-pill--low
+                      "
+                    >
+                      <i class="pi pi-arrow-down"></i>
+
+                      {{
+                        'tableOccupancyReport.levels.low'
+                          | transloco
+                      }}
+                    </span>
+                  } @else {
+                    <span
+                      class="
+                        status-pill
+                        status-pill--normal
+                      "
+                    >
+                      <i class="pi pi-circle"></i>
+
+                      {{
+                        'tableOccupancyReport.levels.normal'
+                          | transloco
+                      }}
+                    </span>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="report-note">
+      <i class="pi pi-info-circle"></i>
+
+      <div>
+        <strong>
+          {{
+            'tableOccupancyReport.note.title'
+              | transloco
+          }}
+        </strong>
+
+        <span>
+          {{
+            'tableOccupancyReport.note.description'
+              | transloco
+          }}
+        </span>
+      </div>
+    </section>
+  }
+} @else if (!generated()) {
+  <section class="report-state report-state--initial">
+    <i class="pi pi-calendar"></i>
+
+    <strong>
+      {{
+        'tableOccupancyReport.initial.title'
+          | transloco
+      }}
+    </strong>
+
+    <span>
+      {{
+        'tableOccupancyReport.initial.description'
+          | transloco
+      }}
+    </span>
+  </section>
+}

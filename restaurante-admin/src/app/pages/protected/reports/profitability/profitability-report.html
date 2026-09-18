@@ -1,0 +1,700 @@
+<section class="page-heading">
+  <div class="page-heading__eyebrow">
+    <span></span>
+
+    {{ 'profitabilityReport.eyebrow' | transloco }}
+  </div>
+
+  <h1>
+    {{ 'profitabilityReport.title' | transloco }}
+  </h1>
+
+  <p>
+    {{ 'profitabilityReport.description' | transloco }}
+  </p>
+</section>
+
+<section class="report-section">
+  <header class="report-section__header">
+    <div>
+      <h2>
+        {{
+          'profitabilityReport.current.title'
+            | transloco
+        }}
+      </h2>
+
+      <p>
+        {{
+          'profitabilityReport.current.description'
+            | transloco
+        }}
+      </p>
+    </div>
+
+    <button
+      type="button"
+      class="secondary-button"
+      [disabled]="currentLoading()"
+      (click)="loadCurrentProfitability()"
+    >
+      <i
+        class="pi pi-refresh"
+        [class.pi-spin]="currentLoading()"
+      ></i>
+
+      {{
+        'profitabilityReport.current.refresh'
+          | transloco
+      }}
+    </button>
+  </header>
+
+  <div class="report-export-wrapper">
+    <app-report-export-actions
+      [reportType]="'RENTABILIDAD_ACTUAL'"
+      [disabled]="
+        !currentGenerated() ||
+        currentLoading() ||
+        currentError() !== null
+      "
+    />
+  </div>
+
+  @if (currentLoading()) {
+    <div class="report-state">
+      <i class="pi pi-spin pi-spinner"></i>
+
+      <strong>
+        {{
+          'profitabilityReport.current.loading'
+            | transloco
+        }}
+      </strong>
+    </div>
+  } @else if (currentError()) {
+    <div class="report-state report-state--error">
+      <i class="pi pi-exclamation-triangle"></i>
+
+      <strong>
+        {{
+          'profitabilityReport.errors.current'
+            | transloco
+        }}
+      </strong>
+
+      <span>
+        {{ currentError() }}
+      </span>
+    </div>
+  } @else if (currentDishes().length === 0) {
+    <div class="report-state">
+      <i class="pi pi-chart-line"></i>
+
+      <strong>
+        {{
+          'profitabilityReport.current.empty'
+            | transloco
+        }}
+      </strong>
+    </div>
+  } @else {
+    <div class="summary-grid">
+      <article class="summary-card">
+        <div class="summary-card__icon">
+          <i class="pi pi-check-circle"></i>
+        </div>
+
+        <div>
+          <span>
+            {{
+              'profitabilityReport.summary.calculable'
+                | transloco
+            }}
+          </span>
+
+          <strong>
+            {{ calculableCount() }}
+          </strong>
+        </div>
+      </article>
+
+      <article class="summary-card">
+        <div
+          class="
+            summary-card__icon
+            summary-card__icon--positive
+          "
+        >
+          <i class="pi pi-arrow-up"></i>
+        </div>
+
+        <div>
+          <span>
+            {{
+              'profitabilityReport.summary.positive'
+                | transloco
+            }}
+          </span>
+
+          <strong>
+            {{ positiveProfitCount() }}
+          </strong>
+        </div>
+      </article>
+
+      <article class="summary-card">
+        <div
+          class="
+            summary-card__icon
+            summary-card__icon--warning
+          "
+        >
+          <i class="pi pi-minus-circle"></i>
+        </div>
+
+        <div>
+          <span>
+            {{
+              'profitabilityReport.summary.nonPositive'
+                | transloco
+            }}
+          </span>
+
+          <strong>
+            {{ nonPositiveProfitCount() }}
+          </strong>
+        </div>
+      </article>
+
+      <article class="summary-card">
+        <div
+          class="
+            summary-card__icon
+            summary-card__icon--disabled
+          "
+        >
+          <i class="pi pi-question-circle"></i>
+        </div>
+
+        <div>
+          <span>
+            {{
+              'profitabilityReport.summary.notCalculable'
+                | transloco
+            }}
+          </span>
+
+          <strong>
+            {{ notCalculableCount() }}
+          </strong>
+        </div>
+      </article>
+    </div>
+
+    <div class="report-table-wrapper">
+      <table class="report-table">
+        <thead>
+          <tr>
+            <th>
+              {{
+                'profitabilityReport.current.columns.dish'
+                  | transloco
+              }}
+            </th>
+
+            <th>
+              {{
+                'profitabilityReport.current.columns.category'
+                  | transloco
+              }}
+            </th>
+
+            <th>
+              {{
+                'profitabilityReport.current.columns.salePrice'
+                  | transloco
+              }}
+            </th>
+
+            <th>
+              {{
+                'profitabilityReport.current.columns.productionCost'
+                  | transloco
+              }}
+            </th>
+
+            <th>
+              {{
+                'profitabilityReport.current.columns.profit'
+                  | transloco
+              }}
+            </th>
+
+            <th>
+              {{
+                'profitabilityReport.current.columns.margin'
+                  | transloco
+              }}
+            </th>
+
+            <th>
+              {{
+                'profitabilityReport.current.columns.status'
+                  | transloco
+              }}
+            </th>
+          </tr>
+        </thead>
+
+        <tbody>
+          @for (
+            dish of currentDishes();
+            track dish.platilloId
+          ) {
+            <tr>
+              <td>
+                <div class="dish-cell">
+                  <strong>
+                    {{ dish.platillo }}
+                  </strong>
+
+                  <small>
+                    {{ dish.codigo }}
+                  </small>
+                </div>
+              </td>
+
+              <td>
+                {{ dish.categoria }}
+              </td>
+
+              <td>
+                Q
+                {{
+                  dish.precioVenta
+                    | number: '1.2-2'
+                }}
+              </td>
+
+              @if (dish.rentabilidadCalculable) {
+                <td>
+                  Q
+                  {{
+                    dish.costoProduccion
+                      | number: '1.2-2'
+                  }}
+                </td>
+
+                <td
+                  [class.value-positive]="
+                    hasPositiveProfit(dish)
+                  "
+                  [class.value-negative]="
+                    hasNonPositiveProfit(dish)
+                  "
+                >
+                  Q
+                  {{
+                    dish.gananciaUnitaria
+                      | number: '1.2-2'
+                  }}
+                </td>
+
+                <td>
+                  {{
+                    dish.margenRentabilidad
+                      | number: '1.2-2'
+                  }}%
+                </td>
+
+                <td>
+                  @if (hasPositiveProfit(dish)) {
+                    <span
+                      class="
+                        status-pill
+                        status-pill--positive
+                      "
+                    >
+                      <i class="pi pi-check-circle"></i>
+
+                      {{
+                        'profitabilityReport.states.profitable'
+                          | transloco
+                      }}
+                    </span>
+                  } @else {
+                    <span
+                      class="
+                        status-pill
+                        status-pill--warning
+                      "
+                    >
+                      <i
+                        class="
+                          pi
+                          pi-exclamation-circle
+                        "
+                      ></i>
+
+                      {{
+                        'profitabilityReport.states.nonPositive'
+                          | transloco
+                      }}
+                    </span>
+                  }
+                </td>
+              } @else {
+                <td colspan="3">
+                  <span class="not-calculable">
+                    <i class="pi pi-info-circle"></i>
+
+                    {{
+                      dish.motivoNoCalculable ||
+                        (
+                          'profitabilityReport.states.notCalculable'
+                            | transloco
+                        )
+                    }}
+                  </span>
+                </td>
+
+                <td>
+                  <span
+                    class="
+                      status-pill
+                      status-pill--disabled
+                    "
+                  >
+                    {{
+                      'profitabilityReport.states.notCalculable'
+                        | transloco
+                    }}
+                  </span>
+                </td>
+              }
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</section>
+
+<section class="report-section historical-section">
+  <header class="report-section__header">
+    <div>
+      <h2>
+        {{
+          'profitabilityReport.historical.title'
+            | transloco
+        }}
+      </h2>
+
+      <p>
+        {{
+          'profitabilityReport.historical.description'
+            | transloco
+        }}
+      </p>
+    </div>
+
+    <i class="pi pi-history section-icon"></i>
+  </header>
+
+  <div class="historical-filter">
+    <label class="form-field">
+      <span>
+        {{
+          'profitabilityReport.filters.startDate'
+            | transloco
+        }}
+      </span>
+
+      <input
+        type="date"
+        [formControl]="startDateControl"
+      />
+
+      @if (
+        startDateControl.invalid &&
+        startDateControl.touched
+      ) {
+        <small class="field-error">
+          {{
+            'profitabilityReport.errors.requiredDate'
+              | transloco
+          }}
+        </small>
+      }
+    </label>
+
+    <label class="form-field">
+      <span>
+        {{
+          'profitabilityReport.filters.endDate'
+            | transloco
+        }}
+      </span>
+
+      <input
+        type="date"
+        [formControl]="endDateControl"
+      />
+
+      @if (
+        endDateControl.invalid &&
+        endDateControl.touched
+      ) {
+        <small class="field-error">
+          {{
+            'profitabilityReport.errors.requiredDate'
+              | transloco
+          }}
+        </small>
+      }
+    </label>
+
+    <button
+      type="button"
+      class="primary-button"
+      [disabled]="historicalLoading()"
+      (click)="generateHistoricalReport()"
+    >
+      @if (historicalLoading()) {
+        <i class="pi pi-spin pi-spinner"></i>
+      } @else {
+        <i class="pi pi-chart-bar"></i>
+      }
+
+      {{
+        'profitabilityReport.historical.generate'
+          | transloco
+      }}
+    </button>
+  </div>
+
+  <div class="report-export-wrapper">
+    <app-report-export-actions
+      [reportType]="'RENTABILIDAD_HISTORICA'"
+      [startDate]="
+        historicalReport()?.fechaInicio ?? null
+      "
+      [endDate]="
+        historicalReport()?.fechaFin ?? null
+      "
+      [disabled]="
+        historicalReport() === null ||
+        historicalLoading()
+      "
+    />
+  </div>
+
+  @if (periodError()) {
+    <div class="report-message report-message--warning">
+      <i class="pi pi-exclamation-triangle"></i>
+
+      {{ periodError() }}
+    </div>
+  }
+
+  @if (historicalError()) {
+    <div class="report-message report-message--error">
+      <i class="pi pi-times-circle"></i>
+
+      {{ historicalError() }}
+    </div>
+  }
+
+  @if (historicalLoading()) {
+    <div class="report-state">
+      <i class="pi pi-spin pi-spinner"></i>
+
+      <strong>
+        {{
+          'profitabilityReport.historical.loading'
+            | transloco
+        }}
+      </strong>
+    </div>
+  } @else if (
+    historicalReport();
+    as historicalData
+  ) {
+    <div class="report-period">
+      <i class="pi pi-calendar"></i>
+
+      <span>
+        {{
+          'profitabilityReport.historical.period'
+            | transloco
+        }}
+      </span>
+
+      <strong>
+        {{ formatDate(historicalData.fechaInicio) }}
+        -
+        {{ formatDate(historicalData.fechaFin) }}
+      </strong>
+    </div>
+
+    @if (
+      !historicalData.huboVentas ||
+      historicalData.platillos.length === 0
+    ) {
+      <div class="report-state">
+        <i class="pi pi-chart-line"></i>
+
+        <strong>
+          {{
+            'profitabilityReport.historical.emptyTitle'
+              | transloco
+          }}
+        </strong>
+
+        <span>
+          {{
+            'profitabilityReport.historical.emptyDescription'
+              | transloco
+          }}
+        </span>
+      </div>
+    } @else {
+      <div class="report-table-wrapper">
+        <table class="report-table">
+          <thead>
+            <tr>
+              <th>
+                {{
+                  'profitabilityReport.historical.columns.dish'
+                    | transloco
+                }}
+              </th>
+
+              <th>
+                {{
+                  'profitabilityReport.historical.columns.quantity'
+                    | transloco
+                }}
+              </th>
+
+              <th>
+                {{
+                  'profitabilityReport.historical.columns.revenue'
+                    | transloco
+                }}
+              </th>
+
+              <th>
+                {{
+                  'profitabilityReport.historical.columns.cost'
+                    | transloco
+                }}
+              </th>
+
+              <th>
+                {{
+                  'profitabilityReport.historical.columns.profit'
+                    | transloco
+                }}
+              </th>
+
+              <th>
+                {{
+                  'profitabilityReport.historical.columns.margin'
+                    | transloco
+                }}
+              </th>
+            </tr>
+          </thead>
+
+          <tbody>
+            @for (
+              dish of historicalData.platillos;
+              track dish.platilloId
+            ) {
+              <tr>
+                <td>
+                  <strong>
+                    {{ dish.platillo }}
+                  </strong>
+                </td>
+
+                <td>
+                  {{
+                    dish.cantidadVendida
+                      | number: '1.0-2'
+                  }}
+                </td>
+
+                <td>
+                  Q
+                  {{
+                    dish.ingresoHistorico
+                      | number: '1.2-2'
+                  }}
+                </td>
+
+                <td>
+                  Q
+                  {{
+                    dish.costoHistorico
+                      | number: '1.2-2'
+                  }}
+                </td>
+
+                <td
+                  [class.value-positive]="
+                    dish.gananciaHistorica > 0
+                  "
+                  [class.value-negative]="
+                    dish.gananciaHistorica <= 0
+                  "
+                >
+                  Q
+                  {{
+                    dish.gananciaHistorica
+                      | number: '1.2-2'
+                  }}
+                </td>
+
+                <td>
+                  @if (
+                    dish.margenRentabilidad !== null
+                  ) {
+                    {{
+                      dish.margenRentabilidad
+                        | number: '1.2-2'
+                    }}%
+                  } @else {
+                    —
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  } @else if (!historicalGenerated()) {
+    <div class="historical-initial">
+      <i class="pi pi-calendar"></i>
+
+      <div>
+        <strong>
+          {{
+            'profitabilityReport.historical.initialTitle'
+              | transloco
+          }}
+        </strong>
+
+        <span>
+          {{
+            'profitabilityReport.historical.initialDescription'
+              | transloco
+          }}
+        </span>
+      </div>
+    </div>
+  }
+</section>

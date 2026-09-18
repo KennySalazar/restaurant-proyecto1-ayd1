@@ -143,6 +143,49 @@ export const routes: Routes = [
             (module) => module.EmployeesPageComponent,
           ),
       },
+
+      {
+        path: 'reports/sales',
+        loadComponent: () =>
+          import(
+            './pages/protected/reports/sales/sales-report'
+          ).then(
+            (module) =>
+              module.SalesReportPageComponent,
+          ),
+      },
+
+      {
+        path: 'reports/profitability',
+        loadComponent: () =>
+          import(
+            './pages/protected/reports/profitability/profitability-report'
+          ).then(
+            (module) =>
+              module.ProfitabilityReportPageComponent,
+          ),
+      },
+      {
+      path: 'reports/table-occupancy',
+      loadComponent: () =>
+        import(
+          './pages/protected/reports/table-occupancy/table-occupancy-report'
+        ).then(
+          (module) =>
+            module.TableOccupancyReportPageComponent,
+        ),
+    },
+
+    {
+  path: 'reports/loyalty',
+  loadComponent: () =>
+    import(
+      './pages/protected/reports/loyalty/loyalty-report'
+    ).then(
+      (module) =>
+        module.LoyaltyReportPageComponent,
+    ),
+},
       {
         path: 'security',
         loadComponent: () =>

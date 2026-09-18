@@ -26,9 +26,7 @@ export const routes: Routes = [
       {
         path: 'login',
         loadComponent: () =>
-          import('./pages/auth/login/login').then(
-            (module) => module.LoginPageComponent,
-          ),
+          import('./pages/auth/login/login').then((module) => module.LoginPageComponent),
       },
       {
         path: 'login-verify',
@@ -40,9 +38,7 @@ export const routes: Routes = [
       {
         path: 'recovery',
         loadComponent: () =>
-          import('./pages/auth/recovery/recovery').then(
-            (module) => module.RecoveryPageComponent,
-          ),
+          import('./pages/auth/recovery/recovery').then((module) => module.RecoveryPageComponent),
       },
       {
         path: 'recovery-reset',
@@ -56,9 +52,7 @@ export const routes: Routes = [
   {
     path: 'app',
     loadComponent: () =>
-      import('./layouts/app-shell/app-shell').then(
-        (module) => module.AppShellComponent,
-      ),
+      import('./layouts/app-shell/app-shell').then((module) => module.AppShellComponent),
     canActivate: [authGuard, roleGuard],
     canActivateChild: [authChildGuard],
     data: {
@@ -77,12 +71,77 @@ export const routes: Routes = [
             (module) => module.DashboardPageComponent,
           ),
       },
+      {
+        path: 'mesas',
+        loadComponent: () =>
+          import('./pages/protected/tables/tables').then((module) => module.TablesPageComponent),
+        canActivate: [roleGuard],
+        data: {
+          roles: ['WAITER'],
+        },
+      },
+      {
+        path: 'mesas/:tableId/comanda',
+        loadComponent: () =>
+          import('./pages/protected/comanda-builder/comanda-builder').then(
+            (module) => module.ComandaBuilderPageComponent,
+          ),
+        canActivate: [roleGuard],
+        data: {
+          roles: ['WAITER'],
+        },
+      },
+      {
+        path: 'cocina',
+        loadComponent: () =>
+          import('./pages/protected/kitchen/kitchen').then((module) => module.KitchenPageComponent),
+        canActivate: [roleGuard],
+        data: {
+          roles: ['KITCHEN', 'ADMIN'],
+        },
+      },
 
       {
         path: 'caja/turno',
         loadComponent: () =>
           import('./pages/protected/cash-shift/cash-shift').then(
             (module) => module.CashShiftPageComponent,
+          ),
+        canActivate: [roleGuard],
+        data: {
+          roles: ['CASHIER'],
+        },
+      },
+
+      {
+        path: 'caja/cobros',
+        loadComponent: () =>
+          import('./pages/protected/billing/billing').then(
+            (module) => module.BillingPageComponent,
+          ),
+        canActivate: [roleGuard],
+        data: {
+          roles: ['CASHIER'],
+        },
+      },
+
+      {
+        path: 'caja/facturas',
+        loadComponent: () =>
+          import('./pages/protected/invoices/invoices').then(
+            (module) => module.InvoicesPageComponent,
+          ),
+        canActivate: [roleGuard],
+        data: {
+          roles: ['CASHIER'],
+        },
+      },
+
+      {
+        path: 'caja/facturas/:facturaId',
+        loadComponent: () =>
+          import('./pages/protected/invoice/invoice').then(
+            (module) => module.InvoicePageComponent,
           ),
         canActivate: [roleGuard],
         data: {

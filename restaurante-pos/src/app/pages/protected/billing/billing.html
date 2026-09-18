@@ -1,0 +1,783 @@
+<app-page-heading
+  eyebrowKey="billing.eyebrow"
+  titleKey="billing.title"
+  descriptionKey="billing.description"
+/>
+
+<div class="billing-layout">
+  <app-form-feedback [message]="errorMessage()" />
+
+  @if (loadingShift()) {
+    <section class="billing-state">
+      <i class="pi pi-spin pi-spinner"></i>
+
+      <span>
+        {{ 'billing.validatingShift' | transloco }}
+      </span>
+    </section>
+  } @else if (requiresCashShift()) {
+    <section class="billing-state billing-state--warning">
+      <span class="billing-state__icon">
+        <i class="pi pi-lock"></i>
+      </span>
+
+      <div>
+        <h2>
+          {{ 'billing.cashShiftRequiredTitle' | transloco }}
+        </h2>
+
+        <p>
+          {{
+            'billing.cashShiftRequiredDescription'
+              | transloco
+          }}
+        </p>
+
+        <a
+          class="billing-primary-button"
+          routerLink="/app/caja/turno"
+        >
+          <i class="pi pi-credit-card"></i>
+
+          <span>
+            {{ 'billing.openCashShift' | transloco }}
+          </span>
+        </a>
+      </div>
+    </section>
+  } @else {
+    @if (currentShift(); as shift) {
+      <section class="active-shift-card">
+        <span class="active-shift-card__icon">
+          <i class="pi pi-check"></i>
+        </span>
+
+        <div>
+          <span class="active-shift-card__eyebrow">
+            {{ 'billing.cashShiftActive' | transloco }}
+          </span>
+
+          <strong>
+            {{ shift.codigoCaja }} - {{ shift.nombreCaja }}
+          </strong>
+
+          <small>
+            {{ 'billing.shift' | transloco }}
+            #{{ shift.id }}
+          </small>
+        </div>
+      </section>
+
+      <section class="billing-card">
+        <div class="section-heading">
+          <div>
+            <span class="section-heading__eyebrow">
+              {{ 'billing.accountsEyebrow' | transloco }}
+            </span>
+
+            <h2>
+              {{ 'billing.accountsTitle' | transloco }}
+            </h2>
+
+            <p>
+              {{ 'billing.accountsDescription' | transloco }}
+            </p>
+          </div>
+
+          <button
+            type="button"
+            class="secondary-button"
+            [disabled]="loadingAccounts()"
+            (click)="refreshAccounts()"
+          >
+            <i
+              class="pi"
+              [class.pi-refresh]="!loadingAccounts()"
+              [class.pi-spinner]="loadingAccounts()"
+              [class.pi-spin]="loadingAccounts()"
+            ></i>
+
+            <span>
+              {{ 'billing.refresh' | transloco }}
+            </span>
+          </button>
+        </div>
+
+        @if (loadingAccounts()) {
+          <div class="billing-state">
+            <i class="pi pi-spin pi-spinner"></i>
+
+            <span>
+              {{ 'billing.loadingAccounts' | transloco }}
+            </span>
+          </div>
+        } @else if (accountsLoaded() && accounts().length === 0) {
+          <div class="billing-state billing-state--empty">
+            <i class="pi pi-inbox"></i>
+
+            <div>
+              <strong>
+                {{ 'billing.noAccountsTitle' | transloco }}
+              </strong>
+
+              <span>
+                {{ 'billing.noAccountsDescription' | transloco }}
+              </span>
+            </div>
+          </div>
+        } @else {
+          <div class="account-grid">
+            @for (account of accounts(); track account.id) {
+              <button
+                type="button"
+                class="account-card"
+                [class.account-card--selected]="
+                  selectedAccount()?.id === account.id
+                "
+                (click)="selectAccount(account)"
+              >
+                <div class="account-card__top">
+                  <span class="account-card__icon">
+                    <i class="pi pi-receipt"></i>
+                  </span>
+
+                  <span class="account-status">
+                    {{
+                      accountStatusKey(account.estadoCuenta)
+                        | transloco
+                    }}
+                  </span>
+                </div>
+
+                <strong>
+                  {{ account.numeroCuenta }}
+                </strong>
+
+                <span>
+                  <i class="pi pi-map-marker"></i>
+
+                  {{ 'billing.table' | transloco }}
+                  {{ account.numeroMesa }}
+                </span>
+
+                <span>
+                  <i class="pi pi-user"></i>
+
+                  {{ account.nombreMesero }}
+                </span>
+
+                @if (account.clienteId !== null) {
+                  <span class="account-card__customer">
+                    <i class="pi pi-star"></i>
+
+                    {{ 'billing.loyalty.registeredCustomer' | transloco }}
+                  </span>
+                }
+
+                <small>
+                  {{
+                    account.abiertaEn
+                      | date: 'dd/MM/yyyy HH:mm'
+                  }}
+                </small>
+              </button>
+            }
+          </div>
+        }
+      </section>
+
+      @if (selectedAccount(); as account) {
+        <section class="billing-card">
+          <div class="selected-account-heading">
+            <div>
+              <span class="section-heading__eyebrow">
+                {{ 'billing.selectedAccount' | transloco }}
+              </span>
+
+              <h2>
+                {{ account.numeroCuenta }}
+              </h2>
+
+              <p>
+                {{ 'billing.table' | transloco }}
+                {{ account.numeroMesa }}
+                ·
+                {{ account.cantidadPersonas }}
+                {{ 'billing.people' | transloco }}
+              </p>
+            </div>
+
+            <span class="account-status">
+              {{
+                accountStatusKey(account.estadoCuenta)
+                  | transloco
+              }}
+            </span>
+          </div>
+
+          <div class="loyalty-section">
+            <div class="loyalty-section__heading">
+              <div>
+                <span class="section-heading__eyebrow">
+                  {{ 'billing.loyalty.eyebrow' | transloco }}
+                </span>
+
+                <h3>
+                  {{ 'billing.loyalty.title' | transloco }}
+                </h3>
+
+                <p>
+                  {{ 'billing.loyalty.description' | transloco }}
+                </p>
+              </div>
+
+              <span class="loyalty-section__icon">
+                <i class="pi pi-star"></i>
+              </span>
+            </div>
+
+            @if (account.clienteId === null) {
+              <div class="loyalty-message loyalty-message--neutral">
+                <i class="pi pi-info-circle"></i>
+
+                <div>
+                  <strong>
+                    {{
+                      'billing.loyalty.noCustomerTitle'
+                        | transloco
+                    }}
+                  </strong>
+
+                  <span>
+                    {{
+                      'billing.loyalty.noCustomerDescription'
+                        | transloco
+                    }}
+                  </span>
+                </div>
+              </div>
+            } @else if (loadingLoyalty()) {
+              <div class="billing-state">
+                <i class="pi pi-spin pi-spinner"></i>
+
+                <span>
+                  {{ 'billing.loyalty.loading' | transloco }}
+                </span>
+              </div>
+            } @else {
+              <app-form-feedback
+                [message]="loyaltyErrorMessage()"
+              />
+
+              @if (customerPoints(); as loyalty) {
+                <div class="loyalty-customer-card">
+                  <div class="loyalty-customer-card__identity">
+                    <span class="loyalty-customer-card__avatar">
+                      <i class="pi pi-user"></i>
+                    </span>
+
+                    <div>
+                      <small>
+                        {{
+                          'billing.loyalty.customer'
+                            | transloco
+                        }}
+                      </small>
+
+                      <strong>
+                        {{ loyalty.nombres }}
+
+                        @if (loyalty.apellidos) {
+                          {{ loyalty.apellidos }}
+                        }
+                      </strong>
+                    </div>
+                  </div>
+
+                  <div class="loyalty-summary-grid">
+                    <div class="loyalty-summary-item">
+                      <span>
+                        {{
+                          'billing.loyalty.availablePoints'
+                            | transloco
+                        }}
+                      </span>
+
+                      <strong>
+                        {{
+                          loyalty.saldoPuntos
+                            | number: '1.0-0'
+                        }}
+                      </strong>
+
+                      <small>
+                        {{ 'billing.loyalty.points' | transloco }}
+                      </small>
+                    </div>
+
+                    <div class="loyalty-summary-item">
+                      <span>
+                        {{
+                          'billing.loyalty.pointValue'
+                            | transloco
+                        }}
+                      </span>
+
+                      <strong>
+                        Q
+                        {{
+                          loyalty.valorMonetarioPunto
+                            | number: '1.2-4'
+                        }}
+                      </strong>
+
+                      <small>
+                        {{
+                          'billing.loyalty.perPoint'
+                            | transloco
+                        }}
+                      </small>
+                    </div>
+
+                    <div class="loyalty-summary-item">
+                      <span>
+                        {{
+                          'billing.loyalty.availableValue'
+                            | transloco
+                        }}
+                      </span>
+
+                      <strong>
+                        Q
+                        {{
+                          loyalty.valorMonetarioDisponible
+                            | number: '1.2-2'
+                        }}
+                      </strong>
+
+                      <small>
+                        {{
+                          'billing.loyalty.maximumDiscount'
+                            | transloco
+                        }}
+                      </small>
+                    </div>
+                  </div>
+                </div>
+
+                @if (subaccounts().length > 0) {
+                  <div class="loyalty-message loyalty-message--warning">
+                    <i class="pi pi-lock"></i>
+
+                    <div>
+                      <strong>
+                        {{
+                          'billing.loyalty.dividedAccountTitle'
+                            | transloco
+                        }}
+                      </strong>
+
+                      <span>
+                        {{
+                          'billing.loyalty.dividedAccountDescription'
+                            | transloco
+                        }}
+                      </span>
+                    </div>
+                  </div>
+                } @else if (loyalty.saldoPuntos <= 0) {
+                  <div class="loyalty-message loyalty-message--neutral">
+                    <i class="pi pi-info-circle"></i>
+
+                    <div>
+                      <strong>
+                        {{
+                          'billing.loyalty.noPointsTitle'
+                            | transloco
+                        }}
+                      </strong>
+
+                      <span>
+                        {{
+                          'billing.loyalty.noPointsDescription'
+                            | transloco
+                        }}
+                      </span>
+                    </div>
+                  </div>
+                } @else {
+                  <div class="loyalty-redemption">
+                    <div class="loyalty-redemption__field">
+                      <label for="pointsToRedeem">
+                        {{
+                          'billing.loyalty.pointsToRedeem'
+                            | transloco
+                        }}
+                      </label>
+
+                      <div class="loyalty-input-wrapper">
+                        <i class="pi pi-star"></i>
+
+                        <input
+                          id="pointsToRedeem"
+                          type="number"
+                          min="1"
+                          step="1"
+                          inputmode="numeric"
+                          [max]="loyalty.saldoPuntos"
+                          [formControl]="pointsToRedeemControl"
+                          (input)="onPointsToRedeemChange()"
+                        />
+                      </div>
+
+                      <small>
+                        {{
+                          'billing.loyalty.balanceHint'
+                            | transloco:
+                            {
+                              points:
+                                loyalty.saldoPuntos
+                                  | number: '1.0-0'
+                            }
+                        }}
+                      </small>
+
+                      @if (pointsValidationKey(); as validationKey) {
+                        <div class="loyalty-field-error">
+                          <i class="pi pi-exclamation-circle"></i>
+
+                          <span>
+                            {{
+                              validationKey
+                                | transloco:
+                                {
+                                  points:
+                                    loyalty.saldoPuntos
+                                      | number: '1.0-0'
+                                }
+                            }}
+                          </span>
+                        </div>
+                      }
+                    </div>
+
+                    <div class="loyalty-redemption__actions">
+                      <button
+                        type="button"
+                        class="billing-primary-button"
+                        [disabled]="
+                          pointsToRedeemControl.invalid ||
+                          loyalty.saldoPuntos <= 0
+                        "
+                        (click)="applyPointsRedemption()"
+                      >
+                        <i class="pi pi-check-circle"></i>
+
+                        <span>
+                          {{
+                            'billing.loyalty.apply'
+                              | transloco
+                          }}
+                        </span>
+                      </button>
+
+                      @if (pointsSelectedForRedemption() > 0) {
+                        <button
+                          type="button"
+                          class="secondary-button"
+                          (click)="clearPointsRedemption()"
+                        >
+                          <i class="pi pi-times"></i>
+
+                          <span>
+                            {{
+                              'billing.loyalty.remove'
+                                | transloco
+                            }}
+                          </span>
+                        </button>
+                      }
+                    </div>
+
+                    @if (pointsSelectedForRedemption() > 0) {
+                      <div class="loyalty-applied-card">
+                        <div class="loyalty-applied-card__top">
+                          <span class="loyalty-applied-card__icon">
+                            <i class="pi pi-check"></i>
+                          </span>
+
+                          <div>
+                            <strong>
+                              {{
+                                'billing.loyalty.appliedTitle'
+                                  | transloco
+                              }}
+                            </strong>
+
+                            <span>
+                              {{
+                                'billing.loyalty.appliedDescription'
+                                  | transloco
+                              }}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div class="loyalty-applied-card__details">
+                          <div>
+                            <span>
+                              {{
+                                'billing.loyalty.pointsSelected'
+                                  | transloco
+                              }}
+                            </span>
+
+                            <strong>
+                              {{
+                                pointsSelectedForRedemption()
+                                  | number: '1.0-0'
+                              }}
+                              {{
+                                'billing.loyalty.points'
+                                  | transloco
+                              }}
+                            </strong>
+                          </div>
+
+                          <div>
+                            <span>
+                              {{
+                                'billing.loyalty.discountPreview'
+                                  | transloco
+                              }}
+                            </span>
+
+                            <strong>
+                              -Q
+                              {{
+                                redemptionDiscountPreview()
+                                  | number: '1.2-2'
+                              }}
+                            </strong>
+                          </div>
+                        </div>
+
+                        <small>
+                          <i class="pi pi-info-circle"></i>
+
+                          {{
+                            'billing.loyalty.previewDisclaimer'
+                              | transloco
+                          }}
+                        </small>
+                      </div>
+                    }
+                  </div>
+                }
+              }
+            }
+          </div>
+
+          @if (loadingSubaccounts()) {
+            <div class="billing-state">
+              <i class="pi pi-spin pi-spinner"></i>
+
+              <span>
+                {{ 'billing.loadingSubaccounts' | transloco }}
+              </span>
+            </div>
+          } @else if (subaccounts().length > 0) {
+            <div class="subaccount-section">
+              <div>
+                <h3>
+                  {{ 'billing.dividedAccountTitle' | transloco }}
+                </h3>
+
+                <p>
+                  {{
+                    'billing.dividedAccountDescription'
+                      | transloco
+                  }}
+                </p>
+              </div>
+
+              <div class="subaccount-grid">
+                @for (
+                    subaccount of subaccounts();
+                  track subaccount.id
+                  ) {
+                  <button
+                    type="button"
+                    class="subaccount-card"
+                    [class.subaccount-card--selected]="
+                      selectedSubaccount()?.id ===
+                      subaccount.id
+                    "
+                    (click)="selectSubaccount(subaccount)"
+                  >
+                    <div>
+                      <strong>
+                        {{ subaccount.nombre }}
+                      </strong>
+
+                      <span>
+                        {{ 'billing.subaccount' | transloco }}
+                        #{{ subaccount.numeroSubcuenta }}
+                      </span>
+                    </div>
+
+                    <strong>
+                      Q
+                      {{
+                        subaccount.subtotal
+                          | number: '1.2-2'
+                      }}
+                    </strong>
+                  </button>
+                }
+              </div>
+            </div>
+          }
+
+          @if (loadingCalculation()) {
+            <div class="billing-state">
+              <i class="pi pi-spin pi-spinner"></i>
+
+              <span>
+                {{ 'billing.calculating' | transloco }}
+              </span>
+            </div>
+          }
+
+          @if (calculation(); as result) {
+            <div class="calculation-card">
+              <div class="calculation-card__heading">
+                <div>
+                  <span>
+                    {{
+                      result.subcuentaId === null
+                        ? ('billing.fullAccount' | transloco)
+                        : ('billing.subaccountCalculation'
+                          | transloco)
+                    }}
+                  </span>
+
+                  <h3>
+                    {{ result.numeroCuenta }}
+                  </h3>
+                </div>
+
+                @if (selectedSubaccount(); as subaccount) {
+                  <span class="calculation-badge">
+                    {{ subaccount.nombre }}
+                  </span>
+                }
+              </div>
+
+              <div class="calculation-row">
+                <span>
+                  {{ 'billing.subtotal' | transloco }}
+                </span>
+
+                <strong>
+                  Q {{ result.subtotal | number: '1.2-2' }}
+                </strong>
+              </div>
+
+              <div class="calculation-row">
+                <span>
+                  {{ 'billing.tax' | transloco }}
+
+                  ({{
+                    result.porcentajeImpuesto
+                      | number: '1.0-2'
+                  }}%)
+                </span>
+
+                <strong>
+                  Q
+                  {{
+                    result.montoImpuesto
+                      | number: '1.2-2'
+                  }}
+                </strong>
+              </div>
+
+              <div class="calculation-row">
+                <span>
+                  {{ 'billing.tip' | transloco }}
+
+                  ({{
+                    result.porcentajePropina
+                      | number: '1.0-2'
+                  }}%)
+                </span>
+
+                <strong>
+                  Q
+                  {{
+                    result.montoPropina
+                      | number: '1.2-2'
+                  }}
+                </strong>
+              </div>
+
+              @if (pointsSelectedForRedemption() > 0) {
+                <div class="calculation-row calculation-row--discount">
+                  <span>
+                    {{
+                      'billing.loyalty.selectedDiscount'
+                        | transloco
+                    }}
+                  </span>
+
+                  <strong>
+                    -Q
+                    {{
+                      redemptionDiscountPreview()
+                        | number: '1.2-2'
+                    }}
+                  </strong>
+                </div>
+              }
+
+              <div class="calculation-total">
+                <span>
+                  {{ 'billing.total' | transloco }}
+                </span>
+
+                <strong>
+                  Q {{ result.total | number: '1.2-2' }}
+                </strong>
+              </div>
+
+              @if (pointsSelectedForRedemption() > 0) {
+                <div class="calculation-preview-warning">
+                  <i class="pi pi-info-circle"></i>
+
+                  <span>
+                    {{
+                      'billing.loyalty.totalNotRecalculated'
+                        | transloco
+                    }}
+                  </span>
+                </div>
+              }
+            </div>
+          } @else if (!loadingSubaccounts() && !loadingCalculation() && subaccounts().length > 0) {
+            <div class="billing-state billing-state--selection">
+              <i class="pi pi-arrow-up"></i>
+
+              <span>
+                {{
+                  'billing.selectSubaccountMessage'
+                    | transloco
+                }}
+              </span>
+            </div>
+          }
+        </section>
+      }
+    }
+  }
+</div>

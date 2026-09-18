@@ -232,6 +232,7 @@ public class ComandaInventoryService {
     @Transactional(noRollbackFor = ApiException.class)
     public ComandaInventoryProcessResponse sendComanda(Long comandaId, Authentication authentication) {
         Long restaurantId = resolveRestaurantId(authentication);
+        Long operatorUserId = resolveOperatorUserId(restaurantId, authentication);
 
         if (comandaId == null) {
             throw new ApiException(
@@ -327,9 +328,16 @@ public class ComandaInventoryService {
             }
 
             if (!canFulfill) {
-                // Rechazar el envío de este platillo específico
-                detail.setStatus(ComandaDetailStatus.NO_DISPONIBLE);
-                comandaDetailRepository.save(detail);
+                // Rechazar el envío de este platillo específico. No se puede dejar en BORRADOR
+                // ni transicionar a NO_DISPONIBLE dentro de este flujo: el trigger de BD
+                // `fn_aplicar_movimiento_inventario` descuenta inventario para TODOS los
+                // detalles de la comanda (sin filtrar por estado) en cuanto la comanda pasa
+                // a RECIBIDA, así que cualquier detalle que se quede en la comanda con stock
+                // insuficiente hace fallar el envío completo. Por eso se elimina el detalle
+                // (orphanRemoval) antes de transicionar la comanda; el mesero puede volver a
+                // pedirlo en otra ronda cuando haya stock.
+                Long rejectedDetailId = detail.getId();
+                String rejectedDishName = detail.getNameSnapshot();
 
                 // Notificar al mesero cuál platillo no pudo enviarse y por qué
                 Notification waiterNotification = new Notification(
@@ -337,19 +345,21 @@ public class ComandaInventoryService {
                         comanda.getWaiterId(),
                         waiterRoleId,
                         "PLATILLO_RECHAZADO_STOCK",
-                        "Platillo rechazado por falta de stock - " + detail.getNameSnapshot(),
-                        "El platillo '" + detail.getNameSnapshot() + "' no pudo enviarse a cocina debido a stock insuficiente: " + rejectReason + ".",
+                        "Platillo rechazado por falta de stock - " + rejectedDishName,
+                        "El platillo '" + rejectedDishName + "' no pudo enviarse a cocina debido a stock insuficiente: " + rejectReason + ".",
                         "COMANDA_DETALLE",
-                        detail.getId().toString(),
+                        rejectedDetailId.toString(),
                         "ALTA"
                 );
                 notificationRepository.save(waiterNotification);
 
                 rejectedDishes.add(new RejectedDishDetailResponse(
-                        detail.getId(),
-                        detail.getNameSnapshot(),
+                        rejectedDetailId,
+                        rejectedDishName,
                         rejectReason
                 ));
+
+                comanda.getDetails().remove(detail);
             } else {
                 // Reservar el stock en memoria para no sobreasignar entre detalles de la misma comanda
                 for (Map.Entry<Long, BigDecimal> entry : detailRequirements.entrySet()) {
@@ -365,6 +375,11 @@ public class ComandaInventoryService {
             }
         }
 
+        // Flush explícito: garantiza que los detalles rechazados (orphanRemoval) ya se
+        // eliminaron en BD antes de transicionar la comanda, para que el trigger
+        // `fn_aplicar_movimiento_inventario` no los encuentre al calcular requerimientos.
+        comandaDetailRepository.flush();
+
         if (validDetails.isEmpty()) {
             // Todos los platillos fueron rechazados por stock insuficiente
             String errorSummary = rejectedDishes.stream()
@@ -378,15 +393,10 @@ public class ComandaInventoryService {
             );
         }
 
-        // Transición de estado de los platillos válidos a RECIBIDO
+        // Transición de la comanda a RECIBIDA. Debe hacerse ANTES que la transición de
+        // los platillos: el trigger de BD `fn_validar_transicion_comanda_detalle` impide
+        // marcar un platillo como RECIBIDO mientras la comanda siga en BORRADOR.
         Instant now = Instant.now();
-        for (ComandaDetail validDetail : validDetails) {
-            validDetail.setStatus(ComandaDetailStatus.RECIBIDO);
-            validDetail.setReceivedAt(now);
-            comandaDetailRepository.save(validDetail);
-        }
-
-        // Transición de la comanda a RECIBIDA
         comanda.setStatus(ComandaStatus.RECIBIDA);
         comanda.setSentAt(now);
 
@@ -400,6 +410,15 @@ public class ComandaInventoryService {
                     "No fue posible actualizar el inventario: " + ex.getMessage()
             );
         }
+
+        // Transición de estado de los platillos válidos a RECIBIDO
+        for (ComandaDetail validDetail : validDetails) {
+            validDetail.setStatus(ComandaDetailStatus.RECIBIDO);
+            validDetail.setReceivedAt(now);
+            validDetail.setUpdatedById(operatorUserId);
+            comandaDetailRepository.save(validDetail);
+        }
+        comandaDetailRepository.flush();
 
         // Obtener los movimientos registrados en el kardex (por trigger si activo)
         List<InventoryMovement> movements = inventoryMovementRepository.findByComandaIdWithSupply(comanda.getId());

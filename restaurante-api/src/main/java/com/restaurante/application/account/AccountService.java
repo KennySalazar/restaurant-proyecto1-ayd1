@@ -3,7 +3,6 @@ package com.restaurante.application.account;
 import com.restaurante.domain.model.Account;
 import com.restaurante.domain.model.AccountMerge;
 import com.restaurante.domain.model.AccountTransfer;
-import com.restaurante.domain.model.Comanda;
 import com.restaurante.domain.model.Notification;
 import com.restaurante.domain.model.Reservation;
 import com.restaurante.domain.model.RestaurantTable;
@@ -24,6 +23,7 @@ import com.restaurante.domain.repository.RoleRepository;
 import com.restaurante.exception.ApiException;
 import com.restaurante.security.JwtData;
 import com.restaurante.web.dto.account.AccountResponse;
+import com.restaurante.web.dto.account.ActiveFusionResponse;
 import com.restaurante.web.dto.account.MergeAccountsRequest;
 import com.restaurante.web.dto.account.MergeAccountsResponse;
 import com.restaurante.web.dto.account.OpenAccountRequest;
@@ -38,8 +38,11 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * Servicio de aplicación para la gestión, apertura, transferencia, fusión y cobro de cuentas de consumo en mesas del restaurante.
@@ -256,6 +259,36 @@ public class AccountService {
                 .toList();
     }
 
+    @Transactional(readOnly = true)
+    public List<AccountResponse> getAccountsReadyForPayment(
+            Authentication authentication) {
+
+        AuthenticatedUser context = getAuthenticatedUser(authentication);
+
+        List<Account> accounts = accountRepository
+                .findReadyForPaymentByRestaurantId(context.restaurantId());
+
+        return accounts.stream()
+                .map(account -> {
+                    RestaurantTable table = tableRepository
+                            .findByIdAndRestaurantId(
+                                    account.getTableId(),
+                                    context.restaurantId()
+                            )
+                            .orElse(null);
+
+                    String waiterName =
+                            resolveUserName(account.getWaiterId());
+
+                    return toResponse(
+                            account,
+                            table,
+                            waiterName
+                    );
+                })
+                .toList();
+    }
+
     /**
      * Transfiere una cuenta abierta a otra mesa identificándola por su ID de cuenta.
      */
@@ -381,6 +414,17 @@ public class AccountService {
                     "destination_table_not_available",
                     "Mesa destino no disponible",
                     "La mesa destino no está disponible"
+            );
+        }
+
+        // Validar que la mesa destino tenga capacidad suficiente para las personas de la cuenta
+        if (destinationTable.getCapacity() < account.getPeopleCount()) {
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "destination_table_insufficient_capacity",
+                    "Capacidad insuficiente",
+                    "La mesa destino no tiene capacidad suficiente para las "
+                            + account.getPeopleCount() + " personas de la cuenta"
             );
         }
 
@@ -622,29 +666,32 @@ public class AccountService {
                         "La mesa destino de la cuenta no existe"
                 ));
 
-        // 8. Reasignar comandas de la cuenta origen hacia la cuenta destino
-        List<Comanda> originComandas = comandaRepository.findByAccountId(originAccount.getId());
-        short nextRound = comandaRepository.findMaxRoundNumberByAccountId(destinationAccount.getId());
-
-        for (Comanda comanda : originComandas) {
-            nextRound++;
-            comanda.setAccount(destinationAccount);
-            comanda.setRoundNumber(nextRound);
-            comanda.setWaiterId(destinationAccount.getWaiterId());
-            comandaRepository.save(comanda);
+        // 7.1 Validar que ninguna de las dos mesas ya forme parte de una fusión activa
+        // (evita re-seleccionar una mesa ya fusionada y limita la fusión a 2 mesas, sin cadenas A->B->C)
+        Set<Long> activeFusedTableIds = findActiveFusedTableIds(restaurantId);
+        if (activeFusedTableIds.contains(originTable.getId()) || activeFusedTableIds.contains(destinationTable.getId())) {
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "table_already_fused",
+                    "Mesa ya fusionada",
+                    "Una de las mesas seleccionadas ya forma parte de una fusión activa"
+            );
         }
 
-        // 9. Actualizar personas y notas en la cuenta destino
-        short totalPeople = (short) (destinationAccount.getPeopleCount() + originAccount.getPeopleCount());
-        destinationAccount.setPeopleCount(totalPeople);
-        String destNotes = destinationAccount.getNotes();
-        String destNoteMerge = "Recibe fusion de cuenta " + originAccount.getId();
-        destinationAccount.setNotes(destNotes != null && !destNotes.isBlank()
-                ? destNotes + " | " + destNoteMerge
-                : destNoteMerge);
-        Account savedDestAccount = accountRepository.save(destinationAccount);
+        // 8. Contar las comandas que se trasladarán (el trigger de BD `fn_ejecutar_fusion_cuenta`
+        // es quien las reasigna físicamente a la cuenta destino al insertar la fusión)
+        int comandasTransferidas = comandaRepository.findByAccountId(originAccount.getId()).size();
 
-        // 10. Registrar auditoría de fusión
+        // 9. Total de personas de la cuenta unificada (el trigger de BD suma esto sobre la
+        // cuenta destino; aquí solo se calcula para la respuesta, sin escribirlo por JPA)
+        short totalPeople = (short) (destinationAccount.getPeopleCount() + originAccount.getPeopleCount());
+
+        // 10. Registrar la fusión: este INSERT dispara los triggers de BD que realizan la
+        // fusión real (`fn_ejecutar_fusion_cuenta`, `fn_sincronizar_estado_mesa`):
+        // trasladan las comandas, suman las personas, marcan la cuenta origen como 'FUSIONADA'
+        // y mantienen AMBAS mesas en estado OCUPADA (vía cuenta_mesas). No se debe volver a
+        // actualizar la cuenta origen por JPA después de esto: `fn_proteger_cuenta_terminal`
+        // bloquea cualquier UPDATE sobre una cuenta ya FUSIONADA/CERRADA/CANCELADA.
         String reason = request != null && request.motivo() != null && !request.motivo().trim().isEmpty()
                 ? request.motivo().trim()
                 : "Mesas unidas físicamente";
@@ -657,48 +704,82 @@ public class AccountService {
         );
         AccountMerge savedMerge = accountMergeRepository.save(merge);
 
-        // 11. Actualizar cuenta origen a 'FUSIONADA' y cerrarla
-        String originNotes = originAccount.getNotes();
-        String originNoteMerge = "Fusionada en cuenta " + destinationAccount.getId();
-        originAccount.setNotes(originNotes != null && !originNotes.isBlank()
-                ? originNotes + " | " + originNoteMerge
-                : originNoteMerge);
-        originAccount.setStatus("FUSIONADA");
-        originAccount.setClosedAt(Instant.now());
-        Account savedOriginAccount = accountRepository.save(originAccount);
-
-        // 12. Liberar la mesa de origen
-        originTable.setStatus(TableStatus.LIBRE);
-        tableRepository.save(originTable);
-
-        // Asegurar que la mesa destino permanezca ocupada
-        destinationTable.occupy();
-        tableRepository.save(destinationTable);
-
-        int totalComandasDestino = comandaRepository.findByAccountId(savedDestAccount.getId()).size();
+        int totalComandasDestino = comandaRepository.findByAccountId(destinationAccount.getId()).size();
 
         return new MergeAccountsResponse(
                 "Cuentas fusionadas exitosamente en una sola cuenta",
                 savedMerge.getId(),
-                savedOriginAccount.getId(),
-                savedOriginAccount.getAccountNumber(),
-                savedOriginAccount.getStatus(),
+                originAccount.getId(),
+                originAccount.getAccountNumber(),
+                "FUSIONADA",
                 originTable.getId(),
                 originTable.getNumber(),
                 originTable.getStatus(),
-                savedDestAccount.getId(),
-                savedDestAccount.getAccountNumber(),
-                savedDestAccount.getStatus(),
+                destinationAccount.getId(),
+                destinationAccount.getAccountNumber(),
+                destinationAccount.getStatus(),
                 destinationTable.getId(),
                 destinationTable.getNumber(),
                 destinationTable.getStatus(),
-                originComandas.size(),
+                comandasTransferidas,
                 totalComandasDestino,
                 totalPeople,
                 context.userId(),
                 reason,
                 savedMerge.getPerformedAt() != null ? savedMerge.getPerformedAt() : Instant.now()
         );
+    }
+
+    /**
+     * Lista las fusiones de mesas actualmente vigentes (la cuenta destino sigue activa).
+     */
+    @Transactional(readOnly = true)
+    public List<ActiveFusionResponse> getActiveFusions(Authentication authentication) {
+        AuthenticatedUser context = getAuthenticatedUser(authentication);
+        Long restaurantId = context.restaurantId();
+
+        List<AccountMerge> merges = accountMergeRepository.findActiveFusionsByRestaurant(restaurantId);
+        List<ActiveFusionResponse> result = new ArrayList<>();
+
+        for (AccountMerge merge : merges) {
+            Optional<Account> originAccount = accountRepository.findById(merge.getOriginAccountId());
+            Optional<Account> destinationAccount = accountRepository.findById(merge.getDestinationAccountId());
+
+            if (originAccount.isEmpty() || destinationAccount.isEmpty()) {
+                continue;
+            }
+
+            RestaurantTable originTable = tableRepository.findById(originAccount.get().getTableId()).orElse(null);
+            RestaurantTable destinationTable = tableRepository.findById(destinationAccount.get().getTableId()).orElse(null);
+
+            result.add(new ActiveFusionResponse(
+                    originAccount.get().getTableId(),
+                    originTable != null ? originTable.getNumber() : "",
+                    destinationAccount.get().getTableId(),
+                    destinationTable != null ? destinationTable.getNumber() : "",
+                    destinationAccount.get().getId(),
+                    destinationAccount.get().getPeopleCount()
+            ));
+        }
+
+        return result;
+    }
+
+    /**
+     * Resuelve el conjunto de mesas que actualmente forman parte de una fusión vigente (origen o destino).
+     */
+    private Set<Long> findActiveFusedTableIds(Long restaurantId) {
+        List<AccountMerge> merges = accountMergeRepository.findActiveFusionsByRestaurant(restaurantId);
+        Set<Long> tableIds = new HashSet<>();
+
+        for (AccountMerge merge : merges) {
+            accountRepository.findById(merge.getOriginAccountId())
+                    .ifPresent(account -> tableIds.add(account.getTableId()));
+            accountRepository.findById(merge.getDestinationAccountId())
+                    .ifPresent(account -> tableIds.add(account.getTableId()));
+        }
+
+        return tableIds;
     }
 
     /**

@@ -1,6 +1,8 @@
 package com.restaurante.web.operation;
 
+import com.restaurante.application.reservation.ReservationService;
 import com.restaurante.application.table.TableSeatingService;
+import com.restaurante.web.dto.reservation.ReservationResponse;
 import com.restaurante.web.dto.table.SeatReservationRequest;
 import com.restaurante.web.dto.table.SeatReservationResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -16,11 +18,14 @@ import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
 
 /**
  * Controlador de operación para la llegada y asignación de mesas a clientes con reserva.
@@ -35,9 +40,39 @@ import org.springframework.web.bind.annotation.RestController;
 public class OperationReservationController {
 
     private final TableSeatingService tableSeatingService;
+    private final ReservationService reservationService;
 
-    public OperationReservationController(TableSeatingService tableSeatingService) {
+    public OperationReservationController(TableSeatingService tableSeatingService,
+                                          ReservationService reservationService) {
         this.tableSeatingService = tableSeatingService;
+        this.reservationService = reservationService;
+    }
+
+    @GetMapping
+    @PreAuthorize("hasAnyRole('WAITER', 'ADMIN')")
+    @Operation(
+            summary = "Consultar las reservas próximas",
+            description = "Retorna las reservaciones pendientes o confirmadas futuras del restaurante, para que el mesero prepare la mesa y registre la llegada del cliente."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Reservas próximas obtenidas exitosamente",
+                    content = @Content(schema = @Schema(implementation = ReservationResponse.class))
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "No autenticado o token JWT no provisto",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Acceso denegado (requiere rol de mesero o administrador)",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            )
+    })
+    public List<ReservationResponse> getUpcomingReservations(Authentication authentication) {
+        return reservationService.getUpcomingReservations(authentication);
     }
 
     @PostMapping({ "/{id}/sentar", "/{id}/llegada" })

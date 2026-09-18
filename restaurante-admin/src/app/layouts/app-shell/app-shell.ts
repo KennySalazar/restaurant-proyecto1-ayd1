@@ -57,6 +57,33 @@ const NAVIGATION: readonly NavigationItem[] = [
   },
 
   {
+  path: '/app/reports/sales',
+  labelKey: 'nav.salesReport',
+  icon: 'pi-chart-line',
+  roles: ['ADMIN'],
+},
+
+{
+  path: '/app/reports/profitability',
+  labelKey: 'nav.profitabilityReport',
+  icon: 'pi-percentage',
+  roles: ['ADMIN'],
+},
+
+{
+  path: '/app/reports/table-occupancy',
+  labelKey: 'nav.tableOccupancyReport',
+  icon: 'pi-clock',
+  roles: ['ADMIN'],
+},
+{
+  path: '/app/reports/loyalty',
+  labelKey: 'nav.loyaltyReport',
+  icon: 'pi-star',
+  roles: ['ADMIN'],
+},
+
+  {
     path: '/app/employees',
     labelKey: 'nav.employees',
     icon: 'pi-users',

@@ -20,7 +20,11 @@
   "nav": {
     "workspace": "Operación",
     "dashboard": "Inicio",
+    "tables": "Mesas",
+    "kitchen": "Cocina",
     "cashShift": "Caja",
+    "billing": "Cobros",
+    "invoices": "Facturación",
     "account": "Mi cuenta",
     "logout": "Cerrar sesión",
     "secureSession": "Sesión activa",
@@ -82,7 +86,9 @@
     "email": "Ingresa un correo electrónico válido.",
     "passwordLength": "La contraseña debe tener entre 8 y 72 caracteres.",
     "passwordPolicy": "Usa mayúsculas, minúsculas y números.",
-    "invalid": "Revisa este campo."
+    "invalid": "Revisa este campo.",
+    "actualCashRequired": "Ingresa el efectivo real contado.",
+    "actualCashMinimum": "El efectivo real no puede ser negativo."
   },
   "dashboard": {
     "eyebrow": "Centro de operación",
@@ -101,6 +107,223 @@
     "adminDescription": "Accede a las herramientas disponibles para tu puesto."
   },
 
+  "tables": {
+    "eyebrow": "Salón",
+    "title": "Estado de mesas",
+    "description": "Consulta el estado actual de cada mesa para saber a cuáles puedes sentar clientes o dar seguimiento.",
+    "refresh": "Actualizar",
+    "lastUpdated": "Actualizado",
+    "loading": "Consultando el estado de las mesas...",
+    "empty": "Todavía no hay mesas activas configuradas. Registra las mesas desde la aplicación administrativa.",
+    "withoutZone": "Sin zona",
+    "tablesCount": "mesas",
+    "capacity": "personas",
+    "summary": {
+      "LIBRE": "Libres",
+      "RESERVADA": "Reservadas",
+      "OCUPADA": "Ocupadas",
+      "CUENTA_SOLICITADA": "Cuenta solicitada"
+    },
+    "status": {
+      "LIBRE": "Libre",
+      "RESERVADA": "Reservada",
+      "OCUPADA": "Ocupada",
+      "CUENTA_SOLICITADA": "Cuenta solicitada"
+    },
+    "actions": {
+      "openAccount": "Abrir cuenta",
+      "seatReservation": "Sentar reserva",
+      "seatWaitlist": "Lista de espera",
+      "inService": "En servicio",
+      "transfer": "Transferir",
+      "merge": "Fusionar",
+      "comanda": "Comanda",
+      "requestBill": "Solicitar cobro"
+    },
+    "fused": {
+      "with": "Unida a Mesa {{numero}}",
+      "totalPeople": "{{count}} personas en total"
+    },
+    "dialogs": {
+      "table": "Mesa {{numero}} · {{capacidad}} personas",
+      "cancel": "Cancelar",
+      "people": "Cantidad de personas",
+      "peoplePlaceholder": "Personas",
+      "notes": "Observaciones",
+      "notesPlaceholder": "Notas opcionales",
+      "validation": {
+        "peopleMinimum": "La cantidad de personas debe ser al menos 1.",
+        "reservationRequired": "Selecciona una reserva.",
+        "waitlistRequired": "Selecciona un cliente en espera.",
+        "destinationRequired": "Selecciona una mesa destino."
+      },
+      "openAccount": {
+        "title": "Abrir cuenta",
+        "submit": "Abrir cuenta"
+      },
+      "reservation": {
+        "title": "Sentar reserva",
+        "loading": "Buscando reservas para esta mesa...",
+        "empty": "No hay reservas activas para esta mesa en este momento.",
+        "field": "Reserva",
+        "placeholder": "Selecciona una reserva",
+        "submit": "Sentar cliente"
+      },
+      "waitlist": {
+        "title": "Sentar desde lista de espera",
+        "loading": "Consultando la lista de espera...",
+        "empty": "No hay clientes en espera compatibles con esta mesa.",
+        "suggested": "Cliente sugerido",
+        "field": "Cliente en espera",
+        "placeholder": "Selecciona un cliente",
+        "submit": "Sentar cliente"
+      },
+      "transfer": {
+        "title": "Transferir cuenta",
+        "empty": "No hay mesas libres con capacidad suficiente para esta cuenta.",
+        "field": "Mesa destino",
+        "placeholder": "Selecciona una mesa disponible",
+        "submit": "Transferir"
+      },
+      "merge": {
+        "title": "Fusionar cuentas",
+        "empty": "No hay otras mesas disponibles para fusionar.",
+        "field": "Mesa a fusionar",
+        "placeholder": "Selecciona una mesa ocupada",
+        "submit": "Fusionar"
+      },
+      "requestBill": {
+        "title": "Solicitar cobro",
+        "confirm": "¿Confirmas que el cliente desea pagar? Se notificará al cajero y la mesa pasará a \"Cuenta solicitada\".",
+        "submit": "Solicitar cobro"
+      }
+    },
+    "success": {
+      "accountTitle": "Cuenta abierta correctamente",
+      "reservationTitle": "Reserva sentada correctamente",
+      "waitlistTitle": "Cliente sentado correctamente",
+      "transferTitle": "Cuenta transferida correctamente",
+      "mergeTitle": "Cuentas fusionadas correctamente",
+      "requestBillTitle": "Cobro solicitado correctamente",
+      "table": "Mesa",
+      "people": "personas",
+      "dismiss": "Cerrar"
+    }
+  },
+  "comanda": {
+    "eyebrow": "Comanda",
+    "title": "Comanda de la mesa",
+    "description": "Agrega platillos, envíalos a cocina y da seguimiento al avance de cada uno.",
+    "back": "Volver a mesas",
+    "loading": "Cargando comanda...",
+    "menu": {
+      "title": "Menú",
+      "empty": "No hay platillos disponibles en el menú.",
+      "unavailable": "No disponible",
+      "add": "Agregar"
+    },
+    "unavailability": {
+      "MANUAL": "Desactivado manualmente",
+      "FALTA_INSUMOS": "Sin insumos suficientes",
+      "SIN_RECETA": "Sin receta vigente",
+      "INACTIVO": "Platillo inactivo"
+    },
+    "draft": {
+      "title": "Comanda en curso",
+      "empty": "Todavía no has agregado platillos a esta ronda.",
+      "remove": "Quitar",
+      "send": "Enviar a cocina"
+    },
+    "rounds": {
+      "title": "Rondas enviadas",
+      "empty": "Todavía no se ha enviado ninguna ronda a cocina.",
+      "round": "Ronda #{{numero}}",
+      "delayed": "{{minutes}} min de retraso",
+      "deliver": "Marcar entregado",
+      "requestCancellation": "Solicitar cancelación",
+      "rejectedByStock": "No se pudo enviar por falta de stock"
+    },
+    "status": {
+      "BORRADOR": "Borrador",
+      "RECIBIDO": "Recibido",
+      "RECIBIDA": "Recibida",
+      "EN_PREPARACION": "En preparación",
+      "LISTO": "Listo",
+      "LISTA": "Lista",
+      "ENTREGADO": "Entregado",
+      "ENTREGADA": "Entregada",
+      "NO_DISPONIBLE": "No disponible",
+      "CANCELADO": "Cancelado",
+      "CANCELADA": "Cancelada"
+    },
+    "addDialog": {
+      "quantity": "Cantidad",
+      "modifiers": "Modificadores",
+      "submit": "Agregar a la cuenta",
+      "success": "Platillo agregado a la cuenta"
+    },
+    "send": {
+      "successTitle": "Comanda enviada a cocina",
+      "partialTitle": "Algunos platillos no pudieron enviarse"
+    },
+    "cancelException": {
+      "title": "Solicitar cancelación",
+      "type": "Tipo de excepción",
+      "reason": "Motivo",
+      "submit": "Registrar cancelación",
+      "success": "Cancelación registrada",
+      "types": {
+        "CLIENTE": "Cliente cambió de opinión",
+        "ERROR_MESERO": "Error del mesero",
+        "NO_DISPONIBLE_COCINA": "No disponible en cocina",
+        "OTRO": "Otro"
+      }
+    },
+    "split": {
+      "action": "Dividir cuenta",
+      "title": "Dividir cuenta",
+      "byPeople": "Por personas",
+      "byItems": "Por ítems",
+      "peopleCount": "Número de personas",
+      "subaccountCount": "Número de subcuentas",
+      "assignItems": "Asigna cada platillo a una subcuenta",
+      "unassigned": "Sin asignar",
+      "noItems": "Esta cuenta todavía no tiene platillos para dividir.",
+      "submit": "Dividir cuenta",
+      "success": "Cuenta dividida correctamente",
+      "subaccountsTitle": "Subcuentas",
+      "subaccountFallback": "Subcuenta {{numero}}",
+      "subtotal": "Subtotal",
+      "status": {
+        "PENDIENTE": "Pendiente",
+        "FACTURADA": "Facturada",
+        "CANCELADA": "Cancelada"
+      },
+      "validation": {
+        "minTwoBuckets": "Asigna platillos a al menos 2 subcuentas."
+      }
+    }
+  },
+  "kitchen": {
+    "eyebrow": "Cocina",
+    "title": "Comandas en cocina",
+    "description": "Comandas entrantes ordenadas por antigüedad, con su detalle y tiempo estimado de preparación.",
+    "loading": "Cargando comandas...",
+    "empty": "No hay comandas activas en este momento.",
+    "onlyDelayed": "Mostrar solo retrasadas",
+    "actions": {
+      "markUnavailable": "No disponible",
+      "advanceTo": {
+        "EN_PREPARACION": "Iniciar preparación",
+        "LISTO": "Marcar listo",
+        "NO_DISPONIBLE": "No disponible"
+      }
+    },
+    "unavailableDialog": {
+      "reason": "Motivo o insumo faltante",
+      "submit": "Marcar no disponible"
+    }
+  },
   "cashShift": {
     "eyebrow": "Operación de caja",
     "title": "Abrir turno de caja",
@@ -119,6 +342,21 @@
     "noAvailableRegisters": "Todas las cajas se encuentran ocupadas. No es posible abrir un nuevo turno en este momento.",
     "submit": "Abrir turno",
     "opening": "Abriendo turno...",
+    "loadingCurrentShift": "Consultando turno actual...",
+    "closeEyebrow": "Cuadre de caja",
+    "closeTitle": "Cerrar turno de caja",
+    "closeDescription": "Compara el efectivo esperado contra el efectivo real contado y registra el cuadre al finalizar tu turno.",
+    "expectedCash": "Efectivo esperado",
+    "actualCash": "Efectivo real contado",
+    "actualCashPlaceholder": "0.00",
+    "closingNotes": "Observaciones de cierre",
+    "closingNotesPlaceholder": "Agrega una observación opcional sobre el cierre",
+    "closeSubmit": "Cerrar turno",
+    "closing": "Cerrando turno...",
+    "closeSuccessTitle": "Turno cerrado correctamente",
+    "closeSuccessDescription": "El cuadre de caja fue registrado y el turno quedó cerrado.",
+    "difference": "Diferencia",
+    "closedAt": "Cierre",
     "successTitle": "Turno abierto correctamente",
     "successDescription": "Tu turno de caja está activo. Ya puedes procesar cobros.",
     "shift": "Turno",
@@ -129,6 +367,157 @@
       "amountRequired": "Ingresa el monto inicial de efectivo.",
       "amountMinimum": "El monto inicial no puede ser negativo."
     }
+  },
+  "billing": {
+    "eyebrow": "Facturación",
+    "title": "Cuentas por cobrar",
+    "description": "Consulta las cuentas listas para cobro y revisa su desglose antes de registrar el pago.",
+    "validatingShift": "Verificando turno de caja...",
+    "cashShiftRequiredTitle": "Debes abrir un turno de caja",
+    "cashShiftRequiredDescription": "No puedes procesar cobros mientras no tengas un turno de caja abierto.",
+    "openCashShift": "Ir a apertura de caja",
+    "cashShiftActive": "Turno de caja activo",
+    "shift": "Turno",
+    "status": {
+      "readyForPayment": "Lista para cobro",
+      "partiallyPaid": "Parcialmente pagada"
+    },
+    "accountsEyebrow": "Facturación pendiente",
+    "accountsTitle": "Cuentas listas para cobro",
+    "accountsDescription": "Selecciona la cuenta que deseas revisar antes de procesar el pago.",
+    "refresh": "Actualizar",
+    "loadingAccounts": "Consultando cuentas listas para cobro...",
+    "noAccountsTitle": "No hay cuentas pendientes",
+    "noAccountsDescription": "Actualmente no existen cuentas marcadas como listas para cobro.",
+    "selectedAccount": "Cuenta seleccionada",
+    "table": "Mesa",
+    "people": "personas",
+    "loadingSubaccounts": "Verificando divisiones de la cuenta...",
+    "dividedAccountTitle": "Cuenta dividida",
+    "dividedAccountDescription": "Selecciona la subcuenta específica que deseas cobrar.",
+    "subaccount": "Subcuenta",
+    "calculating": "Calculando subtotal, impuestos, propina y total...",
+    "fullAccount": "Cálculo de cuenta completa",
+    "subaccountCalculation": "Cálculo de subcuenta",
+    "selectSubaccountMessage": "Selecciona una subcuenta para consultar su total.",
+    "subtotal": "Subtotal",
+    "tax": "Impuestos",
+    "tip": "Propina sugerida",
+    "total": "Total",
+    "loyalty": {
+      "eyebrow": "Programa de fidelización",
+      "title": "Redención de puntos",
+      "description": "Consulta el saldo del cliente y prepara los puntos que desea utilizar como descuento.",
+      "registeredCustomer": "Cliente registrado",
+      "loading": "Consultando puntos del cliente...",
+      "customer": "Cliente",
+      "availablePoints": "Puntos disponibles",
+      "points": "puntos",
+      "pointValue": "Valor por punto",
+      "perPoint": "por punto",
+      "availableValue": "Valor disponible",
+      "maximumDiscount": "descuento máximo disponible",
+      "noCustomerTitle": "Cuenta sin cliente registrado",
+      "noCustomerDescription": "Esta cuenta no está asociada a un cliente registrado, por lo que no puede utilizar puntos de fidelización.",
+      "noPointsTitle": "Sin puntos disponibles",
+      "noPointsDescription": "El cliente no posee puntos disponibles para aplicar como descuento.",
+      "dividedAccountTitle": "Redención no disponible para esta cuenta dividida",
+      "dividedAccountDescription": "La cuenta posee subcuentas activas. El cobro debe procesarse por subcuentas antes de utilizar la redención de puntos.",
+      "pointsToRedeem": "Puntos a redimir",
+      "balanceHint": "Saldo disponible: {{ points }} puntos.",
+      "apply": "Aplicar redención",
+      "remove": "Quitar redención",
+      "appliedTitle": "Redención preparada",
+      "appliedDescription": "Los puntos seleccionados están listos para enviarse durante el registro del pago.",
+      "pointsSelected": "Puntos seleccionados",
+      "discountPreview": "Descuento estimado",
+      "previewDisclaimer": "El descuento mostrado es una referencia basada en el valor vigente por punto. El backend realizará el cálculo definitivo al registrar el cobro.",
+      "selectedDiscount": "Descuento por puntos seleccionado",
+      "totalNotRecalculated": "El total mostrado corresponde al cálculo original de la cuenta. El impuesto, la propina y el total definitivo serán recalculados por el sistema al registrar el pago con la redención.",
+      "errors": {
+        "invalid": "Ingresa una cantidad válida de puntos, mayor que cero y sin decimales.",
+        "exceedsBalance": "No puedes redimir más puntos de los disponibles. Saldo disponible: {{ points }} puntos."
+      }
+    }
+  },
+  "invoice": {
+    "eyebrow": "Facturación",
+    "title": "Comprobante emitido",
+    "description": "Consulta el detalle completo del comprobante, descárgalo en PDF o envíalo a impresión.",
+    "loading": "Consultando comprobante...",
+    "backToBilling": "Volver a cobros",
+    "print": "Imprimir",
+    "downloadPdf": "Descargar PDF",
+    "openingPrint": "Preparando comprobante para impresión...",
+    "receipt": "Comprobante",
+    "series": "Serie",
+    "correlative": "Correlativo",
+    "account": "Cuenta",
+    "issuedAt": "Fecha de emisión",
+    "restaurant": "Restaurante",
+    "customer": "Cliente",
+    "finalConsumer": "Consumidor final",
+    "currency": "Moneda",
+    "details": "Detalle de consumo",
+    "product": "Producto",
+    "quantity": "Cantidad",
+    "unitPrice": "Precio unitario",
+    "modifiers": "Modificadores",
+    "lineSubtotal": "Subtotal",
+    "subtotal": "Subtotal",
+    "discounts": "Descuentos",
+    "pointsDiscount": "Descuento por puntos",
+    "tax": "Impuestos",
+    "tip": "Propina",
+    "total": "Total",
+    "payments": "Métodos de pago",
+    "received": "Monto recibido",
+    "change": "Cambio entregado",
+    "reference": "Referencia",
+    "authorization": "Autorización",
+    "pointsRedeemed": "Puntos redimidos",
+    "pointsGranted": "Puntos otorgados",
+    "rating": {
+      "eyebrow": "Experiencia de servicio",
+      "title": "Califica la atención recibida",
+      "description": "Tu opinión nos ayuda a mejorar la atención brindada por nuestro equipo.",
+      "starLabel": "Calificar con {{ rating }} estrellas",
+      "comment": "Comentario opcional",
+      "commentPlaceholder": "Cuéntanos brevemente cómo fue tu experiencia...",
+      "submit": "Enviar calificación",
+      "successTitle": "Gracias por tu calificación",
+      "successDescription": "La calificación fue registrada para la atención brindada por {{ waiter }}.",
+      "errors": {
+        "required": "Selecciona una calificación de 1 a 5 estrellas.",
+        "commentLength": "El comentario no puede superar los 500 caracteres."
+      }
+    },
+    "errors": {
+      "invalidId": "El identificador del comprobante no es válido.",
+      "popupBlocked": "El navegador bloqueó la ventana de impresión. Habilita las ventanas emergentes e inténtalo nuevamente."
+    }
+  },
+
+  "invoices": {
+    "eyebrow": "Facturación",
+    "title": "Comprobantes emitidos",
+    "description": "Consulta los comprobantes emitidos y accede a su detalle para imprimirlos o descargarlos.",
+    "emitted": "Comprobantes emitidos",
+    "availableDescription": "Selecciona un comprobante para consultar su detalle.",
+    "refresh": "Actualizar",
+    "loading": "Consultando comprobantes...",
+    "emptyTitle": "No hay comprobantes emitidos",
+    "emptyDescription": "Cuando se registre un pago completo, el comprobante aparecerá en este listado.",
+    "document": "Comprobante",
+    "date": "Fecha de emisión",
+    "account": "Cuenta",
+    "table": "Mesa",
+    "waiter": "Mesero",
+    "customer": "Cliente",
+    "total": "Total",
+    "subtotal": "Subtotal",
+    "discount": "Descuento",
+    "viewReceipt": "Ver comprobante"
   },
   "security": {
     "eyebrow": "Cuenta personal",

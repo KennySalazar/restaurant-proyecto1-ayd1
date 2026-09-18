@@ -3,20 +3,17 @@ import { Injectable } from '@angular/core';
 import { Observable, catchError, tap, throwError } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import {
-ChallengeResponse,
-LoginRequest,
-LoginResponse,
-PasswordChangeRequest,
-RecoveryRequest,
-RecoveryVerificationRequest,
-UserResponse,
-VerifyChallengeRequest,
-TwoFactorRequest,
+  ChallengeResponse,
+  LoginRequest,
+  LoginResponse,
+  PasswordChangeRequest,
+  RecoveryRequest,
+  RecoveryVerificationRequest,
+  UserResponse,
+  VerifyChallengeRequest,
+  TwoFactorRequest,
 } from '../models/auth.models';
-import {
-  PasswordChangeResponse,
-  MessageResponse,
-} from '../models/api.models';
+import { PasswordChangeResponse, MessageResponse } from '../models/api.models';
 import { ApiErrorService } from './api-error.service';
 import { AuthSessionService } from './auth-session.service';
 
@@ -31,52 +28,27 @@ export class AuthService {
   ) {}
 
   login(request: LoginRequest): Observable<LoginResponse> {
-    return this.http.post<LoginResponse>(
-      `${this.authUrl}/login`,
-      request,
-    );
+    return this.http.post<LoginResponse>(`${this.authUrl}/login`, request);
   }
 
-  verifyLogin(
-    request: VerifyChallengeRequest,
-  ): Observable<LoginResponse> {
-    return this.http.post<LoginResponse>(
-      `${this.authUrl}/login/verify`,
-      request,
-    );
+  verifyLogin(request: VerifyChallengeRequest): Observable<LoginResponse> {
+    return this.http.post<LoginResponse>(`${this.authUrl}/login/verify`, request);
   }
 
-  requestPasswordRecovery(
-  request: RecoveryRequest,
-): Observable<ChallengeResponse> {
-  return this.http.post<ChallengeResponse>(
-    `${this.authUrl}/password-recovery`,
-    request,
-  );
-}
+  requestPasswordRecovery(request: RecoveryRequest): Observable<ChallengeResponse> {
+    return this.http.post<ChallengeResponse>(`${this.authUrl}/password-recovery`, request);
+  }
 
-verifyPasswordRecovery(
-  request: RecoveryVerificationRequest,
-): Observable<{ message: string }> {
-  return this.http.post<{ message: string }>(
-    `${this.authUrl}/password-recovery/verify`,
-    request,
-  );
-}
+  verifyPasswordRecovery(request: RecoveryVerificationRequest): Observable<{ message: string }> {
+    return this.http.post<{ message: string }>(`${this.authUrl}/password-recovery/verify`, request);
+  }
 
-  changePassword(
-    request: PasswordChangeRequest,
-  ): Observable<PasswordChangeResponse> {
-    return this.http.post<PasswordChangeResponse>(
-      `${this.authUrl}/password/change`,
-      request,
-    );
+  changePassword(request: PasswordChangeRequest): Observable<PasswordChangeResponse> {
+    return this.http.post<PasswordChangeResponse>(`${this.authUrl}/password/change`, request);
   }
 
   currentUser(): Observable<UserResponse> {
-    return this.http.get<UserResponse>(
-      `${this.authUrl}/me`,
-    );
+    return this.http.get<UserResponse>(`${this.authUrl}/me`);
   }
 
   loadCurrentUser(): Observable<UserResponse> {
@@ -92,54 +64,25 @@ verifyPasswordRecovery(
     );
   }
 
-      requestTwoFactorEnable(
-      request: TwoFactorRequest,
-    ): Observable<ChallengeResponse> {
-      return this.http.post<ChallengeResponse>(
-        `${this.authUrl}/2fa/enable`,
-        request,
-      );
-    }
+  requestTwoFactorEnable(request: TwoFactorRequest): Observable<ChallengeResponse> {
+    return this.http.post<ChallengeResponse>(`${this.authUrl}/2fa/enable`, request);
+  }
 
-    confirmTwoFactorEnable(
-      request: VerifyChallengeRequest,
-    ): Observable<MessageResponse> {
-      return this.http.post<MessageResponse>(
-        `${this.authUrl}/2fa/enable/verify`,
-        request,
-      );
-    }
+  confirmTwoFactorEnable(request: VerifyChallengeRequest): Observable<MessageResponse> {
+    return this.http.post<MessageResponse>(`${this.authUrl}/2fa/enable/verify`, request);
+  }
 
-    requestTwoFactorDisable(
-      request: TwoFactorRequest,
-    ): Observable<ChallengeResponse> {
-      return this.http.post<ChallengeResponse>(
-        `${this.authUrl}/2fa/disable`,
-        request,
-      );
-    }
+  requestTwoFactorDisable(request: TwoFactorRequest): Observable<ChallengeResponse> {
+    return this.http.post<ChallengeResponse>(`${this.authUrl}/2fa/disable`, request);
+  }
 
-    confirmTwoFactorDisable(
-      request: VerifyChallengeRequest,
-    ): Observable<MessageResponse> {
-      return this.http.post<MessageResponse>(
-        `${this.authUrl}/2fa/disable/verify`,
-        request,
-      );
-    }
+  confirmTwoFactorDisable(request: VerifyChallengeRequest): Observable<MessageResponse> {
+    return this.http.post<MessageResponse>(`${this.authUrl}/2fa/disable/verify`, request);
+  }
 
-
-  establishLogin(
-    response: LoginResponse,
-  ): Observable<UserResponse> {
-    if (
-      !response.accessToken ||
-      !response.tokenType ||
-      response.requiresTwoFactor
-    ) {
-      return throwError(
-        () => new Error('La autenticación todavía requiere verificación 2FA'),
-      );
+  establishLogin(response: LoginResponse): Observable<UserResponse> {
+    if (!response.accessToken || !response.tokenType || response.requiresTwoFactor) {
+      return throwError(() => new Error('La autenticación todavía requiere verificación 2FA'));
     }
 
     this.session.establish({

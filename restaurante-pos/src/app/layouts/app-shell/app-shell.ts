@@ -19,11 +19,38 @@ const NAVIGATION: readonly NavigationItem[] = [
     icon: 'pi-home',
   },
   {
+    path: '/app/mesas',
+    labelKey: 'nav.tables',
+    icon: 'pi-th-large',
+    roles: ['WAITER'],
+  },
+  {
+    path: '/app/cocina',
+    labelKey: 'nav.kitchen',
+    icon: 'pi-bolt',
+    roles: ['KITCHEN', 'ADMIN'],
+  },
+  {
     path: '/app/caja/turno',
     labelKey: 'nav.cashShift',
     icon: 'pi-credit-card',
     roles: ['CASHIER'],
   },
+  {
+    path: '/app/caja/cobros',
+    labelKey: 'nav.billing',
+    icon: 'pi-receipt',
+    roles: ['CASHIER'],
+  },
+
+  {
+    path: '/app/caja/facturas',
+    labelKey: 'nav.invoices',
+    icon: 'pi-file',
+    roles: ['CASHIER'],
+  },
+
+
   {
     path: '/app/account',
     labelKey: 'nav.account',
@@ -33,13 +60,7 @@ const NAVIGATION: readonly NavigationItem[] = [
 
 @Component({
   selector: 'app-shell',
-  imports: [
-    BrandMarkComponent,
-    RouterLink,
-    RouterLinkActive,
-    RouterOutlet,
-    TranslocoPipe,
-  ],
+  imports: [BrandMarkComponent, RouterLink, RouterLinkActive, RouterOutlet, TranslocoPipe],
   templateUrl: './app-shell.html',
   styleUrl: './app-shell.scss',
 })

@@ -23,6 +23,17 @@ public interface AccountRepository extends JpaRepository<Account, Long> {
     @Query("SELECT a FROM Account a WHERE a.restaurantId = :restaurantId AND a.status IN ('ABIERTA', 'LISTA_COBRO', 'PARCIALMENTE_PAGADA') ORDER BY a.openedAt DESC")
     java.util.List<Account> findActiveByRestaurantId(@Param("restaurantId") Long restaurantId);
 
+    @Query("""
+        SELECT a
+        FROM Account a
+        WHERE a.restaurantId = :restaurantId
+          AND a.status IN ('LISTA_COBRO', 'PARCIALMENTE_PAGADA')
+        ORDER BY a.openedAt ASC
+        """)
+    java.util.List<Account> findReadyForPaymentByRestaurantId(
+            @Param("restaurantId") Long restaurantId
+    );
+
     @Query("SELECT a FROM Account a WHERE a.waiterId = :waiterId AND a.status IN ('ABIERTA', 'LISTA_COBRO', 'PARCIALMENTE_PAGADA') ORDER BY a.openedAt DESC")
     java.util.List<Account> findActiveByWaiterId(@Param("waiterId") Long waiterId);
 
