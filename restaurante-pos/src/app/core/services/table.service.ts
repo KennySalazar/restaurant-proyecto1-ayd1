@@ -20,6 +20,10 @@ export class TableService {
     return this.http.get<RestaurantTable[]>(this.tablesUrl);
   }
 
+  getTable(tableId: number): Observable<RestaurantTable> {
+    return this.http.get<RestaurantTable>(`${this.tablesUrl}/${tableId}`);
+  }
+
   seatReservation(
     tableId: number,
     request: SeatReservationRequest,

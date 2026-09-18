@@ -21,6 +21,7 @@
     "workspace": "Operación",
     "dashboard": "Inicio",
     "tables": "Mesas",
+    "kitchen": "Cocina",
     "cashShift": "Caja",
     "account": "Mi cuenta",
     "logout": "Cerrar sesión",
@@ -133,7 +134,9 @@
       "seatWaitlist": "Lista de espera",
       "inService": "En servicio",
       "transfer": "Transferir",
-      "merge": "Fusionar"
+      "merge": "Fusionar",
+      "comanda": "Comanda",
+      "requestBill": "Solicitar cobro"
     },
     "fused": {
       "with": "Unida a Mesa {{numero}}",
@@ -186,6 +189,11 @@
         "field": "Mesa a fusionar",
         "placeholder": "Selecciona una mesa ocupada",
         "submit": "Fusionar"
+      },
+      "requestBill": {
+        "title": "Solicitar cobro",
+        "confirm": "¿Confirmas que el cliente desea pagar? Se notificará al cajero y la mesa pasará a \"Cuenta solicitada\".",
+        "submit": "Solicitar cobro"
       }
     },
     "success": {
@@ -194,9 +202,124 @@
       "waitlistTitle": "Cliente sentado correctamente",
       "transferTitle": "Cuenta transferida correctamente",
       "mergeTitle": "Cuentas fusionadas correctamente",
+      "requestBillTitle": "Cobro solicitado correctamente",
       "table": "Mesa",
       "people": "personas",
       "dismiss": "Cerrar"
+    }
+  },
+  "comanda": {
+    "eyebrow": "Comanda",
+    "title": "Comanda de la mesa",
+    "description": "Agrega platillos, envíalos a cocina y da seguimiento al avance de cada uno.",
+    "back": "Volver a mesas",
+    "loading": "Cargando comanda...",
+    "menu": {
+      "title": "Menú",
+      "empty": "No hay platillos disponibles en el menú.",
+      "unavailable": "No disponible",
+      "add": "Agregar"
+    },
+    "unavailability": {
+      "MANUAL": "Desactivado manualmente",
+      "FALTA_INSUMOS": "Sin insumos suficientes",
+      "SIN_RECETA": "Sin receta vigente",
+      "INACTIVO": "Platillo inactivo"
+    },
+    "draft": {
+      "title": "Comanda en curso",
+      "empty": "Todavía no has agregado platillos a esta ronda.",
+      "remove": "Quitar",
+      "send": "Enviar a cocina"
+    },
+    "rounds": {
+      "title": "Rondas enviadas",
+      "empty": "Todavía no se ha enviado ninguna ronda a cocina.",
+      "round": "Ronda #{{numero}}",
+      "delayed": "{{minutes}} min de retraso",
+      "deliver": "Marcar entregado",
+      "requestCancellation": "Solicitar cancelación",
+      "rejectedByStock": "No se pudo enviar por falta de stock"
+    },
+    "status": {
+      "BORRADOR": "Borrador",
+      "RECIBIDO": "Recibido",
+      "RECIBIDA": "Recibida",
+      "EN_PREPARACION": "En preparación",
+      "LISTO": "Listo",
+      "LISTA": "Lista",
+      "ENTREGADO": "Entregado",
+      "ENTREGADA": "Entregada",
+      "NO_DISPONIBLE": "No disponible",
+      "CANCELADO": "Cancelado",
+      "CANCELADA": "Cancelada"
+    },
+    "addDialog": {
+      "quantity": "Cantidad",
+      "modifiers": "Modificadores",
+      "submit": "Agregar a la cuenta",
+      "success": "Platillo agregado a la cuenta"
+    },
+    "send": {
+      "successTitle": "Comanda enviada a cocina",
+      "partialTitle": "Algunos platillos no pudieron enviarse"
+    },
+    "cancelException": {
+      "title": "Solicitar cancelación",
+      "type": "Tipo de excepción",
+      "reason": "Motivo",
+      "submit": "Registrar cancelación",
+      "success": "Cancelación registrada",
+      "types": {
+        "CLIENTE": "Cliente cambió de opinión",
+        "ERROR_MESERO": "Error del mesero",
+        "NO_DISPONIBLE_COCINA": "No disponible en cocina",
+        "OTRO": "Otro"
+      }
+    },
+    "split": {
+      "action": "Dividir cuenta",
+      "title": "Dividir cuenta",
+      "byPeople": "Por personas",
+      "byItems": "Por ítems",
+      "peopleCount": "Número de personas",
+      "subaccountCount": "Número de subcuentas",
+      "assignItems": "Asigna cada platillo a una subcuenta",
+      "unassigned": "Sin asignar",
+      "noItems": "Esta cuenta todavía no tiene platillos para dividir.",
+      "submit": "Dividir cuenta",
+      "success": "Cuenta dividida correctamente",
+      "subaccountsTitle": "Subcuentas",
+      "subaccountFallback": "Subcuenta {{numero}}",
+      "subtotal": "Subtotal",
+      "status": {
+        "PENDIENTE": "Pendiente",
+        "FACTURADA": "Facturada",
+        "CANCELADA": "Cancelada"
+      },
+      "validation": {
+        "minTwoBuckets": "Asigna platillos a al menos 2 subcuentas."
+      }
+    }
+  },
+  "kitchen": {
+    "eyebrow": "Cocina",
+    "title": "Comandas en cocina",
+    "description": "Comandas entrantes ordenadas por antigüedad, con su detalle y tiempo estimado de preparación.",
+    "loading": "Cargando comandas...",
+    "empty": "No hay comandas activas en este momento.",
+    "onlyDelayed": "Mostrar solo retrasadas",
+    "actions": {
+      "markUnavailable": "No disponible",
+      "advanceTo": {
+        "EN_PREPARACION": "Iniciar preparación",
+        "LISTO": "Marcar listo",
+        "NO_DISPONIBLE": "No disponible"
+      }
+    },
+    "unavailableDialog": {
+      "reason": "Motivo o insumo faltante",
+      "submit": "Marcar no disponible"
     }
   },
   "cashShift": {

@@ -1,6 +1,7 @@
 import { DatePipe } from '@angular/common';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { MessageService } from 'primeng/api';
 import { Dialog } from 'primeng/dialog';
@@ -30,7 +31,7 @@ const STATUS_ICONS: Record<TableStatus, string> = {
   CUENTA_SOLICITADA: 'pi-dollar',
 };
 
-type DialogKind = 'reservation' | 'waitlist' | 'open-account' | 'transfer' | 'merge';
+type DialogKind = 'reservation' | 'waitlist' | 'open-account' | 'transfer' | 'merge' | 'request-bill';
 
 interface OperationSummary {
   titleKey: string;
@@ -56,6 +57,7 @@ interface TableFusionInfo {
     InputTextModule,
     PageHeadingComponent,
     ReactiveFormsModule,
+    RouterLink,
     TranslocoPipe,
   ],
   templateUrl: './tables.html',
@@ -294,6 +296,12 @@ export class TablesPageComponent implements OnInit {
     this.selectedTable.set(table);
     this.mergeForm.reset({ mesaDestinoId: null, motivo: '' });
     this.dialog.set('merge');
+  }
+
+  openRequestBillDialog(table: RestaurantTable): void {
+    this.resetDialog();
+    this.selectedTable.set(table);
+    this.dialog.set('request-bill');
   }
 
   transferDestinationOptions(): RestaurantTable[] {
@@ -569,6 +577,35 @@ export class TablesPageComponent implements OnInit {
             numeroMesa: result.numeroMesaDestino,
             numeroCuenta: result.numeroCuentaDestino,
             cantidadPersonas: result.totalPersonas,
+            cliente: null,
+          });
+        },
+        error: (error: unknown) => {
+          this.dialogError.set(this.errors.getMessage(error));
+        },
+      });
+  }
+
+  submitRequestBill(): void {
+    const table = this.selectedTable();
+    const account = table ? this.getAccountForTable(table.id) : null;
+
+    if (!table || !account) {
+      return;
+    }
+
+    this.submitting.set(true);
+    this.dialogError.set(null);
+
+    this.accountService
+      .requestBill(account.id)
+      .pipe(finalize(() => this.submitting.set(false)))
+      .subscribe({
+        next: (result) => {
+          this.handleSuccess('tables.success.requestBillTitle', {
+            numeroMesa: result.numeroMesa,
+            numeroCuenta: result.numeroCuenta,
+            cantidadPersonas: account.cantidadPersonas,
             cliente: null,
           });
         },

@@ -8,6 +8,7 @@ import {
   MergeAccountsRequest,
   MergeAccountsResponse,
   OpenAccountRequest,
+  RequestBillResponse,
   TransferAccountRequest,
   TransferAccountResponse,
 } from '../models/account.models';
@@ -47,5 +48,9 @@ export class AccountService {
 
   getActiveFusions(): Observable<ActiveFusionResponse[]> {
     return this.http.get<ActiveFusionResponse[]>(`${this.accountsUrl}/fusiones-activas`);
+  }
+
+  requestBill(accountId: number): Observable<RequestBillResponse> {
+    return this.http.post<RequestBillResponse>(`${this.accountsUrl}/${accountId}/solicitar-cobro`, {});
   }
 }

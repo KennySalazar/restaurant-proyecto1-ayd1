@@ -1,0 +1,237 @@
+.toolbar {
+  margin-bottom: 1.2rem;
+}
+
+.toggle-row {
+  align-items: center;
+  color: #2f2926;
+  display: inline-flex;
+  font-size: 0.8rem;
+  font-weight: 650;
+  gap: 0.5rem;
+}
+
+.empty-state {
+  align-items: center;
+  color: #817169;
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  justify-content: center;
+  min-height: 16rem;
+}
+
+.board {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fill, minmax(20rem, 1fr));
+}
+
+.comanda-card {
+  background: #ffffff;
+  border: 1px solid #e7ddd3;
+  border-left-width: 5px;
+  border-left-color: #b85c38;
+  border-radius: 0.9rem;
+  box-shadow: 0 7px 20px rgba(47, 36, 31, 0.035);
+  display: grid;
+  gap: 0.7rem;
+  padding: 1rem;
+}
+
+.comanda-card--delayed {
+  border-left-color: #dc2626;
+}
+
+.comanda-card header {
+  align-items: flex-start;
+  display: flex;
+  justify-content: space-between;
+}
+
+.comanda-card header strong {
+  color: #2f2926;
+  display: block;
+  font-size: 1.1rem;
+}
+
+.round-label {
+  color: #88776e;
+  font-size: 0.7rem;
+}
+
+.comanda-meta {
+  align-items: flex-end;
+  display: grid;
+  gap: 0.3rem;
+  justify-items: end;
+}
+
+.elapsed {
+  align-items: center;
+  color: #88776e;
+  display: inline-flex;
+  font-size: 0.68rem;
+  gap: 0.25rem;
+}
+
+.waiter-line {
+  align-items: center;
+  color: #88776e;
+  display: inline-flex;
+  font-size: 0.72rem;
+  gap: 0.35rem;
+  margin: 0;
+}
+
+.general-notes {
+  background: #faf7f4;
+  border-radius: 0.5rem;
+  color: #2f2926;
+  font-size: 0.72rem;
+  margin: 0;
+  padding: 0.5rem 0.65rem;
+}
+
+.item-list {
+  display: grid;
+  gap: 0.6rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.item-row {
+  align-items: center;
+  background: #faf7f4;
+  border-radius: 0.65rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  justify-content: space-between;
+  padding: 0.6rem 0.8rem;
+}
+
+.item-row--delayed {
+  background: #fee2e2;
+}
+
+.item-row__info {
+  display: grid;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.item-notes,
+.item-modifiers {
+  color: #88776e;
+  font-size: 0.7rem;
+}
+
+.item-row__status {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.delay-badge {
+  align-items: center;
+  color: #b91c1c;
+  display: inline-flex;
+  font-size: 0.68rem;
+  font-weight: 700;
+  gap: 0.25rem;
+}
+
+.status-badge {
+  border-radius: 999px;
+  font-size: 0.62rem;
+  font-weight: 800;
+  padding: 0.25rem 0.55rem;
+  white-space: nowrap;
+}
+
+.status-badge--borrador {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.status-badge--recibida,
+.status-badge--recibido {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.status-badge--en_preparacion {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.status-badge--lista,
+.status-badge--listo {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.status-badge--entregada,
+.status-badge--entregado {
+  background: #e5e7eb;
+  color: #374151;
+}
+
+.status-badge--cancelada,
+.status-badge--cancelado {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.status-badge--no_disponible {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.action-button {
+  font-size: 0.68rem;
+  min-height: 2.2rem;
+  padding: 0.4rem 0.55rem;
+  width: auto;
+}
+
+.dialog-form {
+  display: grid;
+  gap: 1rem;
+}
+
+.dialog-form .form-field {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.dialog-form .form-field label {
+  color: #2f2926;
+  font-size: 0.78rem;
+  font-weight: 650;
+}
+
+.dialog-form .form-field textarea {
+  background: #fff;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.65rem;
+  font: inherit;
+  padding: 0.65rem 0.75rem;
+  width: 100%;
+}
+
+.dialog-actions {
+  display: flex;
+  gap: 0.6rem;
+  justify-content: flex-end;
+  margin-top: 0.5rem;
+}
+
+.dialog-actions .primary-button,
+.dialog-actions .secondary-button {
+  min-height: 2.6rem;
+  width: auto;
+}

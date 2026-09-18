@@ -80,6 +80,26 @@ export const routes: Routes = [
           roles: ['WAITER'],
         },
       },
+      {
+        path: 'mesas/:tableId/comanda',
+        loadComponent: () =>
+          import('./pages/protected/comanda-builder/comanda-builder').then(
+            (module) => module.ComandaBuilderPageComponent,
+          ),
+        canActivate: [roleGuard],
+        data: {
+          roles: ['WAITER'],
+        },
+      },
+      {
+        path: 'cocina',
+        loadComponent: () =>
+          import('./pages/protected/kitchen/kitchen').then((module) => module.KitchenPageComponent),
+        canActivate: [roleGuard],
+        data: {
+          roles: ['KITCHEN', 'ADMIN'],
+        },
+      },
 
       {
         path: 'caja/turno',

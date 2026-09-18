@@ -1,0 +1,169 @@
+<app-page-heading
+  eyebrowKey="kitchen.eyebrow"
+  titleKey="kitchen.title"
+  descriptionKey="kitchen.description"
+/>
+
+<section class="toolbar">
+  <label class="toggle-row">
+    <input
+      type="checkbox"
+      [ngModel]="onlyDelayed()"
+      (ngModelChange)="onlyDelayed.set($event)"
+    />
+    <span>{{ 'kitchen.onlyDelayed' | transloco }}</span>
+  </label>
+</section>
+
+<app-form-feedback [message]="loadError()" />
+
+@if (loading() && visibleComandas().length === 0) {
+  <div class="empty-state">
+    <i class="pi pi-spin pi-spinner"></i>
+    <p>{{ 'kitchen.loading' | transloco }}</p>
+  </div>
+} @else if (visibleComandas().length === 0) {
+  <div class="empty-state">
+    <i class="pi pi-info-circle"></i>
+    <p>{{ 'kitchen.empty' | transloco }}</p>
+  </div>
+} @else {
+  <div class="board">
+    @for (comanda of visibleComandas(); track comanda.id) {
+      <article class="comanda-card" [class.comanda-card--delayed]="comanda.timeExceeded">
+        <header>
+          <div>
+            <strong>{{ comanda.tableNumber }}</strong>
+            <span class="round-label">
+              {{ 'comanda.rounds.round' | transloco: { numero: comanda.roundNumber } }}
+            </span>
+          </div>
+
+          <div class="comanda-meta">
+            <span [class]="statusBadgeClass(comanda.status)">
+              {{ 'comanda.status.' + comanda.status | transloco }}
+            </span>
+
+            <span class="elapsed">
+              <i class="pi pi-clock"></i>
+              {{ comanda.elapsedMinutes }} min
+            </span>
+          </div>
+        </header>
+
+        @if (comanda.waiterName) {
+          <p class="waiter-line">
+            <i class="pi pi-user"></i>
+            {{ comanda.waiterName }}
+          </p>
+        }
+
+        @if (comanda.generalNotes) {
+          <p class="general-notes">{{ comanda.generalNotes }}</p>
+        }
+
+        <ul class="item-list">
+          @for (item of filteredItems(comanda); track item.id) {
+            <li class="item-row" [class.item-row--delayed]="item.timeExceeded">
+              <div class="item-row__info">
+                <strong>{{ item.quantity }}x {{ item.name }}</strong>
+
+                @if (item.specialNotes) {
+                  <span class="item-notes">{{ item.specialNotes }}</span>
+                }
+
+                @if (item.modifiers.length > 0) {
+                  <span class="item-modifiers">{{ item.modifiers.join(', ') }}</span>
+                }
+
+                @if (item.timeExceeded) {
+                  <span class="delay-badge">
+                    <i class="pi pi-exclamation-triangle"></i>
+                    {{ 'comanda.rounds.delayed' | transloco: { minutes: item.delayMinutes } }}
+                  </span>
+                }
+              </div>
+
+              <div class="item-row__status">
+                <span [class]="statusBadgeClass(item.status)">
+                  {{ 'comanda.status.' + item.status | transloco }}
+                </span>
+
+                @if (canAdvance(item.status)) {
+                  <button
+                    class="primary-button action-button"
+                    type="button"
+                    [disabled]="itemActionPending() === item.id"
+                    (click)="advance(item)"
+                  >
+                    <i class="pi pi-arrow-right"></i>
+                    <span>{{ nextStatusLabelKey(item.status) | transloco }}</span>
+                  </button>
+                }
+
+                @if (canMarkUnavailable(item.status)) {
+                  <button
+                    class="secondary-button action-button"
+                    type="button"
+                    (click)="openUnavailableDialog(item)"
+                  >
+                    <i class="pi pi-times-circle"></i>
+                    <span>{{ 'kitchen.actions.markUnavailable' | transloco }}</span>
+                  </button>
+                }
+              </div>
+            </li>
+          }
+        </ul>
+      </article>
+    }
+  </div>
+}
+
+@if (unavailableDialogOpen() && unavailableTargetItem(); as item) {
+  <p-dialog
+    [visible]="true"
+    [modal]="true"
+    [dismissableMask]="true"
+    [draggable]="false"
+    [resizable]="false"
+    [closeOnEscape]="true"
+    [style]="{ width: '28rem', maxWidth: '95vw' }"
+    [header]="item.name"
+    (visibleChange)="closeUnavailableDialog()"
+  >
+    <app-form-feedback [message]="unavailableError()" />
+
+    <div class="dialog-form">
+      <div class="form-field">
+        <label for="unavailable-reason">{{ 'kitchen.unavailableDialog.reason' | transloco }}</label>
+        <textarea
+          id="unavailable-reason"
+          rows="3"
+          [ngModel]="unavailableReason()"
+          (ngModelChange)="unavailableReason.set($event)"
+        ></textarea>
+      </div>
+
+      <div class="dialog-actions">
+        <button class="secondary-button" type="button" (click)="closeUnavailableDialog()">
+          <span>{{ 'tables.dialogs.cancel' | transloco }}</span>
+        </button>
+
+        <button
+          class="primary-button"
+          type="button"
+          [disabled]="unavailableSubmitting()"
+          (click)="submitUnavailable()"
+        >
+          @if (unavailableSubmitting()) {
+            <i class="pi pi-spin pi-spinner"></i>
+          } @else {
+            <i class="pi pi-check"></i>
+          }
+          <span>{{ 'kitchen.unavailableDialog.submit' | transloco }}</span>
+        </button>
+      </div>
+    </div>
+  </p-dialog>
+}
