@@ -33,6 +33,7 @@
     "salesReport": "Reporte de ventas",
     "tableOccupancyReport": "Ocupación por horario",
     "profitabilityReport": "Rentabilidad por platillo",
+    "loyaltyReport": "Reporte de fidelización",
     "security": "Seguridad",
     "admin": "Administración",
     "logout": "Cerrar sesión",
@@ -271,6 +272,52 @@
   "empty": {
     "title": "No existen datos de ocupación",
     "description": "No se encontraron ocupaciones reales dentro del período seleccionado."
+  },
+  "errors": {
+    "requiredDate": "La fecha es obligatoria.",
+    "invalidPeriod": "La fecha inicial no puede ser posterior a la fecha final."
+  }
+},
+"reportExport": {
+  "title": "Exportar reporte",
+  "description": "Descarga la información consultada en PDF o Excel.",
+  "pdf": "Exportar PDF",
+  "excel": "Exportar Excel",
+  "generateFirst": "Primero debes generar el reporte para habilitar la exportación.",
+  "errors": {
+    "failed": "La exportación no pudo completarse. Intenta nuevamente."
+  }
+},
+"loyaltyReport": {
+  "eyebrow": "Reportes",
+  "title": "Reporte de fidelización",
+  "description": "Consulta los puntos otorgados y redimidos e identifica a los clientes frecuentes del restaurante.",
+  "period": "Período consultado",
+  "loading": "Generando reporte de fidelización...",
+  "filters": {
+    "title": "Selecciona el período",
+    "description": "Indica las fechas que deseas analizar.",
+    "startDate": "Fecha inicial",
+    "endDate": "Fecha final",
+    "generate": "Generar reporte"
+  },
+  "summary": {
+    "granted": "Puntos otorgados",
+    "redeemed": "Puntos redimidos",
+    "frequentCustomers": "Clientes frecuentes"
+  },
+  "customers": {
+    "title": "Clientes frecuentes",
+    "description": "Clientes con visitas registradas dentro del período seleccionado.",
+    "empty": "No existen clientes frecuentes en el período.",
+    "columns": {
+      "customer": "Cliente",
+      "visits": "Cantidad de visitas"
+    }
+  },
+  "initial": {
+    "title": "Selecciona un período",
+    "description": "Completa las fechas y genera el reporte para consultar la fidelización."
   },
   "errors": {
     "requiredDate": "La fecha es obligatoria.",

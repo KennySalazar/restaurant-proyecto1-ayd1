@@ -175,6 +175,17 @@ export const routes: Routes = [
             module.TableOccupancyReportPageComponent,
         ),
     },
+
+    {
+  path: 'reports/loyalty',
+  loadComponent: () =>
+    import(
+      './pages/protected/reports/loyalty/loyalty-report'
+    ).then(
+      (module) =>
+        module.LoyaltyReportPageComponent,
+    ),
+},
       {
         path: 'security',
         loadComponent: () =>

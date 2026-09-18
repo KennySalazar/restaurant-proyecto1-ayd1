@@ -50,6 +50,17 @@
     </button>
   </header>
 
+  <div class="report-export-wrapper">
+    <app-report-export-actions
+      [reportType]="'RENTABILIDAD_ACTUAL'"
+      [disabled]="
+        !currentGenerated() ||
+        currentLoading() ||
+        currentError() !== null
+      "
+    />
+  </div>
+
   @if (currentLoading()) {
     <div class="report-state">
       <i class="pi pi-spin pi-spinner"></i>
@@ -109,7 +120,12 @@
       </article>
 
       <article class="summary-card">
-        <div class="summary-card__icon summary-card__icon--positive">
+        <div
+          class="
+            summary-card__icon
+            summary-card__icon--positive
+          "
+        >
           <i class="pi pi-arrow-up"></i>
         </div>
 
@@ -128,7 +144,12 @@
       </article>
 
       <article class="summary-card">
-        <div class="summary-card__icon summary-card__icon--warning">
+        <div
+          class="
+            summary-card__icon
+            summary-card__icon--warning
+          "
+        >
           <i class="pi pi-minus-circle"></i>
         </div>
 
@@ -147,7 +168,12 @@
       </article>
 
       <article class="summary-card">
-        <div class="summary-card__icon summary-card__icon--disabled">
+        <div
+          class="
+            summary-card__icon
+            summary-card__icon--disabled
+          "
+        >
           <i class="pi pi-question-circle"></i>
         </div>
 
@@ -284,7 +310,12 @@
 
                 <td>
                   @if (hasPositiveProfit(dish)) {
-                    <span class="status-pill status-pill--positive">
+                    <span
+                      class="
+                        status-pill
+                        status-pill--positive
+                      "
+                    >
                       <i class="pi pi-check-circle"></i>
 
                       {{
@@ -293,8 +324,18 @@
                       }}
                     </span>
                   } @else {
-                    <span class="status-pill status-pill--warning">
-                      <i class="pi pi-exclamation-circle"></i>
+                    <span
+                      class="
+                        status-pill
+                        status-pill--warning
+                      "
+                    >
+                      <i
+                        class="
+                          pi
+                          pi-exclamation-circle
+                        "
+                      ></i>
 
                       {{
                         'profitabilityReport.states.nonPositive'
@@ -319,7 +360,12 @@
                 </td>
 
                 <td>
-                  <span class="status-pill status-pill--disabled">
+                  <span
+                    class="
+                      status-pill
+                      status-pill--disabled
+                    "
+                  >
                     {{
                       'profitabilityReport.states.notCalculable'
                         | transloco
@@ -426,6 +472,22 @@
           | transloco
       }}
     </button>
+  </div>
+
+  <div class="report-export-wrapper">
+    <app-report-export-actions
+      [reportType]="'RENTABILIDAD_HISTORICA'"
+      [startDate]="
+        historicalReport()?.fechaInicio ?? null
+      "
+      [endDate]="
+        historicalReport()?.fechaFin ?? null
+      "
+      [disabled]="
+        historicalReport() === null ||
+        historicalLoading()
+      "
+    />
   </div>
 
   @if (periodError()) {

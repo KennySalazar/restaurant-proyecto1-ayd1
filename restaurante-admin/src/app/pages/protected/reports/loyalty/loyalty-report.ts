@@ -1,4 +1,3 @@
-import { DecimalPipe } from '@angular/common';
 import {
   Component,
   inject,
@@ -15,25 +14,32 @@ import {
 } from '@jsverse/transloco';
 import { finalize } from 'rxjs';
 
-import { SalesReport } from '../../../../core/models/sales-report.models';
-import { ApiErrorService } from '../../../../core/services/api-error.service';
-import { SalesReportService } from '../../../../core/services/sales-report.service';
-import { ReportExportActionsComponent } from '../../../../shared/components/report-export-actions/report-export-actions';
+import {
+  LoyaltyReport,
+} from '../../../../core/models/loyalty-report.models';
+import {
+  ApiErrorService,
+} from '../../../../core/services/api-error.service';
+import {
+  LoyaltyReportService,
+} from '../../../../core/services/loyalty-report.service';
+import {
+  ReportExportActionsComponent,
+} from '../../../../shared/components/report-export-actions/report-export-actions';
 
 @Component({
-  selector: 'app-sales-report-page',
+  selector: 'app-loyalty-report-page',
   imports: [
-    DecimalPipe,
     ReactiveFormsModule,
     TranslocoPipe,
     ReportExportActionsComponent,
   ],
-  templateUrl: './sales-report.html',
-  styleUrl: './sales-report.scss',
+  templateUrl: './loyalty-report.html',
+  styleUrl: './loyalty-report.scss',
 })
-export class SalesReportPageComponent {
-  private readonly salesReportService =
-    inject(SalesReportService);
+export class LoyaltyReportPageComponent {
+  private readonly loyaltyService =
+    inject(LoyaltyReportService);
 
   private readonly apiErrors =
     inject(ApiErrorService);
@@ -64,7 +70,9 @@ export class SalesReportPageComponent {
     );
 
   readonly report =
-    signal<SalesReport | null>(null);
+    signal<LoyaltyReport | null>(
+      null,
+    );
 
   readonly loading =
     signal(false);
@@ -73,10 +81,14 @@ export class SalesReportPageComponent {
     signal(false);
 
   readonly periodError =
-    signal<string | null>(null);
+    signal<string | null>(
+      null,
+    );
 
   readonly errorMessage =
-    signal<string | null>(null);
+    signal<string | null>(
+      null,
+    );
 
   generateReport(): void {
     this.startDateControl.markAsTouched();
@@ -104,7 +116,7 @@ export class SalesReportPageComponent {
 
       this.periodError.set(
         this.transloco.translate(
-          'salesReport.errors.invalidPeriod',
+          'loyaltyReport.errors.invalidPeriod',
         ),
       );
 
@@ -113,7 +125,7 @@ export class SalesReportPageComponent {
 
     this.loading.set(true);
 
-    this.salesReportService
+    this.loyaltyService
       .getReport(
         startDate,
         endDate,

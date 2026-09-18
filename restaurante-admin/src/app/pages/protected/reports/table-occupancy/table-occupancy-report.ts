@@ -21,12 +21,14 @@ import {
 } from '../../../../core/models/table-occupancy-report.models';
 import { ApiErrorService } from '../../../../core/services/api-error.service';
 import { TableOccupancyReportService } from '../../../../core/services/table-occupancy-report.service';
+import { ReportExportActionsComponent } from '../../../../shared/components/report-export-actions/report-export-actions';
 
 @Component({
   selector: 'app-table-occupancy-report-page',
   imports: [
     ReactiveFormsModule,
     TranslocoPipe,
+    ReportExportActionsComponent,
   ],
   templateUrl: './table-occupancy-report.html',
   styleUrl: './table-occupancy-report.scss',
@@ -64,55 +66,71 @@ export class TableOccupancyReportPageComponent {
     );
 
   readonly report =
-    signal<TableOccupancyReport | null>(null);
+    signal<TableOccupancyReport | null>(
+      null,
+    );
 
-  readonly loading = signal(false);
+  readonly loading =
+    signal(false);
 
-  readonly generated = signal(false);
+  readonly generated =
+    signal(false);
 
   readonly periodError =
-    signal<string | null>(null);
+    signal<string | null>(
+      null,
+    );
 
   readonly errorMessage =
-    signal<string | null>(null);
+    signal<string | null>(
+      null,
+    );
 
-  readonly slots = computed(
-    () =>
-      this.report()?.ocupacionPorHorario ?? [],
-  );
+  readonly slots =
+    computed(
+      () =>
+        this.report()
+          ?.ocupacionPorHorario ??
+        [],
+    );
 
-  readonly maximumOccupancy = computed(() => {
-    const values =
-      this.slots().map(
-        (slot) => slot.mesasOcupadas,
-      );
+  readonly maximumOccupancy =
+    computed(() => {
+      const values =
+        this.slots().map(
+          (slot) =>
+            slot.mesasOcupadas,
+        );
 
-    if (values.length === 0) {
-      return 0;
-    }
+      if (values.length === 0) {
+        return 0;
+      }
 
-    return Math.max(...values);
-  });
+      return Math.max(...values);
+    });
 
-  readonly minimumOccupancy = computed(() => {
-    const values =
-      this.slots().map(
-        (slot) => slot.mesasOcupadas,
-      );
+  readonly minimumOccupancy =
+    computed(() => {
+      const values =
+        this.slots().map(
+          (slot) =>
+            slot.mesasOcupadas,
+        );
 
-    if (values.length === 0) {
-      return 0;
-    }
+      if (values.length === 0) {
+        return 0;
+      }
 
-    return Math.min(...values);
-  });
+      return Math.min(...values);
+    });
 
-  readonly uniformOccupancy = computed(
-    () =>
-      this.slots().length > 0 &&
-      this.maximumOccupancy() ===
-        this.minimumOccupancy(),
-  );
+  readonly uniformOccupancy =
+    computed(
+      () =>
+        this.slots().length > 0 &&
+        this.maximumOccupancy() ===
+          this.minimumOccupancy(),
+    );
 
   generateReport(): void {
     this.startDateControl.markAsTouched();
@@ -175,25 +193,40 @@ export class TableOccupancyReportPageComponent {
       });
   }
 
-  formatDate(value: string): string {
-    const parts = value.split('-');
+  formatDate(
+    value: string,
+  ): string {
+    const parts =
+      value.split('-');
 
     if (parts.length !== 3) {
       return value;
     }
 
-    return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    return (
+      `${parts[2]}/` +
+      `${parts[1]}/` +
+      `${parts[0]}`
+    );
   }
 
-  formatHour(hour: number): string {
+  formatHour(
+    hour: number,
+  ): string {
     const start =
-      String(hour).padStart(2, '0');
+      String(hour).padStart(
+        2,
+        '0',
+      );
 
     const endHour =
       (hour + 1) % 24;
 
     const end =
-      String(endHour).padStart(2, '0');
+      String(endHour).padStart(
+        2,
+        '0',
+      );
 
     return `${start}:00 - ${end}:00`;
   }
