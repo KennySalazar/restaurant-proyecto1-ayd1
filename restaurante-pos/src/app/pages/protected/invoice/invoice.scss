@@ -326,3 +326,141 @@
     padding: 1rem;
   }
 }
+.service-rating {
+  display: grid;
+  gap: 1rem;
+  margin: 1.5rem;
+  padding: 1.25rem;
+  border: 1px solid #fde0a8;
+  border-radius: 1rem;
+  background: #fffaf0;
+}
+
+.service-rating__heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.service-rating__heading h3,
+.service-rating__heading p {
+  margin: 0;
+}
+
+.service-rating__heading h3 {
+  margin-top: 0.25rem;
+}
+
+.service-rating__heading p {
+  margin-top: 0.35rem;
+  color: #64748b;
+}
+
+.service-rating__icon {
+  display: grid;
+  width: 2.7rem;
+  height: 2.7rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 50%;
+  background: #f59e0b;
+  color: #ffffff;
+}
+
+.service-rating__form {
+  display: grid;
+  gap: 1rem;
+}
+
+.rating-stars {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.rating-star {
+  display: grid;
+  width: 2.8rem;
+  height: 2.8rem;
+  place-items: center;
+  border: 1px solid #f5d18c;
+  border-radius: 0.7rem;
+  background: #ffffff;
+  color: #c7a35c;
+  font-size: 1.25rem;
+  cursor: pointer;
+}
+
+.rating-star--active {
+  border-color: #f59e0b;
+  background: #fff3d6;
+  color: #f59e0b;
+}
+
+.service-rating__comment {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.service-rating__comment label {
+  font-weight: 700;
+}
+
+.service-rating__comment textarea {
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+  border: 1px solid #dbe3ed;
+  border-radius: 0.75rem;
+  padding: 0.8rem;
+  font: inherit;
+}
+
+.service-rating__comment small {
+  color: #64748b;
+  text-align: right;
+}
+
+.service-rating__validation {
+  display: flex;
+  gap: 0.4rem;
+  color: #b91c1c;
+  font-size: 0.85rem;
+}
+
+.service-rating__success {
+  display: flex;
+  gap: 0.8rem;
+  padding: 1rem;
+  border: 1px solid #bbdfc7;
+  border-radius: 0.8rem;
+  background: #f3fbf6;
+  color: #166534;
+}
+
+.service-rating__success > div {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.service-rating__success-stars {
+  display: flex;
+  gap: 0.25rem;
+  color: #f59e0b;
+}
+
+.service-rating__success p {
+  margin: 0;
+}
+
+@media (max-width: 520px) {
+  .service-rating {
+    margin: 1rem;
+    padding: 1rem;
+  }
+
+  .service-rating__heading {
+    flex-direction: column;
+  }
+}
