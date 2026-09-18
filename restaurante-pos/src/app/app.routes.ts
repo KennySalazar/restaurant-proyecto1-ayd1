@@ -112,6 +112,18 @@ export const routes: Routes = [
           roles: ['CASHIER'],
         },
       },
+
+      {
+        path: 'caja/cobros',
+        loadComponent: () =>
+          import('./pages/protected/billing/billing').then(
+            (module) => module.BillingPageComponent,
+          ),
+        canActivate: [roleGuard],
+        data: {
+          roles: ['CASHIER'],
+        },
+      },
       {
         path: 'account',
         loadComponent: () =>
