@@ -166,6 +166,16 @@ export const routes: Routes = [
           ),
       },
       {
+      path: 'reports/table-occupancy',
+      loadComponent: () =>
+        import(
+          './pages/protected/reports/table-occupancy/table-occupancy-report'
+        ).then(
+          (module) =>
+            module.TableOccupancyReportPageComponent,
+        ),
+    },
+      {
         path: 'security',
         loadComponent: () =>
           import('./pages/protected/security/security').then(
