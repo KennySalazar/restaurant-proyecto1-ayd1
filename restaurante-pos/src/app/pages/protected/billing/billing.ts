@@ -1,5 +1,10 @@
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
+import {
+  FormControl,
+  ReactiveFormsModule,
+  Validators,
+} from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { TranslocoPipe } from '@jsverse/transloco';
 import { finalize } from 'rxjs';
@@ -9,9 +14,11 @@ import {
   BillingSubaccount,
 } from '../../../core/models/billing.models';
 import { CurrentCashShiftResponse } from '../../../core/models/cash-shift.models';
+import { CustomerPoints } from '../../../core/models/loyalty.models';
 import { ApiErrorService } from '../../../core/services/api-error.service';
 import { BillingService } from '../../../core/services/billing.service';
 import { CashShiftService } from '../../../core/services/cash-shift.service';
+import { LoyaltyService } from '../../../core/services/loyalty.service';
 import { FormFeedbackComponent } from '../../../shared/components/form-feedback/form-feedback';
 import { PageHeadingComponent } from '../../../shared/components/page-heading/page-heading';
 
@@ -22,6 +29,7 @@ import { PageHeadingComponent } from '../../../shared/components/page-heading/pa
     DecimalPipe,
     FormFeedbackComponent,
     PageHeadingComponent,
+    ReactiveFormsModule,
     RouterLink,
     TranslocoPipe,
   ],
@@ -31,13 +39,15 @@ import { PageHeadingComponent } from '../../../shared/components/page-heading/pa
 export class BillingPageComponent implements OnInit {
   private readonly cashShiftService = inject(CashShiftService);
   private readonly billingService = inject(BillingService);
+  private readonly loyaltyService = inject(LoyaltyService);
   private readonly errors = inject(ApiErrorService);
 
   readonly currentShift =
     signal<CurrentCashShiftResponse | null>(null);
 
   readonly accounts = signal<BillingAccount[]>([]);
-  readonly selectedAccount = signal<BillingAccount | null>(null);
+  readonly selectedAccount =
+    signal<BillingAccount | null>(null);
 
   readonly subaccounts = signal<BillingSubaccount[]>([]);
   readonly selectedSubaccount =
@@ -46,14 +56,36 @@ export class BillingPageComponent implements OnInit {
   readonly calculation =
     signal<BillingCalculation | null>(null);
 
+  readonly customerPoints =
+    signal<CustomerPoints | null>(null);
+
+  readonly pointsSelectedForRedemption = signal(0);
+  readonly redemptionDiscountPreview = signal(0);
+  readonly redemptionAttempted = signal(false);
+
   readonly loadingShift = signal(false);
   readonly loadingAccounts = signal(false);
   readonly loadingSubaccounts = signal(false);
   readonly loadingCalculation = signal(false);
+  readonly loadingLoyalty = signal(false);
   readonly accountsLoaded = signal(false);
 
   readonly requiresCashShift = signal(false);
   readonly errorMessage = signal<string | null>(null);
+  readonly loyaltyErrorMessage =
+    signal<string | null>(null);
+
+  readonly pointsToRedeemControl =
+    new FormControl<number | null>(
+      null,
+      {
+        validators: [
+          Validators.required,
+          Validators.min(1),
+          Validators.pattern(/^\d+$/),
+        ],
+      },
+    );
 
   ngOnInit(): void {
     this.loadCurrentShift();
@@ -72,6 +104,7 @@ export class BillingPageComponent implements OnInit {
     this.selectedSubaccount.set(null);
     this.subaccounts.set([]);
     this.calculation.set(null);
+    this.resetLoyalty();
     this.loadAccounts();
   }
 
@@ -81,6 +114,11 @@ export class BillingPageComponent implements OnInit {
     this.subaccounts.set([]);
     this.calculation.set(null);
     this.errorMessage.set(null);
+    this.resetLoyalty();
+
+    if (account.clienteId !== null) {
+      this.loadCustomerPoints(account.clienteId);
+    }
 
     this.loadingSubaccounts.set(true);
 
@@ -97,7 +135,10 @@ export class BillingPageComponent implements OnInit {
 
           if (subaccounts.length === 0) {
             this.loadAccountCalculation(account.id);
+            return;
           }
+
+          this.clearPointsSelection();
         },
         error: (error: unknown) => {
           this.handleError(error);
@@ -105,7 +146,9 @@ export class BillingPageComponent implements OnInit {
       });
   }
 
-  selectSubaccount(subaccount: BillingSubaccount): void {
+  selectSubaccount(
+    subaccount: BillingSubaccount,
+  ): void {
     const account = this.selectedAccount();
 
     if (account === null) {
@@ -115,6 +158,7 @@ export class BillingPageComponent implements OnInit {
     this.selectedSubaccount.set(subaccount);
     this.calculation.set(null);
     this.errorMessage.set(null);
+    this.clearPointsSelection();
     this.loadingCalculation.set(true);
 
     this.billingService
@@ -137,6 +181,68 @@ export class BillingPageComponent implements OnInit {
       });
   }
 
+  applyPointsRedemption(): void {
+    const loyalty = this.customerPoints();
+
+    this.redemptionAttempted.set(true);
+    this.pointsToRedeemControl.markAsTouched();
+    this.pointsToRedeemControl.updateValueAndValidity();
+
+    if (
+      loyalty === null ||
+      this.subaccounts().length > 0 ||
+      this.pointsToRedeemControl.invalid
+    ) {
+      return;
+    }
+
+    const points =
+      this.pointsToRedeemControl.value;
+
+    if (
+      points === null ||
+      !Number.isInteger(points)
+    ) {
+      return;
+    }
+
+    this.pointsSelectedForRedemption.set(points);
+
+    this.redemptionDiscountPreview.set(
+      this.money(
+        points * loyalty.valorMonetarioPunto,
+      ),
+    );
+  }
+
+  clearPointsRedemption(): void {
+    this.clearPointsSelection();
+  }
+
+  onPointsToRedeemChange(): void {
+    this.pointsSelectedForRedemption.set(0);
+    this.redemptionDiscountPreview.set(0);
+    this.redemptionAttempted.set(true);
+  }
+
+  pointsValidationKey(): string | null {
+    if (!this.redemptionAttempted()) {
+      return null;
+    }
+
+    if (
+      this.pointsToRedeemControl.hasError('max')
+    ) {
+      return 'billing.loyalty.errors.exceedsBalance';
+    }
+
+    if (this.pointsToRedeemControl.invalid) {
+      return 'billing.loyalty.errors.invalid';
+    }
+
+    return null;
+  }
+
   private loadCurrentShift(): void {
     this.loadingShift.set(true);
     this.requiresCashShift.set(false);
@@ -155,11 +261,16 @@ export class BillingPageComponent implements OnInit {
           this.loadAccounts();
         },
         error: (error: unknown) => {
-          const problem = this.errors.getProblem(error);
+          const problem =
+            this.errors.getProblem(error);
 
-          if (problem.code === 'open_cash_shift_required') {
+          if (
+            problem.code ===
+            'open_cash_shift_required'
+          ) {
             this.currentShift.set(null);
             this.requiresCashShift.set(true);
+            this.resetLoyalty();
             return;
           }
 
@@ -215,10 +326,73 @@ export class BillingPageComponent implements OnInit {
       });
   }
 
+  private loadCustomerPoints(
+    customerId: number,
+  ): void {
+    this.loadingLoyalty.set(true);
+    this.loyaltyErrorMessage.set(null);
+
+    this.loyaltyService
+      .getCustomerPoints(customerId)
+      .pipe(
+        finalize(() =>
+          this.loadingLoyalty.set(false),
+        ),
+      )
+      .subscribe({
+        next: (loyalty) => {
+          this.customerPoints.set(loyalty);
+
+          this.pointsToRedeemControl.setValidators([
+            Validators.required,
+            Validators.min(1),
+            Validators.max(loyalty.saldoPuntos),
+            Validators.pattern(/^\d+$/),
+          ]);
+
+          this.pointsToRedeemControl
+            .updateValueAndValidity({
+              emitEvent: false,
+            });
+        },
+        error: (error: unknown) => {
+          this.customerPoints.set(null);
+
+          this.loyaltyErrorMessage.set(
+            this.errors.getMessage(error),
+          );
+        },
+      });
+  }
+
+  private clearPointsSelection(): void {
+    this.pointsToRedeemControl.reset(null);
+    this.pointsSelectedForRedemption.set(0);
+    this.redemptionDiscountPreview.set(0);
+    this.redemptionAttempted.set(false);
+  }
+
+  private resetLoyalty(): void {
+    this.customerPoints.set(null);
+    this.loyaltyErrorMessage.set(null);
+    this.loadingLoyalty.set(false);
+
+    this.pointsToRedeemControl.setValidators([
+      Validators.required,
+      Validators.min(1),
+      Validators.pattern(/^\d+$/),
+    ]);
+
+    this.clearPointsSelection();
+  }
+
   private handleError(error: unknown): void {
     const problem = this.errors.getProblem(error);
 
-    if (problem.code === 'open_cash_shift_required') {
+    if (
+      problem.code ===
+      'open_cash_shift_required'
+    ) {
       this.currentShift.set(null);
       this.requiresCashShift.set(true);
       this.accounts.set([]);
@@ -226,11 +400,18 @@ export class BillingPageComponent implements OnInit {
       this.selectedSubaccount.set(null);
       this.subaccounts.set([]);
       this.calculation.set(null);
+      this.resetLoyalty();
       return;
     }
 
     this.errorMessage.set(
       this.errors.getMessage(error),
     );
+  }
+
+  private money(value: number): number {
+    return Math.round(
+      (value + Number.EPSILON) * 100,
+    ) / 100;
   }
 }

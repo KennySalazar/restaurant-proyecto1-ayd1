@@ -402,7 +402,42 @@
     "subtotal": "Subtotal",
     "tax": "Impuestos",
     "tip": "Propina sugerida",
-    "total": "Total"
+    "total": "Total",
+    "loyalty": {
+      "eyebrow": "Programa de fidelización",
+      "title": "Redención de puntos",
+      "description": "Consulta el saldo del cliente y prepara los puntos que desea utilizar como descuento.",
+      "registeredCustomer": "Cliente registrado",
+      "loading": "Consultando puntos del cliente...",
+      "customer": "Cliente",
+      "availablePoints": "Puntos disponibles",
+      "points": "puntos",
+      "pointValue": "Valor por punto",
+      "perPoint": "por punto",
+      "availableValue": "Valor disponible",
+      "maximumDiscount": "descuento máximo disponible",
+      "noCustomerTitle": "Cuenta sin cliente registrado",
+      "noCustomerDescription": "Esta cuenta no está asociada a un cliente registrado, por lo que no puede utilizar puntos de fidelización.",
+      "noPointsTitle": "Sin puntos disponibles",
+      "noPointsDescription": "El cliente no posee puntos disponibles para aplicar como descuento.",
+      "dividedAccountTitle": "Redención no disponible para esta cuenta dividida",
+      "dividedAccountDescription": "La cuenta posee subcuentas activas. El cobro debe procesarse por subcuentas antes de utilizar la redención de puntos.",
+      "pointsToRedeem": "Puntos a redimir",
+      "balanceHint": "Saldo disponible: {{ points }} puntos.",
+      "apply": "Aplicar redención",
+      "remove": "Quitar redención",
+      "appliedTitle": "Redención preparada",
+      "appliedDescription": "Los puntos seleccionados están listos para enviarse durante el registro del pago.",
+      "pointsSelected": "Puntos seleccionados",
+      "discountPreview": "Descuento estimado",
+      "previewDisclaimer": "El descuento mostrado es una referencia basada en el valor vigente por punto. El backend realizará el cálculo definitivo al registrar el cobro.",
+      "selectedDiscount": "Descuento por puntos seleccionado",
+      "totalNotRecalculated": "El total mostrado corresponde al cálculo original de la cuenta. El impuesto, la propina y el total definitivo serán recalculados por el sistema al registrar el pago con la redención.",
+      "errors": {
+        "invalid": "Ingresa una cantidad válida de puntos, mayor que cero y sin decimales.",
+        "exceedsBalance": "No puedes redimir más puntos de los disponibles. Saldo disponible: {{ points }} puntos."
+      }
+    }
   },
   "security": {
     "eyebrow": "Cuenta personal",
