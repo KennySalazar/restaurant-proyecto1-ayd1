@@ -1,0 +1,349 @@
+<section class="page-heading">
+  <div class="page-heading__eyebrow">
+    <span></span>
+    {{ 'salesReport.eyebrow' | transloco }}
+  </div>
+
+  <h1>
+    {{ 'salesReport.title' | transloco }}
+  </h1>
+
+  <p>
+    {{ 'salesReport.description' | transloco }}
+  </p>
+</section>
+
+<section class="report-filter">
+  <div class="report-filter__heading">
+    <div>
+      <h2>
+        {{ 'salesReport.filters.title' | transloco }}
+      </h2>
+
+      <p>
+        {{ 'salesReport.filters.description' | transloco }}
+      </p>
+    </div>
+
+    <i class="pi pi-calendar"></i>
+  </div>
+
+  <div class="filter-grid">
+    <label class="form-field">
+      <span>
+        {{ 'salesReport.filters.startDate' | transloco }}
+      </span>
+
+      <input
+        type="date"
+        [formControl]="startDateControl"
+      />
+
+      @if (
+        startDateControl.invalid &&
+        startDateControl.touched
+      ) {
+        <small class="field-error">
+          {{ 'salesReport.errors.requiredDate' | transloco }}
+        </small>
+      }
+    </label>
+
+    <label class="form-field">
+      <span>
+        {{ 'salesReport.filters.endDate' | transloco }}
+      </span>
+
+      <input
+        type="date"
+        [formControl]="endDateControl"
+      />
+
+      @if (
+        endDateControl.invalid &&
+        endDateControl.touched
+      ) {
+        <small class="field-error">
+          {{ 'salesReport.errors.requiredDate' | transloco }}
+        </small>
+      }
+    </label>
+
+    <button
+      type="button"
+      class="generate-button"
+      [disabled]="loading()"
+      (click)="generateReport()"
+    >
+      @if (loading()) {
+        <i class="pi pi-spin pi-spinner"></i>
+      } @else {
+        <i class="pi pi-chart-bar"></i>
+      }
+
+      {{ 'salesReport.filters.generate' | transloco }}
+    </button>
+  </div>
+
+  @if (periodError()) {
+    <div class="report-message report-message--warning">
+      <i class="pi pi-exclamation-triangle"></i>
+
+      <span>
+        {{ periodError() }}
+      </span>
+    </div>
+  }
+
+  @if (errorMessage()) {
+    <div class="report-message report-message--error">
+      <i class="pi pi-times-circle"></i>
+
+      <span>
+        {{ errorMessage() }}
+      </span>
+    </div>
+  }
+</section>
+
+@if (loading()) {
+  <section class="report-state">
+    <i class="pi pi-spin pi-spinner"></i>
+
+    <strong>
+      {{ 'salesReport.loading' | transloco }}
+    </strong>
+
+    <span>
+      {{ 'salesReport.loadingDescription' | transloco }}
+    </span>
+  </section>
+} @else if (report(); as reportData) {
+  <section class="report-period">
+    <i class="pi pi-calendar"></i>
+
+    <span>
+      {{ 'salesReport.period' | transloco }}
+    </span>
+
+    <strong>
+      {{ formatDate(reportData.fechaInicio) }}
+      -
+      {{ formatDate(reportData.fechaFin) }}
+    </strong>
+  </section>
+
+  <section class="summary-grid">
+    <article class="summary-card">
+      <div class="summary-card__icon">
+        <i class="pi pi-receipt"></i>
+      </div>
+
+      <div>
+        <span>
+          {{ 'salesReport.summary.salesCount' | transloco }}
+        </span>
+
+        <strong>
+          {{ reportData.cantidadVentas }}
+        </strong>
+      </div>
+    </article>
+
+    <article class="summary-card">
+      <div class="summary-card__icon">
+        <i class="pi pi-money-bill"></i>
+      </div>
+
+      <div>
+        <span>
+          {{ 'salesReport.summary.totalSold' | transloco }}
+        </span>
+
+        <strong>
+          Q
+          {{
+            reportData.montoTotalVendido
+              | number: '1.2-2'
+          }}
+        </strong>
+      </div>
+    </article>
+  </section>
+
+  @if (reportData.cantidadVentas === 0) {
+    <section class="report-state">
+      <i class="pi pi-chart-bar"></i>
+
+      <strong>
+        {{ 'salesReport.empty.title' | transloco }}
+      </strong>
+
+      <span>
+        {{ 'salesReport.empty.description' | transloco }}
+      </span>
+
+      <small>
+        {{ 'salesReport.empty.total' | transloco }}:
+        Q
+        {{
+          reportData.montoTotalVendido
+            | number: '1.2-2'
+        }}
+      </small>
+    </section>
+  } @else {
+    <section class="report-section">
+      <header class="report-section__header">
+        <div>
+          <h2>
+            {{ 'salesReport.category.title' | transloco }}
+          </h2>
+
+          <p>
+            {{ 'salesReport.category.description' | transloco }}
+          </p>
+        </div>
+
+        <i class="pi pi-tags"></i>
+      </header>
+
+      <div class="report-table-wrapper">
+        <table class="report-table">
+          <thead>
+            <tr>
+              <th>
+                {{ 'salesReport.category.columns.category' | transloco }}
+              </th>
+
+              <th>
+                {{ 'salesReport.category.columns.quantity' | transloco }}
+              </th>
+
+              <th>
+                {{ 'salesReport.category.columns.amount' | transloco }}
+              </th>
+            </tr>
+          </thead>
+
+          <tbody>
+            @for (
+              category of reportData.ventasPorCategoria;
+              track category.categoriaId ?? category.categoria
+            ) {
+              <tr>
+                <td>
+                  <strong>
+                    {{ category.categoria }}
+                  </strong>
+                </td>
+
+                <td>
+                  {{
+                    category.cantidadVendida
+                      | number: '1.0-2'
+                  }}
+                </td>
+
+                <td>
+                  <strong>
+                    Q
+                    {{
+                      category.montoVendido
+                        | number: '1.2-2'
+                    }}
+                  </strong>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="report-section">
+      <header class="report-section__header">
+        <div>
+          <h2>
+            {{ 'salesReport.waiter.title' | transloco }}
+          </h2>
+
+          <p>
+            {{ 'salesReport.waiter.description' | transloco }}
+          </p>
+        </div>
+
+        <i class="pi pi-users"></i>
+      </header>
+
+      <div class="report-table-wrapper">
+        <table class="report-table">
+          <thead>
+            <tr>
+              <th>
+                {{ 'salesReport.waiter.columns.waiter' | transloco }}
+              </th>
+
+              <th>
+                {{ 'salesReport.waiter.columns.sales' | transloco }}
+              </th>
+
+              <th>
+                {{ 'salesReport.waiter.columns.amount' | transloco }}
+              </th>
+            </tr>
+          </thead>
+
+          <tbody>
+            @for (
+              waiter of reportData.ventasPorMesero;
+              track waiter.meseroId
+            ) {
+              <tr>
+                <td>
+                  <strong>
+                    {{ waiter.mesero }}
+                  </strong>
+                </td>
+
+                <td>
+                  {{ waiter.cantidadVentas }}
+                </td>
+
+                <td>
+                  <strong>
+                    Q
+                    {{
+                      waiter.montoVendido
+                        | number: '1.2-2'
+                    }}
+                  </strong>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+  }
+} @else if (generated()) {
+  <section class="report-state">
+    <i class="pi pi-chart-bar"></i>
+
+    <strong>
+      {{ 'salesReport.empty.title' | transloco }}
+    </strong>
+  </section>
+} @else {
+  <section class="report-state report-state--initial">
+    <i class="pi pi-calendar"></i>
+
+    <strong>
+      {{ 'salesReport.initial.title' | transloco }}
+    </strong>
+
+    <span>
+      {{ 'salesReport.initial.description' | transloco }}
+    </span>
+  </section>
+}

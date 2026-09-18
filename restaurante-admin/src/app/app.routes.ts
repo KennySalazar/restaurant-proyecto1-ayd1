@@ -143,6 +143,17 @@ export const routes: Routes = [
             (module) => module.EmployeesPageComponent,
           ),
       },
+
+      {
+        path: 'reports/sales',
+        loadComponent: () =>
+          import(
+            './pages/protected/reports/sales/sales-report'
+          ).then(
+            (module) =>
+              module.SalesReportPageComponent,
+          ),
+      },
       {
         path: 'security',
         loadComponent: () =>
