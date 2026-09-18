@@ -73,7 +73,7 @@
           </span>
 
           <strong>
-            {{ current.vigenteDesde | date:'dd/MM/yyyy HH:mm' }}
+            {{ formatDate(current.vigenteDesde) }}
           </strong>
         </div>
       </div>
@@ -219,8 +219,7 @@
 
           <strong>
             {{
-              current.vigenteDesde
-                | date:'dd/MM/yyyy HH:mm'
+              formatDate(current.vigenteDesde)
             }}
           </strong>
         </div>
