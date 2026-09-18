@@ -31,6 +31,7 @@
     "waitlist": "Lista de espera",
     "occupancy": "Panel de ocupación",
     "salesReport": "Reporte de ventas",
+    "profitabilityReport": "Rentabilidad por platillo",
     "security": "Seguridad",
     "admin": "Administración",
     "logout": "Cerrar sesión",
@@ -159,6 +160,66 @@
   "errors": {
     "requiredDate": "La fecha es obligatoria.",
     "invalidPeriod": "La fecha inicial no puede ser posterior a la fecha final."
+  }
+},
+"profitabilityReport": {
+  "eyebrow": "Reportes",
+  "title": "Rentabilidad por platillo",
+  "description": "Compara el precio de venta con el costo de producción y consulta la rentabilidad actual e histórica de los platillos.",
+  "summary": {
+    "calculable": "Rentabilidad calculable",
+    "positive": "Con ganancia positiva",
+    "nonPositive": "Sin ganancia positiva",
+    "notCalculable": "No calculables"
+  },
+  "current": {
+    "title": "Rentabilidad actual",
+    "description": "Consulta el precio vigente, costo de producción, ganancia unitaria y margen actual de cada platillo.",
+    "refresh": "Actualizar",
+    "loading": "Consultando rentabilidad actual...",
+    "empty": "No existen platillos para consultar.",
+    "columns": {
+      "dish": "Platillo",
+      "category": "Categoría",
+      "salePrice": "Precio de venta",
+      "productionCost": "Costo de producción",
+      "profit": "Ganancia unitaria",
+      "margin": "Margen",
+      "status": "Estado"
+    }
+  },
+  "historical": {
+    "title": "Rentabilidad histórica",
+    "description": "Analiza la rentabilidad utilizando los precios y costos registrados en las ventas del período seleccionado.",
+    "generate": "Generar reporte",
+    "loading": "Generando rentabilidad histórica...",
+    "period": "Período consultado",
+    "initialTitle": "Selecciona un período",
+    "initialDescription": "Indica las fechas para consultar la rentabilidad histórica.",
+    "emptyTitle": "No existen datos de rentabilidad",
+    "emptyDescription": "No se encontraron ventas finalizadas dentro del período seleccionado.",
+    "columns": {
+      "dish": "Platillo",
+      "quantity": "Cantidad vendida",
+      "revenue": "Ingreso histórico",
+      "cost": "Costo histórico",
+      "profit": "Ganancia histórica",
+      "margin": "Margen"
+    }
+  },
+  "filters": {
+    "startDate": "Fecha inicial",
+    "endDate": "Fecha final"
+  },
+  "states": {
+    "profitable": "Ganancia positiva",
+    "nonPositive": "Sin ganancia positiva",
+    "notCalculable": "No calculable"
+  },
+  "errors": {
+    "requiredDate": "La fecha es obligatoria.",
+    "invalidPeriod": "La fecha inicial no puede ser posterior a la fecha final.",
+    "current": "No fue posible consultar la rentabilidad actual."
   }
 },
   "tables": {
