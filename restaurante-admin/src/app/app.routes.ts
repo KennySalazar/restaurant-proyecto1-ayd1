@@ -154,6 +154,17 @@ export const routes: Routes = [
               module.SalesReportPageComponent,
           ),
       },
+
+      {
+        path: 'reports/profitability',
+        loadComponent: () =>
+          import(
+            './pages/protected/reports/profitability/profitability-report'
+          ).then(
+            (module) =>
+              module.ProfitabilityReportPageComponent,
+          ),
+      },
       {
         path: 'security',
         loadComponent: () =>
