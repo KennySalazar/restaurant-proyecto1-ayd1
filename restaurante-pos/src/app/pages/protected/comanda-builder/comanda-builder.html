@@ -1,0 +1,528 @@
+<app-page-heading
+  eyebrowKey="comanda.eyebrow"
+  titleKey="comanda.title"
+  descriptionKey="comanda.description"
+/>
+
+<a class="back-link" routerLink="/app/mesas">
+  <i class="pi pi-arrow-left"></i>
+  {{ 'comanda.back' | transloco }}
+</a>
+
+@if (table(); as t) {
+  <section class="context-bar">
+    <span>
+      <i class="pi pi-map-marker"></i>
+      {{ 'tables.dialogs.table' | transloco: { numero: t.numero, capacidad: t.capacidad } }}
+    </span>
+
+    @if (account(); as acc) {
+      <span>
+        <i class="pi pi-file"></i>
+        {{ acc.numeroCuenta }}
+      </span>
+
+      <span>
+        <i class="pi pi-users"></i>
+        {{ acc.cantidadPersonas }}
+        {{ 'tables.success.people' | transloco }}
+      </span>
+    }
+
+    <button class="secondary-button action-button split-button" type="button" (click)="openSplitDialog()">
+      <i class="pi pi-percentage"></i>
+      <span>{{ 'comanda.split.action' | transloco }}</span>
+    </button>
+  </section>
+}
+
+<app-form-feedback [message]="loadError()" />
+
+@if (loading()) {
+  <div class="empty-state">
+    <i class="pi pi-spin pi-spinner"></i>
+    <p>{{ 'comanda.loading' | transloco }}</p>
+  </div>
+} @else {
+  <div class="builder-layout">
+    <section class="panel">
+      <h2>{{ 'comanda.menu.title' | transloco }}</h2>
+
+      @if (menu().length === 0) {
+        <p class="empty-hint">{{ 'comanda.menu.empty' | transloco }}</p>
+      }
+
+      <div class="dish-grid">
+        @for (dish of menu(); track dish.id) {
+          <article class="dish-card" [class.dish-card--unavailable]="!dish.available">
+            <header>
+              <strong>{{ dish.name }}</strong>
+              <span class="dish-price">Q{{ dish.salePrice }}</span>
+            </header>
+
+            @if (dish.description) {
+              <p class="dish-description">{{ dish.description }}</p>
+            }
+
+            @if (!dish.available) {
+              <span class="dish-unavailable-badge">
+                <i class="pi pi-exclamation-triangle"></i>
+                {{ 'comanda.menu.unavailable' | transloco }}
+              </span>
+            }
+
+            <button
+              class="primary-button action-button"
+              type="button"
+              [disabled]="!dish.available"
+              (click)="openAddDialog(dish)"
+            >
+              <i class="pi pi-plus"></i>
+              <span>{{ 'comanda.menu.add' | transloco }}</span>
+            </button>
+          </article>
+        }
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>{{ 'comanda.draft.title' | transloco }}</h2>
+
+      @if (draftRound(); as draft) {
+        @if (draft.items.length === 0) {
+          <p class="empty-hint">{{ 'comanda.draft.empty' | transloco }}</p>
+        } @else {
+          <ul class="item-list">
+            @for (item of draft.items; track item.id) {
+              <li class="item-row">
+                <div class="item-row__info">
+                  <strong>{{ item.quantity }}x {{ item.name }}</strong>
+                  @if (item.specialNotes) {
+                    <span class="item-notes">{{ item.specialNotes }}</span>
+                  }
+                  @if (item.modifiers.length > 0) {
+                    <span class="item-modifiers">{{ item.modifiers.join(', ') }}</span>
+                  }
+                </div>
+
+                <button
+                  class="secondary-button action-button"
+                  type="button"
+                  [disabled]="rowActionPending() === item.id"
+                  (click)="removeDraftItem(item)"
+                >
+                  <i class="pi pi-trash"></i>
+                  <span>{{ 'comanda.draft.remove' | transloco }}</span>
+                </button>
+              </li>
+            }
+          </ul>
+
+          <button
+            class="primary-button action-button send-button"
+            type="button"
+            [disabled]="sendingComanda()"
+            (click)="sendComanda()"
+          >
+            @if (sendingComanda()) {
+              <i class="pi pi-spin pi-spinner"></i>
+            } @else {
+              <i class="pi pi-send"></i>
+            }
+            <span>{{ 'comanda.draft.send' | transloco }}</span>
+          </button>
+        }
+      } @else {
+        <p class="empty-hint">{{ 'comanda.draft.empty' | transloco }}</p>
+      }
+    </section>
+  </div>
+
+  <section class="panel rounds-panel">
+    <h2>{{ 'comanda.rounds.title' | transloco }}</h2>
+
+    @if (sentRounds().length === 0) {
+      <p class="empty-hint">{{ 'comanda.rounds.empty' | transloco }}</p>
+    } @else {
+      @for (round of sentRounds(); track round.comandaId) {
+        <article class="round-card">
+          <header>
+            <strong>{{ 'comanda.rounds.round' | transloco: { numero: round.roundNumber } }}</strong>
+            <span [class]="statusBadgeClass(round.status)">
+              {{ 'comanda.status.' + round.status | transloco }}
+            </span>
+          </header>
+
+          <ul class="item-list">
+            @for (item of round.items; track item.id) {
+              <li class="item-row" [class.item-row--delayed]="item.timeExceeded">
+                <div class="item-row__info">
+                  <strong>{{ item.quantity }}x {{ item.name }}</strong>
+
+                  @if (item.specialNotes) {
+                    <span class="item-notes">{{ item.specialNotes }}</span>
+                  }
+
+                  @if (item.modifiers.length > 0) {
+                    <span class="item-modifiers">{{ item.modifiers.join(', ') }}</span>
+                  }
+
+                  @if (item.timeExceeded) {
+                    <span class="delay-badge">
+                      <i class="pi pi-clock"></i>
+                      {{ 'comanda.rounds.delayed' | transloco: { minutes: item.delayMinutes } }}
+                    </span>
+                  }
+
+                  @if (item.status === 'BORRADOR') {
+                    <span class="delay-badge">
+                      <i class="pi pi-exclamation-triangle"></i>
+                      {{ 'comanda.rounds.rejectedByStock' | transloco }}
+                    </span>
+                  }
+                </div>
+
+                <div class="item-row__status">
+                  <span [class]="statusBadgeClass(item.status)">
+                    {{ 'comanda.status.' + item.status | transloco }}
+                  </span>
+
+                  @if (item.status === 'LISTO') {
+                    <button
+                      class="primary-button action-button"
+                      type="button"
+                      [disabled]="rowActionPending() === item.id"
+                      (click)="deliverItem(item)"
+                    >
+                      <i class="pi pi-check"></i>
+                      <span>{{ 'comanda.rounds.deliver' | transloco }}</span>
+                    </button>
+                  }
+
+                  @if (item.status === 'EN_PREPARACION' || item.status === 'RECIBIDO') {
+                    <button
+                      class="secondary-button action-button"
+                      type="button"
+                      (click)="openCancelDialog(item)"
+                    >
+                      <i class="pi pi-ban"></i>
+                      <span>{{ 'comanda.rounds.requestCancellation' | transloco }}</span>
+                    </button>
+                  }
+
+                  @if (item.status === 'BORRADOR') {
+                    <button
+                      class="secondary-button action-button"
+                      type="button"
+                      [disabled]="rowActionPending() === item.id"
+                      (click)="removeDraftItem(item)"
+                    >
+                      <i class="pi pi-trash"></i>
+                      <span>{{ 'comanda.draft.remove' | transloco }}</span>
+                    </button>
+                  }
+                </div>
+              </li>
+            }
+          </ul>
+        </article>
+      }
+    }
+  </section>
+
+  @if (subaccounts().length > 0) {
+    <section class="panel rounds-panel">
+      <h2>{{ 'comanda.split.subaccountsTitle' | transloco }}</h2>
+
+      <ul class="item-list">
+        @for (subaccount of subaccounts(); track subaccount.id) {
+          <li class="item-row">
+            <div class="item-row__info">
+              <strong>{{ subaccount.nombre || ('comanda.split.subaccountFallback' | transloco: { numero: subaccount.numeroSubcuenta }) }}</strong>
+              <span class="item-notes">
+                {{ 'comanda.split.subtotal' | transloco }}: Q{{ subaccount.subtotal }}
+              </span>
+            </div>
+
+            <span [class]="statusBadgeClass(subaccount.estado)">
+              {{ 'comanda.split.status.' + subaccount.estado | transloco }}
+            </span>
+          </li>
+        }
+      </ul>
+    </section>
+  }
+}
+
+@if (addDialogOpen() && selectedDish(); as dish) {
+  <p-dialog
+    [visible]="true"
+    [modal]="true"
+    [dismissableMask]="true"
+    [draggable]="false"
+    [resizable]="false"
+    [closeOnEscape]="true"
+    [style]="{ width: '30rem', maxWidth: '95vw' }"
+    [header]="dish.name"
+    (visibleChange)="closeAddDialog()"
+  >
+    <app-form-feedback [message]="addError()" />
+
+    <div class="dialog-form">
+      <div class="form-field">
+        <label for="add-dish-quantity">{{ 'comanda.addDialog.quantity' | transloco }}</label>
+        <input
+          id="add-dish-quantity"
+          type="number"
+          min="1"
+          [ngModel]="addQuantity()"
+          (ngModelChange)="addQuantity.set($event)"
+        />
+      </div>
+
+      @if (dish.modifiers.length > 0) {
+        <div class="form-field">
+          <label>{{ 'comanda.addDialog.modifiers' | transloco }}</label>
+
+          @for (modifier of dish.modifiers; track modifier.id) {
+            <label class="checkbox-row">
+              <input
+                type="checkbox"
+                [checked]="selectedModifierIds().has(modifier.id)"
+                (change)="toggleModifier(modifier.id)"
+              />
+              <span>{{ modifier.name }} @if (modifier.additionalPrice > 0) {
+                (+Q{{ modifier.additionalPrice }})
+              }</span>
+            </label>
+          }
+        </div>
+      }
+
+      <div class="form-field">
+        <label for="add-dish-notes">{{ 'tables.dialogs.notes' | transloco }}</label>
+        <textarea
+          id="add-dish-notes"
+          rows="2"
+          [ngModel]="addNotes()"
+          (ngModelChange)="addNotes.set($event)"
+        ></textarea>
+      </div>
+
+      <div class="dialog-actions">
+        <button class="secondary-button" type="button" (click)="closeAddDialog()">
+          <span>{{ 'tables.dialogs.cancel' | transloco }}</span>
+        </button>
+
+        <button
+          class="primary-button"
+          type="button"
+          [disabled]="addSubmitting()"
+          (click)="submitAddDish()"
+        >
+          @if (addSubmitting()) {
+            <i class="pi pi-spin pi-spinner"></i>
+          } @else {
+            <i class="pi pi-check"></i>
+          }
+          <span>{{ 'comanda.addDialog.submit' | transloco }}</span>
+        </button>
+      </div>
+    </div>
+  </p-dialog>
+}
+
+@if (cancelDialogOpen()) {
+  <p-dialog
+    [visible]="true"
+    [modal]="true"
+    [dismissableMask]="true"
+    [draggable]="false"
+    [resizable]="false"
+    [closeOnEscape]="true"
+    [style]="{ width: '30rem', maxWidth: '95vw' }"
+    [header]="'comanda.cancelException.title' | transloco"
+    (visibleChange)="closeCancelDialog()"
+  >
+    <app-form-feedback [message]="cancelError()" />
+
+    <div class="dialog-form">
+      <div class="form-field">
+        <label for="cancel-tipo">{{ 'comanda.cancelException.type' | transloco }}</label>
+        <select
+          id="cancel-tipo"
+          [ngModel]="cancelTipo()"
+          (ngModelChange)="cancelTipo.set($event)"
+        >
+          @for (type of cancellationTypes; track type) {
+            <option [value]="type">{{ 'comanda.cancelException.types.' + type | transloco }}</option>
+          }
+        </select>
+      </div>
+
+      <div class="form-field">
+        <label for="cancel-motivo">{{ 'comanda.cancelException.reason' | transloco }}</label>
+        <textarea
+          id="cancel-motivo"
+          rows="3"
+          [ngModel]="cancelMotivo()"
+          (ngModelChange)="cancelMotivo.set($event)"
+        ></textarea>
+      </div>
+
+      <div class="dialog-actions">
+        <button class="secondary-button" type="button" (click)="closeCancelDialog()">
+          <span>{{ 'tables.dialogs.cancel' | transloco }}</span>
+        </button>
+
+        <button
+          class="primary-button"
+          type="button"
+          [disabled]="cancelSubmitting() || !cancelMotivo().trim()"
+          (click)="submitCancelException()"
+        >
+          @if (cancelSubmitting()) {
+            <i class="pi pi-spin pi-spinner"></i>
+          } @else {
+            <i class="pi pi-check"></i>
+          }
+          <span>{{ 'comanda.cancelException.submit' | transloco }}</span>
+        </button>
+      </div>
+    </div>
+  </p-dialog>
+}
+
+@if (splitDialogOpen()) {
+  <p-dialog
+    [visible]="true"
+    [modal]="true"
+    [dismissableMask]="true"
+    [draggable]="false"
+    [resizable]="false"
+    [closeOnEscape]="true"
+    [style]="{ width: '36rem', maxWidth: '95vw' }"
+    [header]="'comanda.split.title' | transloco"
+    (visibleChange)="closeSplitDialog()"
+  >
+    <app-form-feedback [message]="splitError()" />
+
+    <div class="split-mode-toggle">
+      <button
+        type="button"
+        class="secondary-button"
+        [class.split-mode-toggle__active]="splitMode() === 'personas'"
+        (click)="setSplitMode('personas')"
+      >
+        {{ 'comanda.split.byPeople' | transloco }}
+      </button>
+
+      <button
+        type="button"
+        class="secondary-button"
+        [class.split-mode-toggle__active]="splitMode() === 'items'"
+        (click)="setSplitMode('items')"
+      >
+        {{ 'comanda.split.byItems' | transloco }}
+      </button>
+    </div>
+
+    @if (splitMode() === 'personas') {
+      <div class="dialog-form">
+        <div class="form-field">
+          <label for="split-people-count">{{ 'comanda.split.peopleCount' | transloco }}</label>
+          <input
+            id="split-people-count"
+            type="number"
+            min="2"
+            [ngModel]="splitPersonCount()"
+            (ngModelChange)="splitPersonCount.set($event)"
+          />
+        </div>
+
+        <div class="dialog-actions">
+          <button class="secondary-button" type="button" (click)="closeSplitDialog()">
+            <span>{{ 'tables.dialogs.cancel' | transloco }}</span>
+          </button>
+
+          <button
+            class="primary-button"
+            type="button"
+            [disabled]="splitSubmitting() || splitPersonCount() < 2"
+            (click)="submitSplitByPeople()"
+          >
+            @if (splitSubmitting()) {
+              <i class="pi pi-spin pi-spinner"></i>
+            } @else {
+              <i class="pi pi-check"></i>
+            }
+            <span>{{ 'comanda.split.submit' | transloco }}</span>
+          </button>
+        </div>
+      </div>
+    } @else {
+      <div class="dialog-form">
+        <div class="form-field">
+          <label for="split-bucket-count">{{ 'comanda.split.subaccountCount' | transloco }}</label>
+          <input
+            id="split-bucket-count"
+            type="number"
+            min="2"
+            [ngModel]="splitBucketCount()"
+            (ngModelChange)="setSplitBucketCount($event)"
+          />
+        </div>
+
+        @if (assignableItems().length === 0) {
+          <p class="empty-hint">{{ 'comanda.split.noItems' | transloco }}</p>
+        } @else {
+          <div class="form-field">
+            <label>{{ 'comanda.split.assignItems' | transloco }}</label>
+
+            <ul class="item-list">
+              @for (item of assignableItems(); track item.id) {
+                <li class="item-row">
+                  <div class="item-row__info">
+                    <strong>{{ item.quantity }}x {{ item.name }}</strong>
+                  </div>
+
+                  <select
+                    [ngModel]="bucketForItem(item.id)"
+                    (ngModelChange)="assignItemToBucket(item.id, $event)"
+                  >
+                    <option [ngValue]="null">{{ 'comanda.split.unassigned' | transloco }}</option>
+                    @for (bucket of splitBuckets(); track bucket) {
+                      <option [ngValue]="bucket">
+                        {{ 'comanda.split.subaccountFallback' | transloco: { numero: bucket + 1 } }}
+                      </option>
+                    }
+                  </select>
+                </li>
+              }
+            </ul>
+          </div>
+        }
+
+        <div class="dialog-actions">
+          <button class="secondary-button" type="button" (click)="closeSplitDialog()">
+            <span>{{ 'tables.dialogs.cancel' | transloco }}</span>
+          </button>
+
+          <button
+            class="primary-button"
+            type="button"
+            [disabled]="splitSubmitting() || assignableItems().length === 0"
+            (click)="submitSplitByItems()"
+          >
+            @if (splitSubmitting()) {
+              <i class="pi pi-spin pi-spinner"></i>
+            } @else {
+              <i class="pi pi-check"></i>
+            }
+            <span>{{ 'comanda.split.submit' | transloco }}</span>
+          </button>
+        </div>
+      </div>
+    }
+  </p-dialog>
+}

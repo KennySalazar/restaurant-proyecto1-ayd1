@@ -25,6 +25,12 @@ const NAVIGATION: readonly NavigationItem[] = [
     roles: ['WAITER'],
   },
   {
+    path: '/app/cocina',
+    labelKey: 'nav.kitchen',
+    icon: 'pi-bolt',
+    roles: ['KITCHEN', 'ADMIN'],
+  },
+  {
     path: '/app/caja/turno',
     labelKey: 'nav.cashShift',
     icon: 'pi-credit-card',

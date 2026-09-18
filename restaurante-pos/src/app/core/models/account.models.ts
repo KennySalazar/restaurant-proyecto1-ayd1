@@ -84,3 +84,17 @@ export interface ActiveFusionResponse {
   cuentaDestinoId: number;
   totalPersonas: number;
 }
+
+export interface RequestBillResponse {
+  mensaje: string;
+  cuentaId: number;
+  numeroCuenta: string;
+  estadoCuenta: string;
+  solicitadaCobroEn: string;
+  mesaId: number;
+  numeroMesa: string;
+  estadoMesa: TableStatus;
+  totalPlatillos: number;
+  notificadoCajero: boolean;
+  notificacionId: number | null;
+}

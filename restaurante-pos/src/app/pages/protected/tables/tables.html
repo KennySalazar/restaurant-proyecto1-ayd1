@@ -206,6 +206,15 @@
                 @case ('OCUPADA') {
                   @if (getAccountForTable(table.id)) {
                     <button
+                      class="primary-button action-button"
+                      type="button"
+                      [routerLink]="['/app/mesas', table.id, 'comanda']"
+                    >
+                      <i class="pi pi-book"></i>
+                      <span>{{ 'tables.actions.comanda' | transloco }}</span>
+                    </button>
+
+                    <button
                       class="secondary-button action-button"
                       type="button"
                       (click)="openTransferDialog(table)"
@@ -224,6 +233,15 @@
                         <span>{{ 'tables.actions.merge' | transloco }}</span>
                       </button>
                     }
+
+                    <button
+                      class="secondary-button action-button"
+                      type="button"
+                      (click)="openRequestBillDialog(table)"
+                    >
+                      <i class="pi pi-dollar"></i>
+                      <span>{{ 'tables.actions.requestBill' | transloco }}</span>
+                    </button>
                   } @else {
                     <span class="table-card__in-service">
                       <i class="pi pi-lock"></i>
@@ -754,5 +772,48 @@
         </div>
       </form>
     }
+  </p-dialog>
+}
+
+@if (dialog() === 'request-bill' && selectedTable(); as table) {
+  <p-dialog
+    [visible]="true"
+    [modal]="true"
+    [dismissableMask]="true"
+    [draggable]="false"
+    [resizable]="false"
+    [closeOnEscape]="true"
+    [style]="{ width: '28rem', maxWidth: '95vw' }"
+    [header]="'tables.dialogs.requestBill.title' | transloco"
+    (visibleChange)="closeDialog()"
+  >
+    <p class="dialog-context">
+      <i class="pi pi-map-marker"></i>
+      {{ 'tables.dialogs.table' | transloco: { numero: table.numero, capacidad: table.capacidad } }}
+    </p>
+
+    <app-form-feedback [message]="dialogError()" />
+
+    <p class="dialog-confirm-text">{{ 'tables.dialogs.requestBill.confirm' | transloco }}</p>
+
+    <div class="dialog-actions">
+      <button class="secondary-button" type="button" (click)="closeDialog()">
+        <span>{{ 'tables.dialogs.cancel' | transloco }}</span>
+      </button>
+
+      <button
+        class="primary-button"
+        type="button"
+        [disabled]="submitting()"
+        (click)="submitRequestBill()"
+      >
+        @if (submitting()) {
+          <i class="pi pi-spin pi-spinner"></i>
+        } @else {
+          <i class="pi pi-check"></i>
+        }
+        <span>{{ 'tables.dialogs.requestBill.submit' | transloco }}</span>
+      </button>
+    </div>
   </p-dialog>
 }
