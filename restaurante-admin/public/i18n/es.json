@@ -30,6 +30,7 @@
     "reservations": "Reservas",
     "waitlist": "Lista de espera",
     "occupancy": "Panel de ocupación",
+    "salesReport": "Reporte de ventas",
     "security": "Seguridad",
     "admin": "Administración",
     "logout": "Cerrar sesión",
@@ -110,6 +111,56 @@
     "adminAction": "Verificar administración",
     "adminDescription": "Comprueba que tu sesión tiene permisos de administrador."
   },
+  "salesReport": {
+  "eyebrow": "Reportes",
+  "title": "Reporte de ventas",
+  "description": "Consulta las ventas realizadas en un período y analiza los resultados por categoría de platillo y mesero.",
+  "period": "Período consultado",
+  "loading": "Generando reporte...",
+  "loadingDescription": "Estamos consultando las ventas del período seleccionado.",
+  "filters": {
+    "title": "Selecciona el período",
+    "description": "Indica la fecha inicial y final que deseas analizar.",
+    "startDate": "Fecha inicial",
+    "endDate": "Fecha final",
+    "generate": "Generar reporte"
+  },
+  "summary": {
+    "salesCount": "Ventas registradas",
+    "totalSold": "Monto total vendido"
+  },
+  "category": {
+    "title": "Ventas por categoría",
+    "description": "Cantidad y monto vendido para cada categoría de platillo.",
+    "columns": {
+      "category": "Categoría",
+      "quantity": "Cantidad vendida",
+      "amount": "Monto vendido"
+    }
+  },
+  "waiter": {
+    "title": "Ventas por mesero",
+    "description": "Ventas atendidas y monto vendido por cada mesero.",
+    "columns": {
+      "waiter": "Mesero",
+      "sales": "Ventas atendidas",
+      "amount": "Monto vendido"
+    }
+  },
+  "initial": {
+    "title": "Selecciona un período",
+    "description": "Completa las fechas y genera el reporte para consultar las ventas."
+  },
+  "empty": {
+    "title": "No existen ventas en el período",
+    "description": "No se encontraron ventas finalizadas dentro del rango seleccionado.",
+    "total": "Monto total vendido"
+  },
+  "errors": {
+    "requiredDate": "La fecha es obligatoria.",
+    "invalidPeriod": "La fecha inicial no puede ser posterior a la fecha final."
+  }
+},
   "tables": {
     "eyebrow": "Configuración del restaurante",
     "title": "Mesas registradas",
