@@ -105,6 +105,19 @@
     </div>
   }
 </section>
+<app-report-export-actions
+  [reportType]="'VENTAS'"
+  [startDate]="
+    report()?.fechaInicio ?? null
+  "
+  [endDate]="
+    report()?.fechaFin ?? null
+  "
+  [disabled]="
+    report() === null ||
+    loading()
+  "
+/>
 
 @if (loading()) {
   <section class="report-state">

@@ -76,6 +76,12 @@ const NAVIGATION: readonly NavigationItem[] = [
   icon: 'pi-clock',
   roles: ['ADMIN'],
 },
+{
+  path: '/app/reports/loyalty',
+  labelKey: 'nav.loyaltyReport',
+  icon: 'pi-star',
+  roles: ['ADMIN'],
+},
 
   {
     path: '/app/employees',

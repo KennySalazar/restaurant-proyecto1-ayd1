@@ -1,0 +1,316 @@
+<section class="page-heading">
+  <div class="page-heading__eyebrow">
+    <span></span>
+
+    {{ 'loyaltyReport.eyebrow' | transloco }}
+  </div>
+
+  <h1>
+    {{ 'loyaltyReport.title' | transloco }}
+  </h1>
+
+  <p>
+    {{ 'loyaltyReport.description' | transloco }}
+  </p>
+</section>
+
+<section class="report-filter">
+  <header class="report-filter__header">
+    <div>
+      <h2>
+        {{ 'loyaltyReport.filters.title' | transloco }}
+      </h2>
+
+      <p>
+        {{
+          'loyaltyReport.filters.description'
+            | transloco
+        }}
+      </p>
+    </div>
+
+    <i class="pi pi-star"></i>
+  </header>
+
+  <div class="filter-grid">
+    <label class="form-field">
+      <span>
+        {{
+          'loyaltyReport.filters.startDate'
+            | transloco
+        }}
+      </span>
+
+      <input
+        type="date"
+        [formControl]="startDateControl"
+      />
+
+      @if (
+        startDateControl.invalid &&
+        startDateControl.touched
+      ) {
+        <small class="field-error">
+          {{
+            'loyaltyReport.errors.requiredDate'
+              | transloco
+          }}
+        </small>
+      }
+    </label>
+
+    <label class="form-field">
+      <span>
+        {{
+          'loyaltyReport.filters.endDate'
+            | transloco
+        }}
+      </span>
+
+      <input
+        type="date"
+        [formControl]="endDateControl"
+      />
+
+      @if (
+        endDateControl.invalid &&
+        endDateControl.touched
+      ) {
+        <small class="field-error">
+          {{
+            'loyaltyReport.errors.requiredDate'
+              | transloco
+          }}
+        </small>
+      }
+    </label>
+
+    <button
+      type="button"
+      class="generate-button"
+      [disabled]="loading()"
+      (click)="generateReport()"
+    >
+      @if (loading()) {
+        <i class="pi pi-spin pi-spinner"></i>
+      } @else {
+        <i class="pi pi-chart-bar"></i>
+      }
+
+      {{
+        'loyaltyReport.filters.generate'
+          | transloco
+      }}
+    </button>
+  </div>
+
+  @if (periodError()) {
+    <div class="report-message report-message--warning">
+      <i class="pi pi-exclamation-triangle"></i>
+
+      {{ periodError() }}
+    </div>
+  }
+
+  @if (errorMessage()) {
+    <div class="report-message report-message--error">
+      <i class="pi pi-times-circle"></i>
+
+      {{ errorMessage() }}
+    </div>
+  }
+</section>
+
+<app-report-export-actions
+  [reportType]="'FIDELIZACION'"
+  [startDate]="
+    report()?.fechaInicio ?? null
+  "
+  [endDate]="
+    report()?.fechaFin ?? null
+  "
+  [disabled]="
+    report() === null ||
+    loading()
+  "
+/>
+
+@if (loading()) {
+  <section class="report-state">
+    <i class="pi pi-spin pi-spinner"></i>
+
+    <strong>
+      {{ 'loyaltyReport.loading' | transloco }}
+    </strong>
+  </section>
+} @else if (report(); as reportData) {
+  <section class="report-period">
+    <i class="pi pi-calendar"></i>
+
+    <span>
+      {{ 'loyaltyReport.period' | transloco }}
+    </span>
+
+    <strong>
+      {{ formatDate(reportData.fechaInicio) }}
+      -
+      {{ formatDate(reportData.fechaFin) }}
+    </strong>
+  </section>
+
+  <section class="summary-grid">
+    <article class="summary-card">
+      <div class="summary-card__icon summary-card__icon--granted">
+        <i class="pi pi-plus-circle"></i>
+      </div>
+
+      <div>
+        <span>
+          {{
+            'loyaltyReport.summary.granted'
+              | transloco
+          }}
+        </span>
+
+        <strong>
+          {{ reportData.puntosOtorgados }}
+        </strong>
+      </div>
+    </article>
+
+    <article class="summary-card">
+      <div class="summary-card__icon summary-card__icon--redeemed">
+        <i class="pi pi-minus-circle"></i>
+      </div>
+
+      <div>
+        <span>
+          {{
+            'loyaltyReport.summary.redeemed'
+              | transloco
+          }}
+        </span>
+
+        <strong>
+          {{ reportData.puntosRedimidos }}
+        </strong>
+      </div>
+    </article>
+
+    <article class="summary-card">
+      <div class="summary-card__icon">
+        <i class="pi pi-users"></i>
+      </div>
+
+      <div>
+        <span>
+          {{
+            'loyaltyReport.summary.frequentCustomers'
+              | transloco
+          }}
+        </span>
+
+        <strong>
+          {{
+            reportData.clientesFrecuentes.length
+          }}
+        </strong>
+      </div>
+    </article>
+  </section>
+
+  <section class="report-section">
+    <header class="report-section__header">
+      <div>
+        <h2>
+          {{
+            'loyaltyReport.customers.title'
+              | transloco
+          }}
+        </h2>
+
+        <p>
+          {{
+            'loyaltyReport.customers.description'
+              | transloco
+          }}
+        </p>
+      </div>
+
+      <i class="pi pi-users"></i>
+    </header>
+
+    @if (
+      reportData.clientesFrecuentes.length === 0
+    ) {
+      <div class="report-state">
+        <i class="pi pi-user"></i>
+
+        <strong>
+          {{
+            'loyaltyReport.customers.empty'
+              | transloco
+          }}
+        </strong>
+      </div>
+    } @else {
+      <div class="report-table-wrapper">
+        <table class="report-table">
+          <thead>
+            <tr>
+              <th>
+                {{
+                  'loyaltyReport.customers.columns.customer'
+                    | transloco
+                }}
+              </th>
+
+              <th>
+                {{
+                  'loyaltyReport.customers.columns.visits'
+                    | transloco
+                }}
+              </th>
+            </tr>
+          </thead>
+
+          <tbody>
+            @for (
+              customer of
+                reportData.clientesFrecuentes;
+              track customer.clienteId
+            ) {
+              <tr>
+                <td>
+                  <strong>
+                    {{ customer.nombres }}
+                    {{ customer.apellidos }}
+                  </strong>
+                </td>
+
+                <td>
+                  {{ customer.cantidadVisitas }}
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </section>
+} @else if (!generated()) {
+  <section class="report-state report-state--initial">
+    <i class="pi pi-calendar"></i>
+
+    <strong>
+      {{ 'loyaltyReport.initial.title' | transloco }}
+    </strong>
+
+    <span>
+      {{
+        'loyaltyReport.initial.description'
+          | transloco
+      }}
+    </span>
+  </section>
+}

@@ -23,6 +23,7 @@ import {
 } from '../../../../core/models/profitability-report.models';
 import { ApiErrorService } from '../../../../core/services/api-error.service';
 import { ProfitabilityReportService } from '../../../../core/services/profitability-report.service';
+import { ReportExportActionsComponent } from '../../../../shared/components/report-export-actions/report-export-actions';
 
 @Component({
   selector: 'app-profitability-report-page',
@@ -30,11 +31,14 @@ import { ProfitabilityReportService } from '../../../../core/services/profitabil
     DecimalPipe,
     ReactiveFormsModule,
     TranslocoPipe,
+    ReportExportActionsComponent,
   ],
   templateUrl: './profitability-report.html',
   styleUrl: './profitability-report.scss',
 })
-export class ProfitabilityReportPageComponent implements OnInit {
+export class ProfitabilityReportPageComponent
+  implements OnInit {
+
   private readonly profitabilityService =
     inject(ProfitabilityReportService);
 
@@ -47,17 +51,25 @@ export class ProfitabilityReportPageComponent implements OnInit {
   readonly currentDishes =
     signal<CurrentDishProfitability[]>([]);
 
-  readonly currentLoading = signal(false);
+  readonly currentLoading =
+    signal(false);
+
+  readonly currentGenerated =
+    signal(false);
 
   readonly currentError =
     signal<string | null>(null);
 
   readonly historicalReport =
-    signal<HistoricalProfitabilityReport | null>(null);
+    signal<HistoricalProfitabilityReport | null>(
+      null,
+    );
 
-  readonly historicalLoading = signal(false);
+  readonly historicalLoading =
+    signal(false);
 
-  readonly historicalGenerated = signal(false);
+  readonly historicalGenerated =
+    signal(false);
 
   readonly historicalError =
     signal<string | null>(null);
@@ -87,40 +99,45 @@ export class ProfitabilityReportPageComponent implements OnInit {
       },
     );
 
-  readonly calculableCount = computed(
-    () =>
-      this.currentDishes().filter(
-        (dish) => dish.rentabilidadCalculable,
-      ).length,
-  );
+  readonly calculableCount =
+    computed(
+      () =>
+        this.currentDishes().filter(
+          (dish) =>
+            dish.rentabilidadCalculable,
+        ).length,
+    );
 
-  readonly positiveProfitCount = computed(
-    () =>
-      this.currentDishes().filter(
-        (dish) =>
-          dish.rentabilidadCalculable &&
-          dish.gananciaUnitaria !== null &&
-          dish.gananciaUnitaria > 0,
-      ).length,
-  );
+  readonly positiveProfitCount =
+    computed(
+      () =>
+        this.currentDishes().filter(
+          (dish) =>
+            dish.rentabilidadCalculable &&
+            dish.gananciaUnitaria !== null &&
+            dish.gananciaUnitaria > 0,
+        ).length,
+    );
 
-  readonly nonPositiveProfitCount = computed(
-    () =>
-      this.currentDishes().filter(
-        (dish) =>
-          dish.rentabilidadCalculable &&
-          dish.gananciaUnitaria !== null &&
-          dish.gananciaUnitaria <= 0,
-      ).length,
-  );
+  readonly nonPositiveProfitCount =
+    computed(
+      () =>
+        this.currentDishes().filter(
+          (dish) =>
+            dish.rentabilidadCalculable &&
+            dish.gananciaUnitaria !== null &&
+            dish.gananciaUnitaria <= 0,
+        ).length,
+    );
 
-  readonly notCalculableCount = computed(
-    () =>
-      this.currentDishes().filter(
-        (dish) =>
-          !dish.rentabilidadCalculable,
-      ).length,
-  );
+  readonly notCalculableCount =
+    computed(
+      () =>
+        this.currentDishes().filter(
+          (dish) =>
+            !dish.rentabilidadCalculable,
+        ).length,
+    );
 
   ngOnInit(): void {
     this.loadCurrentProfitability();
@@ -144,9 +161,11 @@ export class ProfitabilityReportPageComponent implements OnInit {
       .subscribe({
         next: (dishes) => {
           this.currentDishes.set(dishes);
+          this.currentGenerated.set(true);
         },
         error: (error: unknown) => {
           this.currentDishes.set([]);
+          this.currentGenerated.set(false);
 
           this.currentError.set(
             this.apiErrors.getMessage(error),
@@ -216,14 +235,21 @@ export class ProfitabilityReportPageComponent implements OnInit {
       });
   }
 
-  formatDate(value: string): string {
-    const parts = value.split('-');
+  formatDate(
+    value: string,
+  ): string {
+    const parts =
+      value.split('-');
 
     if (parts.length !== 3) {
       return value;
     }
 
-    return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    return (
+      `${parts[2]}/` +
+      `${parts[1]}/` +
+      `${parts[0]}`
+    );
   }
 
   hasPositiveProfit(
