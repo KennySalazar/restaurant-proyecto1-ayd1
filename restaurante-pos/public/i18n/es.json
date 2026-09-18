@@ -477,6 +477,21 @@
     "authorization": "Autorización",
     "pointsRedeemed": "Puntos redimidos",
     "pointsGranted": "Puntos otorgados",
+    "rating": {
+      "eyebrow": "Experiencia de servicio",
+      "title": "Califica la atención recibida",
+      "description": "Tu opinión nos ayuda a mejorar la atención brindada por nuestro equipo.",
+      "starLabel": "Calificar con {{ rating }} estrellas",
+      "comment": "Comentario opcional",
+      "commentPlaceholder": "Cuéntanos brevemente cómo fue tu experiencia...",
+      "submit": "Enviar calificación",
+      "successTitle": "Gracias por tu calificación",
+      "successDescription": "La calificación fue registrada para la atención brindada por {{ waiter }}.",
+      "errors": {
+        "required": "Selecciona una calificación de 1 a 5 estrellas.",
+        "commentLength": "El comentario no puede superar los 500 caracteres."
+      }
+    },
     "errors": {
       "invalidId": "El identificador del comprobante no es válido.",
       "popupBlocked": "El navegador bloqueó la ventana de impresión. Habilita las ventanas emergentes e inténtalo nuevamente."

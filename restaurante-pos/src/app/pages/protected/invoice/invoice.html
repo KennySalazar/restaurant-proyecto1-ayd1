@@ -451,6 +451,193 @@
           </div>
         </section>
       }
+
+      <section class="service-rating">
+        <div class="service-rating__heading">
+          <div>
+            <span class="invoice-section-title">
+              {{ 'invoice.rating.eyebrow' | transloco }}
+            </span>
+
+            <h3>
+              {{ 'invoice.rating.title' | transloco }}
+            </h3>
+
+            <p>
+              {{ 'invoice.rating.description' | transloco }}
+            </p>
+          </div>
+
+          <span class="service-rating__icon">
+            <i class="pi pi-star"></i>
+          </span>
+        </div>
+
+        <app-form-feedback
+          [message]="ratingErrorMessage()"
+        />
+
+        @if (registeredRating(); as rating) {
+          <div class="service-rating__success">
+            <i class="pi pi-check-circle"></i>
+
+            <div>
+              <strong>
+                {{
+                  'invoice.rating.successTitle'
+                    | transloco
+                }}
+              </strong>
+
+              <span>
+                {{
+                  'invoice.rating.successDescription'
+                    | transloco:
+                    {
+                      waiter: waiterName(rating)
+                    }
+                }}
+              </span>
+
+              <div class="service-rating__success-stars">
+                @for (
+                    star of ratingOptions;
+                  track star
+                  ) {
+                  <i
+                    class="pi"
+                    [class.pi-star-fill]="
+                      star <= rating.calificacion
+                    "
+                    [class.pi-star]="
+                      star > rating.calificacion
+                    "
+                  ></i>
+                }
+              </div>
+
+              @if (rating.comentario) {
+                <p>
+                  "{{ rating.comentario }}"
+                </p>
+              }
+            </div>
+          </div>
+        } @else {
+          <div class="service-rating__form">
+            <div class="rating-stars">
+              @for (
+                  star of ratingOptions;
+                track star
+                ) {
+                <button
+                  type="button"
+                  class="rating-star"
+                  [class.rating-star--active]="
+                    isRatingSelected(star)
+                  "
+                  [attr.aria-label]="
+                    (
+                      'invoice.rating.starLabel'
+                        | transloco:
+                          {
+                            rating: star
+                          }
+                    )
+                  "
+                  (click)="selectRating(star)"
+                >
+                  <i
+                    class="pi"
+                    [class.pi-star-fill]="
+                      isRatingSelected(star)
+                    "
+                    [class.pi-star]="
+                      !isRatingSelected(star)
+                    "
+                  ></i>
+                </button>
+              }
+            </div>
+
+            @if (
+              ratingControl.invalid &&
+              ratingControl.touched
+              ) {
+              <span class="service-rating__validation">
+                <i class="pi pi-exclamation-circle"></i>
+
+                {{
+                  'invoice.rating.errors.required'
+                    | transloco
+                }}
+              </span>
+            }
+
+            <div class="service-rating__comment">
+              <label for="serviceRatingComment">
+                {{
+                  'invoice.rating.comment'
+                    | transloco
+                }}
+              </label>
+
+              <textarea
+                id="serviceRatingComment"
+                rows="4"
+                maxlength="500"
+                [formControl]="ratingCommentControl"
+                [placeholder]="
+                  'invoice.rating.commentPlaceholder'
+                    | transloco
+                "
+              ></textarea>
+
+              <small>
+                {{ ratingCommentControl.value.length }}/500
+              </small>
+            </div>
+
+            @if (
+              ratingCommentControl.hasError('maxlength') &&
+              ratingCommentControl.touched
+              ) {
+              <span class="service-rating__validation">
+                {{
+                  'invoice.rating.errors.commentLength'
+                    | transloco
+                }}
+              </span>
+            }
+
+            <div class="service-rating__actions">
+              <button
+                type="button"
+                class="primary-button"
+                [disabled]="
+                  submittingRating() ||
+                  ratingControl.invalid ||
+                  ratingCommentControl.invalid
+                "
+                (click)="submitRating()"
+              >
+                @if (submittingRating()) {
+                  <i class="pi pi-spin pi-spinner"></i>
+                } @else {
+                  <i class="pi pi-send"></i>
+                }
+
+                <span>
+                  {{
+                    'invoice.rating.submit'
+                      | transloco
+                  }}
+                </span>
+              </button>
+            </div>
+          </div>
+        }
+      </section>
     </article>
   }
 </div>
