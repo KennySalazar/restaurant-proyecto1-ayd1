@@ -256,6 +256,230 @@
                   </span>
                 </div>
               </div>
+
+              <div class="customer-enrollment">
+                <div class="customer-enrollment__section">
+                  <div class="customer-enrollment__heading">
+                    <div>
+                      <strong>
+                        {{
+                          'billing.loyalty.customerLookupTitle'
+                            | transloco
+                        }}
+                      </strong>
+
+                      <span>
+                        {{
+                          'billing.loyalty.customerLookupDescription'
+                            | transloco
+                        }}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div class="customer-inline-form">
+                    <label for="customerSearchPhone">
+                      {{
+                        'billing.loyalty.phone'
+                          | transloco
+                      }}
+                    </label>
+
+                    <div class="customer-inline-form__controls">
+                      <input
+                        id="customerSearchPhone"
+                        type="tel"
+                        maxlength="25"
+                        [placeholder]="
+                          'billing.loyalty.phonePlaceholder'
+                            | transloco
+                        "
+                        [formControl]="customerSearchPhoneControl"
+                      />
+
+                      <button
+                        type="button"
+                        class="secondary-button"
+                        [disabled]="
+                          searchingCustomer() ||
+                          customerSearchPhoneControl.invalid
+                        "
+                        (click)="searchCustomer()"
+                      >
+                        @if (searchingCustomer()) {
+                          <i class="pi pi-spin pi-spinner"></i>
+                        } @else {
+                          <i class="pi pi-search"></i>
+                        }
+
+                        <span>
+                          {{
+                            (searchingCustomer()
+                              ? 'billing.loyalty.searchingCustomer'
+                              : 'billing.loyalty.searchCustomer')
+                              | transloco
+                          }}
+                        </span>
+                      </button>
+                    </div>
+                  </div>
+
+                  @if (customerSearchResult(); as foundCustomer) {
+                    <div class="customer-found-card">
+                      <div>
+                        <small>
+                          {{
+                            'billing.loyalty.customerFound'
+                              | transloco
+                          }}
+                        </small>
+
+                        <strong>
+                          {{ foundCustomer.nombres }}
+                          @if (foundCustomer.apellidos) {
+                            {{ foundCustomer.apellidos }}
+                          }
+                        </strong>
+
+                        <span>
+                          {{ foundCustomer.telefono }} ·
+                          {{
+                            foundCustomer.saldoPuntos
+                              | number: '1.0-0'
+                          }}
+                          {{ 'billing.loyalty.points' | transloco }}
+                        </span>
+                      </div>
+
+                      <button
+                        type="button"
+                        class="billing-primary-button"
+                        [disabled]="associatingCustomer()"
+                        (click)="associateExistingCustomer()"
+                      >
+                        @if (associatingCustomer()) {
+                          <i class="pi pi-spin pi-spinner"></i>
+                        } @else {
+                          <i class="pi pi-link"></i>
+                        }
+
+                        <span>
+                          {{
+                            (associatingCustomer()
+                              ? 'billing.loyalty.associatingCustomer'
+                              : 'billing.loyalty.associateCustomer')
+                              | transloco
+                          }}
+                        </span>
+                      </button>
+                    </div>
+                  }
+                </div>
+
+                <div class="customer-enrollment__divider">
+                  <span>
+                    {{ 'billing.loyalty.orRegisterNew' | transloco }}
+                  </span>
+                </div>
+
+                <div class="customer-enrollment__section">
+                  <div class="customer-enrollment__heading">
+                    <div>
+                      <strong>
+                        {{
+                          'billing.loyalty.registerCustomerTitle'
+                            | transloco
+                        }}
+                      </strong>
+
+                      <span>
+                        {{
+                          'billing.loyalty.registerCustomerDescription'
+                            | transloco
+                        }}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div class="customer-form-grid">
+                    <label>
+                      <span>
+                        {{ 'billing.loyalty.names' | transloco }}
+                      </span>
+                      <input
+                        type="text"
+                        maxlength="120"
+                        [formControl]="customerNamesControl"
+                      />
+                    </label>
+
+                    <label>
+                      <span>
+                        {{ 'billing.loyalty.lastNames' | transloco }}
+                      </span>
+                      <input
+                        type="text"
+                        maxlength="120"
+                        [formControl]="customerLastNamesControl"
+                      />
+                    </label>
+
+                    <label>
+                      <span>
+                        {{ 'billing.loyalty.phone' | transloco }}
+                      </span>
+                      <input
+                        type="tel"
+                        maxlength="25"
+                        [formControl]="customerPhoneControl"
+                      />
+                    </label>
+
+                    <label>
+                      <span>
+                        {{ 'billing.loyalty.emailOptional' | transloco }}
+                      </span>
+                      <input
+                        type="email"
+                        maxlength="150"
+                        [formControl]="customerEmailControl"
+                      />
+                    </label>
+                  </div>
+
+                  <button
+                    type="button"
+                    class="billing-primary-button customer-register-button"
+                    [disabled]="
+                      registeringCustomer() ||
+                      customerNamesControl.invalid ||
+                      customerLastNamesControl.invalid ||
+                      customerPhoneControl.invalid ||
+                      customerEmailControl.invalid
+                    "
+                    (click)="registerCustomer()"
+                  >
+                    @if (registeringCustomer()) {
+                      <i class="pi pi-spin pi-spinner"></i>
+                    } @else {
+                      <i class="pi pi-user-plus"></i>
+                    }
+
+                    <span>
+                      {{
+                        (registeringCustomer()
+                          ? 'billing.loyalty.registeringCustomer'
+                          : 'billing.loyalty.registerAndAssociate')
+                          | transloco
+                      }}
+                    </span>
+                  </button>
+                </div>
+
+                <app-form-feedback
+                  [message]="customerEnrollmentErrorMessage()"
+                />
+              </div>
             } @else if (loadingLoyalty()) {
               <div class="billing-state">
                 <i class="pi pi-spin pi-spinner"></i>
@@ -424,7 +648,7 @@
                           min="1"
                           step="1"
                           inputmode="numeric"
-                          [max]="loyalty.saldoPuntos"
+                          [max]="maximumRedeemablePoints()"
                           [formControl]="pointsToRedeemControl"
                           (input)="onPointsToRedeemChange()"
                         />
@@ -697,7 +921,8 @@
                 <strong>
                   Q
                   {{
-                    result.montoImpuesto
+                    (chargeBreakdown()?.taxAmount ??
+                      result.montoImpuesto)
                       | number: '1.2-2'
                   }}
                 </strong>
@@ -716,7 +941,8 @@
                 <strong>
                   Q
                   {{
-                    result.montoPropina
+                    (chargeBreakdown()?.tipAmount ??
+                      result.montoPropina)
                       | number: '1.2-2'
                   }}
                 </strong>
@@ -747,7 +973,11 @@
                 </span>
 
                 <strong>
-                  Q {{ result.total | number: '1.2-2' }}
+                  Q
+                  {{
+                    (chargeBreakdown()?.total ?? result.total)
+                      | number: '1.2-2'
+                  }}
                 </strong>
               </div>
 
@@ -764,6 +994,286 @@
                 </div>
               }
             </div>
+
+            @if (
+              result.subcuentaId === null &&
+              subaccounts().length === 0
+              ) {
+              <section class="payment-section">
+                <div class="payment-section__heading">
+                  <div>
+                    <span class="section-heading__eyebrow">
+                      {{ 'billing.payment.eyebrow' | transloco }}
+                    </span>
+
+                    <h3>
+                      {{ 'billing.payment.title' | transloco }}
+                    </h3>
+
+                    <p>
+                      {{ 'billing.payment.description' | transloco }}
+                    </p>
+                  </div>
+
+                  <span class="payment-section__icon">
+                    <i class="pi pi-wallet"></i>
+                  </span>
+                </div>
+
+                <app-form-feedback
+                  [message]="paymentErrorMessage()"
+                />
+
+                <div class="payment-method-grid">
+                  <button
+                    type="button"
+                    class="payment-method-card"
+                    [class.payment-method-card--selected]="
+                      paymentModeControl.value === 'CASH'
+                    "
+                    [disabled]="charging()"
+                    (click)="selectPaymentMode('CASH')"
+                  >
+                    <span class="payment-method-card__icon">
+                      <i class="pi pi-money-bill"></i>
+                    </span>
+
+                    <span>
+                      <strong>
+                        {{ 'billing.payment.cash' | transloco }}
+                      </strong>
+
+                      <small>
+                        {{
+                          'billing.payment.cashDescription'
+                            | transloco
+                        }}
+                      </small>
+                    </span>
+
+                    <i class="pi pi-check-circle"></i>
+                  </button>
+
+                  <button
+                    type="button"
+                    class="payment-method-card"
+                    [class.payment-method-card--selected]="
+                      paymentModeControl.value === 'CARD'
+                    "
+                    [disabled]="charging()"
+                    (click)="selectPaymentMode('CARD')"
+                  >
+                    <span class="payment-method-card__icon">
+                      <i class="pi pi-credit-card"></i>
+                    </span>
+
+                    <span>
+                      <strong>
+                        {{ 'billing.payment.card' | transloco }}
+                      </strong>
+
+                      <small>
+                        {{
+                          'billing.payment.cardDescription'
+                            | transloco
+                        }}
+                      </small>
+                    </span>
+
+                    <i class="pi pi-check-circle"></i>
+                  </button>
+                </div>
+
+                <div class="payment-summary-card">
+                  <div>
+                    <span>
+                      {{ 'billing.payment.amountToCharge' | transloco }}
+                    </span>
+
+                    <strong>
+                      Q
+                      {{
+                        (chargeBreakdown()?.total ?? 0)
+                          | number: '1.2-2'
+                      }}
+                    </strong>
+                  </div>
+
+                  @if (pointsSelectedForRedemption() > 0) {
+                    <div>
+                      <span>
+                        {{
+                          'billing.payment.pointsApplied'
+                            | transloco
+                        }}
+                      </span>
+
+                      <strong class="payment-summary-card__discount">
+                        -Q
+                        {{
+                          redemptionDiscountPreview()
+                            | number: '1.2-2'
+                        }}
+                      </strong>
+                    </div>
+                  }
+                </div>
+
+                @if (paymentModeControl.value === 'CASH') {
+                  <div class="payment-form-grid">
+                    <div class="payment-field">
+                      <label for="cashReceived">
+                        {{
+                          'billing.payment.receivedAmount'
+                            | transloco
+                        }}
+                      </label>
+
+                      <div class="payment-input-wrapper">
+                        <span>Q</span>
+
+                        <input
+                          id="cashReceived"
+                          type="number"
+                          min="0.01"
+                          step="0.01"
+                          inputmode="decimal"
+                          [formControl]="cashReceivedControl"
+                          [disabled]="charging()"
+                        />
+                      </div>
+
+                      @if (
+                        paymentSubmitted() &&
+                        cashReceivedControl.hasError('required')
+                        ) {
+                        <small class="payment-field-error">
+                          {{
+                            'billing.payment.errors.receivedRequired'
+                              | transloco
+                          }}
+                        </small>
+                      } @else if (cashReceivedIsInsufficient()) {
+                        <small class="payment-field-error">
+                          {{
+                            'billing.payment.errors.insufficientCash'
+                              | transloco
+                          }}
+                        </small>
+                      }
+                    </div>
+
+                    <div class="payment-change-card">
+                      <span>
+                        {{ 'billing.payment.change' | transloco }}
+                      </span>
+
+                      <strong>
+                        Q {{ cashChange() | number: '1.2-2' }}
+                      </strong>
+                    </div>
+                  </div>
+                } @else {
+                  <div class="payment-form-grid payment-form-grid--card">
+                    <div class="payment-field">
+                      <label for="cardReference">
+                        {{
+                          'billing.payment.reference'
+                            | transloco
+                        }}
+                      </label>
+
+                      <input
+                        id="cardReference"
+                        class="payment-text-input"
+                        type="text"
+                        maxlength="120"
+                        autocomplete="off"
+                        [formControl]="cardReferenceControl"
+                        [disabled]="charging()"
+                      />
+
+                      <small>
+                        {{
+                          'billing.payment.referenceHint'
+                            | transloco
+                        }}
+                      </small>
+
+                      @if (
+                        paymentSubmitted() &&
+                        cardReferenceControl.invalid
+                        ) {
+                        <small class="payment-field-error">
+                          {{
+                            'billing.payment.errors.referenceRequired'
+                              | transloco
+                          }}
+                        </small>
+                      }
+                    </div>
+
+                    <div class="payment-field">
+                      <label for="cardAuthorization">
+                        {{
+                          'billing.payment.authorization'
+                            | transloco
+                        }}
+                      </label>
+
+                      <input
+                        id="cardAuthorization"
+                        class="payment-text-input"
+                        type="text"
+                        maxlength="120"
+                        autocomplete="off"
+                        [formControl]="cardAuthorizationControl"
+                        [disabled]="charging()"
+                      />
+
+                      <small>
+                        {{
+                          'billing.payment.authorizationHint'
+                            | transloco
+                        }}
+                      </small>
+                    </div>
+                  </div>
+                }
+
+                <button
+                  type="button"
+                  class="payment-submit-button"
+                  [disabled]="!canCharge()"
+                  (click)="chargeAccount()"
+                >
+                  @if (charging()) {
+                    <i class="pi pi-spin pi-spinner"></i>
+
+                    <span>
+                      {{ 'billing.payment.processing' | transloco }}
+                    </span>
+                  } @else {
+                    <i class="pi pi-check-circle"></i>
+
+                    <span>
+                      {{ 'billing.payment.charge' | transloco }}
+                      Q
+                      {{
+                        (chargeBreakdown()?.total ?? 0)
+                          | number: '1.2-2'
+                      }}
+                    </span>
+                  }
+                </button>
+
+                <small class="payment-security-note">
+                  <i class="pi pi-lock"></i>
+
+                  {{ 'billing.payment.securityNote' | transloco }}
+                </small>
+              </section>
+            }
           } @else if (!loadingSubaccounts() && !loadingCalculation() && subaccounts().length > 0) {
             <div class="billing-state billing-state--selection">
               <i class="pi pi-arrow-up"></i>
