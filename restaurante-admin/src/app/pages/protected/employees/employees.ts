@@ -5,7 +5,6 @@ import {
   OnInit,
   signal,
 } from '@angular/core';
-import { DatePipe } from '@angular/common';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { finalize } from 'rxjs';
 import { MessageService } from 'primeng/api';
@@ -23,7 +22,6 @@ import { EmployeeFormDialogComponent } from './employee-form-dialog/employee-for
 @Component({
   selector: 'app-employees-page',
   imports: [
-    DatePipe,
     FormFeedbackComponent,
     PageHeadingComponent,
     TranslocoPipe,
@@ -68,6 +66,24 @@ export class EmployeesPageComponent implements OnInit {
         (employee) => !employee.habilitado,
       ).length,
   );
+
+  formatDate(value: string | null): string {
+    if (!value) {
+      return '-';
+    }
+
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime())) {
+      return '-';
+    }
+
+    return new Intl.DateTimeFormat('es-GT', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    }).format(date);
+  }
 
   ngOnInit(): void {
     this.loadEmployees();

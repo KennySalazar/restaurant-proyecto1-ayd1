@@ -174,8 +174,7 @@
 
               <td>
                 {{
-                  employee.fechaContratacion
-                    | date:'dd/MM/yyyy'
+                  formatDate(employee.fechaContratacion)
                 }}
               </td>
 
@@ -341,8 +340,7 @@
 
         <strong>
           {{
-            employee.fechaContratacion
-              | date:'dd/MM/yyyy'
+            formatDate(employee.fechaContratacion)
           }}
         </strong>
       </div>

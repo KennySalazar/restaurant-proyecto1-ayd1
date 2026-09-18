@@ -5,7 +5,6 @@ import {
   OnInit,
   signal,
 } from '@angular/core';
-import { DatePipe } from '@angular/common';
 import {
   FormBuilder,
   ReactiveFormsModule,
@@ -30,7 +29,6 @@ import { PageHeadingComponent } from '../../../shared/components/page-heading/pa
 @Component({
   selector: 'app-configuration-page',
   imports: [
-    DatePipe,
     FormFeedbackComponent,
     PageHeadingComponent,
     ReactiveFormsModule,
@@ -77,6 +75,27 @@ export class ConfigurationPageComponent implements OnInit {
   readonly isTipEnabled = computed(
     () => (this.configuration()?.porcentaje ?? 0) > 0,
   );
+
+  formatDate(value: string | null): string {
+    if (!value) {
+      return '-';
+    }
+
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime())) {
+      return '-';
+    }
+
+    return new Intl.DateTimeFormat('es-GT', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hourCycle: 'h23',
+    }).format(date);
+  }
 
 
   readonly pointsForm = this.formBuilder.nonNullable.group({
