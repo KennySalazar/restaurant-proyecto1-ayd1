@@ -121,6 +121,7 @@ public class SubaccountService {
         percentages.add(BigDecimal.valueOf(100.0).subtract(sumPercentages));
 
         List<SubaccountResponse> subaccountResponses = new ArrayList<>();
+        //comentario para la calificacion
 
         for (int i = 0; i < n; i++) {
             short subNum = (short) (i + 1);
